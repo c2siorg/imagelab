@@ -1,16 +1,18 @@
-import './App.css';
-import './imagelab-block'
+import "./App.css";
+import "./imagelab-block";
 import React, { useState, useEffect, useRef } from "react";
 import { BlocklyWorkspace } from "react-blockly";
 import Blockly from "blockly";
-import { MY_TOOLBOX } from './toolboxConfiguration';
-import { Navbar, Alignment, Button, Card, Elevation } from '@blueprintjs/core';
-import './CustomBlockly.css';
-import ImageViewer from './components/ImageViewer';
-import { workspaceConfiguration } from './workspaceConfig';
-import { redo, reset, run, undo } from './utils/main';
+import { MY_TOOLBOX } from "./toolboxConfiguration";
+import { Navbar, Alignment, Button, Card, Elevation } from "@blueprintjs/core";
+import "./CustomBlockly.css";
+import ImageViewer from "./components/ImageViewer";
+import { workspaceConfiguration } from "./workspaceConfig";
+import { redo, reset, run, undo } from "./utils/main";
+import { useTranslation } from "react-i18next";
 
 function App() {
+  const [t, i18n] = useTranslation();
   const [xml, setXml] = useState("");
   const [imageUrl, setImageUrl] = useState(null);
   const [processedImage, setProcessedImage] = useState(null);
@@ -20,32 +22,36 @@ function App() {
   const start = () => {
     const topBlock = Blockly.getMainWorkspace().getTopBlocks()[0];
     run(topBlock);
-  }
+  };
+
+  useEffect(() => {
+    console.log("Detected language:", i18n.language);
+  }, [i18n.language]);
 
   //Hook to handle updating the image
   useEffect(() => {
     // Add event listener for the message
-    window.addEventListener('message', handleMessage);
+    window.addEventListener("message", handleMessage);
 
     // Cleanup the event listener on unmount
     return () => {
-      window.removeEventListener('message', handleMessage);
+      window.removeEventListener("message", handleMessage);
     };
   }, []);
 
   useEffect(() => {
     return () => {
-      localStorage.removeItem('base64Image'); 
-      localStorage.removeItem('storedImage');
+      localStorage.removeItem("base64Image");
+      localStorage.removeItem("storedImage");
     };
   }, []);
 
   const handleMessage = (event) => {
-    if (event.data.type === 'imageSelected') {
+    if (event.data.type === "imageSelected") {
       const imageUrl = event.data.imageUrl;
       setImageUrl(imageUrl);
     }
-    if (event.data.type === 'imageProcessed') {
+    if (event.data.type === "imageProcessed") {
       const processedImage = event.data.canvasImageData;
       setProcessedImage(processedImage);
     }
@@ -53,61 +59,81 @@ function App() {
 
   const saveWorkspace = () => {
     const xmlText = xml;
-    const element = document.createElement('a');
-    const file = new Blob([xmlText], { type: 'text/plain' });
+    const element = document.createElement("a");
+    const file = new Blob([xmlText], { type: "text/plain" });
     element.href = URL.createObjectURL(file);
-    element.download = 'blockly-workspace.xml';
+    element.download = "blockly-workspace.xml";
     document.body.appendChild(element);
     element.click();
-  }
+  };
 
   const loadWorkspace = (event) => {
     const file = event.target.files[0];
     const reader = new FileReader();
-  
+
     reader.onload = (event) => {
       const xml = Blockly.Xml.textToDom(event.target.result);
       const workspace = Blockly.getMainWorkspace();
       Blockly.Xml.clearWorkspaceAndLoadFromXml(xml, workspace);
     };
-  
+
     reader.readAsText(file);
-  }  
+  };
   const handleDownload = () => {
-    const imageUrl = localStorage.getItem('storedImage'); 
+    const imageUrl = localStorage.getItem("storedImage");
 
     if (!imageUrl) {
-      window.alert('No processed image found in storage!');
+      window.alert("No processed image found in storage!");
       return;
     }
 
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = imageUrl;
-    link.download = 'processed_image.jpg'; 
-    
+    link.download = "processed_image.jpg";
+
     link.click();
   };
 
   return (
     <>
       <Navbar>
-          <Navbar.Group align={Alignment.LEFT}>
-              <Navbar.Heading>ImageLab</Navbar.Heading>
-              <Navbar.Divider />
-              <Button className="bp4-minimal" icon="document-open" text="Open" onClick={() => fileInputRef.current.click()} />
-              <input type="file" ref={fileInputRef} onChange={loadWorkspace} style={{ display: 'none' }}/>
-              <Button className="bp4-minimal" icon="document-share" text="Save" onClick={saveWorkspace} />
-              <Button className="bp4-minimal" icon="lightbulb" />
-          </Navbar.Group>
-          <Navbar.Group align={Alignment.RIGHT}>
-              <Button onClick={start} className="bp4-minimal" icon="play" text="Run" />
-              <Navbar.Divider />
-              <Button onClick={undo} className="bp4-minimal" icon="undo" />
-              <Button onClick={redo} className="bp4-minimal" icon="redo" />
-              <Button onClick={reset} className="bp4-minimal" icon="reset" />
-          </Navbar.Group>
+        <Navbar.Group align={Alignment.LEFT}>
+          <Navbar.Heading>ImageLab</Navbar.Heading>
+          <Navbar.Divider />
+          <Button
+            className="bp4-minimal"
+            icon="document-open"
+            text="Open"
+            onClick={() => fileInputRef.current.click()}
+          />
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={loadWorkspace}
+            style={{ display: "none" }}
+          />
+          <Button
+            className="bp4-minimal"
+            icon="document-share"
+            text="Save"
+            onClick={saveWorkspace}
+          />
+          <Button className="bp4-minimal" icon="lightbulb" />
+        </Navbar.Group>
+        <Navbar.Group align={Alignment.RIGHT}>
+          <Button
+            onClick={start}
+            className="bp4-minimal"
+            icon="play"
+            text="Run"
+          />
+          <Navbar.Divider />
+          <Button onClick={undo} className="bp4-minimal" icon="undo" />
+          <Button onClick={redo} className="bp4-minimal" icon="redo" />
+          <Button onClick={reset} className="bp4-minimal" icon="reset" />
+        </Navbar.Group>
       </Navbar>
-      <div className='row'>
+      <div className="row">
         <BlocklyWorkspace
           className="fill-height"
           toolboxConfiguration={MY_TOOLBOX}
@@ -115,8 +141,15 @@ function App() {
           onXmlChange={setXml}
           workspaceConfiguration={workspaceConfiguration}
         />
-        <div className='panel'>
-          <h3>Preview | <Button className="bp4-minimal" icon="download" onClick={handleDownload} /> </h3>
+        <div className="panel">
+          <h3>
+            Preview |{" "}
+            <Button
+              className="bp4-minimal"
+              icon="download"
+              onClick={handleDownload}
+            />{" "}
+          </h3>
           <Card elevation={Elevation.ONE}>
             <p>Original Img</p>
             <ImageViewer imageUrl={imageUrl} />
@@ -124,12 +157,12 @@ function App() {
           <br />
           <Card elevation={Elevation.ONE}>
             <p>Processed Image</p>
-            <ImageViewer imageUrl={processedImage}/>
+            <ImageViewer imageUrl={processedImage} />
           </Card>
         </div>
       </div>
-  </>
-  )
+    </>
+  );
 }
 
 export default App;
