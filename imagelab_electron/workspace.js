@@ -214,28 +214,38 @@ function downloadImage() {
  * set the image in the main controller
  */
 function loadFile() {
-  const preview = document.getElementById("input-image"); // image-preview is the element of image will displayed on the preview pane.
+  // let preview = document.getElementById("input-video"); // image-preview is the element of image will displayed on the preview pane.
   const file = document.querySelector("input[type=file]").files[0];
+  if(file.name.includes(".mp4"))
+        preview = document.getElementById("input-video");
+      else
+        preview = document.getElementById("input-image");
   const reader = new FileReader();
   var url = "";
 
-  reader.addEventListener(
-    "load",
-    function () {
+  reader.onload= (event) => {
+      console.log("file merge started");
       // convert image file to base64 string
       url = URL.createObjectURL(file);
-
+      console.log(preview);
       preview.src = url;
-    },
-    false
-  );
-
+    };
+  
+  preview.addEventListener("canplaythrough", () => {
+    console.log(file.name.includes(".mp4"));
+    mainController.setOriginalVideo(preview);
+  });
+  
   preview.onload = () => {
+    console.log(file.name.includes(".mp4"));
     // Here preview is the main image
-    mainController.setOriginalImage(preview);
+    if(file.name.includes(".mp4"))
+      mainController.setOriginalVideo(preview);  
+    else
+      mainController.setOriginalImage(preview);
   };
-
-  if (file) {
-    reader.readAsDataURL(file);
-  }
+      
+    if (file) {
+      reader.readAsDataURL(file);
+    }
 }
