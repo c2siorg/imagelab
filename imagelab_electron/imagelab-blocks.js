@@ -932,6 +932,16 @@ Blockly.defineBlocksWithJsonArray([
     helpUrl: "",
   },
   {
+    type: "clahe",
+    message0: "Apply CLAHE",
+    previousStatement: null,
+    nextStatement: null,
+    colour: 270,
+    tooltip:
+      "Contrast Limited Adaptive Histogram Equalization (CLAHE) is used to improve contrast of images",
+    helpUrl: "",
+  },
+  {
     type: "border_for_all",
     message0: "with thickness %1",
     args0: [
