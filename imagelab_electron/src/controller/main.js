@@ -25,6 +25,7 @@ const RotateImage = require("../operator/geometric/RotateImage");
 const ScaleImage = require("../operator/geometric/ScaleImage");
 const AdaptiveThreshold = require("../operator/thresholding/AdaptiveThresholding");
 const ApplyThreshold = require("../operator/thresholding/ApplyThreshold");
+const CLAHE = require("../operator/miscellaneous/CLAHE");
 
 class MainController {
   // This private field is used to store the applied operators in the workspace
@@ -242,6 +243,11 @@ class MainController {
       case PROCESS_OPERATIONS.SIMPLETHRESHOLDING:
         this.#appliedOperators.push(
           new ApplyThreshold(PROCESS_OPERATIONS.SIMPLETHRESHOLDING, id)
+        );
+        break;
+      case PROCESS_OPERATIONS.CLAHE:
+        this.#appliedOperators.push(
+          new CLAHE(PROCESS_OPERATIONS.CLAHE, id)
         );
         break;
       default:

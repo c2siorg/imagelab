@@ -1,12 +1,14 @@
 package com.imagelab.controllers;
 
 import com.imagelab.component.OperatorUIElement;
+import com.imagelab.operator.imagebluring.ApplyBilateralBlur;
 import com.imagelab.operator.imagebluring.ApplyBlurEffect;
 import com.imagelab.operator.imagebluring.ApplyGaussianBlurEffect;
 import com.imagelab.operator.imagebluring.ApplyMedianBlurEffect;
 import com.imagelab.view.AbstractInformationUI;
 import com.imagelab.view.InformationContainerView;
 import com.imagelab.view.forms.AbstractPropertiesForm;
+import com.imagelab.view.forms.BilateralBlurPropertiesForm;
 import com.imagelab.view.forms.GaussianBlurPropertiesForm;
 import com.imagelab.view.forms.MedianBlurPropertiesForm;
 import com.imagelab.view.forms.SimpleBlurPropertiesForm;
@@ -74,5 +76,26 @@ public class BlurringOperatorController {
         applyMedianBlurEffect.elementStyleId = "applyMedianBlur";
         applyMedianBlurEffect.buildElement();
         return applyMedianBlurEffect;
+	}
+    public static OperatorUIElement applyBilateralEffectElement() {
+		//applybilateralEffect UI element.
+        OperatorUIElement applybilateralBlur = new OperatorUIElement() {
+            @Override
+            public AbstractInformationUI buildInformationUI() {
+                return new InformationContainerView(ApplyBilateralBlur
+                        .Information.OPERATOR_INFO.toString());
+            }
+
+            @Override
+            public AbstractPropertiesForm buildPropertiesFormUI() {
+                return new BilateralBlurPropertiesForm((ApplyBilateralBlur) this.operator);
+            }
+        };
+        applybilateralBlur.operator = new ApplyBilateralBlur();
+        applybilateralBlur.operatorId = ApplyBilateralBlur.class.getCanonicalName();
+        applybilateralBlur.operatorName = "APPLY-BILATERAL-BLUR";
+        applybilateralBlur.elementStyleId = "applyBilateralBlur";
+        applybilateralBlur.buildElement();
+        return applybilateralBlur;
 	}
 }
