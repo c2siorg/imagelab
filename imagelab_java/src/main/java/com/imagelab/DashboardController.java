@@ -538,7 +538,8 @@ public class DashboardController implements Initializable {
         		// Populating blurringOperatorsContainer.
                 BlurringOperatorController.applyBlurEffectElement().element,
                 BlurringOperatorController.applyGaussianEffectElement().element,
-                BlurringOperatorController.applyMedainBlurEffectElement().element
+                BlurringOperatorController.applyMedainBlurEffectElement().element,
+                BlurringOperatorController.applyBilateralEffectElement().element
         );
 
         filteringOperatorsContainer.setSpacing(15d);
@@ -589,7 +590,8 @@ public class DashboardController implements Initializable {
         	    // Populating sobelDerivationContainer
         		MiscellaneousOperatorController.cannyEdgeDetectionElement().element,
         		MiscellaneousOperatorController.houghLineTransformElement().element,
-        		MiscellaneousOperatorController.histogramEqualizationElement().element
+        		MiscellaneousOperatorController.histogramEqualizationElement().element,
+                MiscellaneousOperatorController.WatershedAlgorithmElement().element
         );
         contourOperationContainer.setSpacing(15d);
         contourOperationContainer.setAlignment(Pos.TOP_CENTER);
@@ -607,7 +609,8 @@ public class DashboardController implements Initializable {
         histogramOperationContainer.getChildren().addAll(
         	    // Populating Histogram operators
         		HistogramController.histogramCalculationElement().element,
-        		HistogramController.templateMatchingElement().element
+        		HistogramController.templateMatchingElement().element,
+                HistogramController.claheElement().element
         );
         setDashboardToInitialState();
     }

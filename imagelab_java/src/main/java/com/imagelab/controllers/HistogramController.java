@@ -1,14 +1,14 @@
 package com.imagelab.controllers;
 
 import com.imagelab.component.OperatorUIElement;
+import com.imagelab.operator.histogram.CLAHE;
 import com.imagelab.operator.histogram.HistogramCalculation;
 import com.imagelab.operator.histogram.TemplateMatching;
-import com.imagelab.operator.transformation.LaplacianTransformation;
 import com.imagelab.view.AbstractInformationUI;
 import com.imagelab.view.InformationContainerView;
 import com.imagelab.view.forms.AbstractPropertiesForm;
+import com.imagelab.view.forms.ClahePropertiesForm;
 import com.imagelab.view.forms.HistogramCalculationPropertiesForm;
-import com.imagelab.view.forms.LaplacianTransformationPropertiesForm;
 import com.imagelab.view.forms.TemplateMatchingPropertiesForm;
 
 public class HistogramController {
@@ -53,5 +53,26 @@ public class HistogramController {
         templateMatching.elementStyleId = "templateMatch";
         templateMatching.buildElement();
         return templateMatching;
+	}
+    public static OperatorUIElement claheElement() {
+		//CLAHE Controller Function
+        OperatorUIElement claheElement = new OperatorUIElement() {
+            @Override
+            public AbstractInformationUI buildInformationUI() {
+                return new InformationContainerView(CLAHE
+                        .Information.OPERATOR_INFO.toString());
+            }
+
+            @Override
+            public AbstractPropertiesForm buildPropertiesFormUI() {
+                return new ClahePropertiesForm((CLAHE) this.operator);
+            }
+        };
+        claheElement.operator = new CLAHE();
+        claheElement.operatorId = CLAHE.class.getCanonicalName();
+        claheElement.operatorName = "CLAHE";
+        claheElement.elementStyleId = "clahe";
+        claheElement.buildElement();
+        return claheElement;
 	}
 }

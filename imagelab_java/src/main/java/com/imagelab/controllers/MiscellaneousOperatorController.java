@@ -4,12 +4,14 @@ import com.imagelab.component.OperatorUIElement;
 import com.imagelab.operator.miscellaneousoperators.CannyEdgeDetection;
 import com.imagelab.operator.miscellaneousoperators.HistogramEqualization;
 import com.imagelab.operator.miscellaneousoperators.HoughLineTransform;
+import com.imagelab.operator.miscellaneousoperators.Watershed;
 import com.imagelab.view.AbstractInformationUI;
 import com.imagelab.view.InformationContainerView;
 import com.imagelab.view.forms.AbstractPropertiesForm;
 import com.imagelab.view.forms.CannyEdgeDetectionPropertiesForm;
 import com.imagelab.view.forms.HistogramEqualizationPropertiesForm;
 import com.imagelab.view.forms.HoughLineTransformPropertiesForm;
+import com.imagelab.view.forms.WatershedPropertiesForm;
 
 
 public class MiscellaneousOperatorController {
@@ -75,5 +77,26 @@ public class MiscellaneousOperatorController {
         histogramEqualization.elementStyleId = "histogramEqual";
         histogramEqualization.buildElement();
         return histogramEqualization;
+	}
+    public static OperatorUIElement WatershedAlgorithmElement() {
+		//Histogram Equalization transform properties form.
+        OperatorUIElement watershedAlgorithmElement = new OperatorUIElement() {
+            @Override
+            public AbstractInformationUI buildInformationUI() {
+                return new InformationContainerView(Watershed
+                        .Information.OPERATOR_INFO.toString());
+            }
+
+            @Override
+            public AbstractPropertiesForm buildPropertiesFormUI() {
+                return new WatershedPropertiesForm((Watershed) this.operator);
+            }
+        };
+        watershedAlgorithmElement.operator = new Watershed();
+        watershedAlgorithmElement.operatorId = Watershed.class.getCanonicalName();
+        watershedAlgorithmElement.operatorName = "WATERSHED";
+        watershedAlgorithmElement.elementStyleId = "watershed";
+        watershedAlgorithmElement.buildElement();
+        return watershedAlgorithmElement;
 	}
 }
