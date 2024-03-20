@@ -18,7 +18,7 @@ Blockly.defineBlocksWithJsonArray([
     ],
     output: "browse_file",
     colour: 160,
-    tooltip: "Choose an image",
+    tooltip: "Choose an image/video",
     helpUrl: "",
     extensions: ["file_button"],
   },
@@ -45,7 +45,7 @@ Blockly.defineBlocksWithJsonArray([
   {
     type: "basic_readimage",
     id: "1",
-    message0: "Read image %1",
+    message0: "Read file %1",
     args0: [
       {
         type: "input_value",
@@ -57,7 +57,7 @@ Blockly.defineBlocksWithJsonArray([
     nextStatement: null,
     colour: 160,
     tooltip:
-      "This operator helps you to read an image file and convert it to an OpenCV Mat object.",
+      "This operator helps you to read an image/video file and convert it to an OpenCV Mat object.",
     helpUrl: "",
   },
   {
