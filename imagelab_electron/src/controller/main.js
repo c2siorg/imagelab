@@ -36,10 +36,18 @@ class MainController {
   //Instead of directly exporting the image, the processed image is stored
   #processedImage;
 
+  // This holds the original video added by the user
+  #originalVideo;
+
+  //Instead of directly exporting the video, the processed video is stored
+  #processedVideo;
+
   constructor() {
     this.#appliedOperators = [];
     this.#originalImage = null;
     this.#processedImage = null;
+    this.#originalVideo = null;
+    this.#processedVideo = null;
   }
 
   /**
@@ -108,6 +116,31 @@ class MainController {
   getProcessedImage() {
     return this.#processedImage;
   }
+
+    /**
+   * This method set the original video
+   * @param {Mat Image} image
+   */
+    setOriginalVideo(video) {
+      console.log("setting video",video);
+      this.#originalVideo = video;
+      this.#originalImage = null;
+    }
+  
+    /**
+     * This methods returns the original image
+     * @returns video
+     */
+    getOriginalVideo() {
+      return this.#originalVideo;
+    }
+  
+    /**
+     * 
+     */
+    getProcessedVideo() {
+      return this.#processedVideo;
+    }  
 
   /**
    * This function generates the operator object accroding to the string passed
@@ -258,18 +291,26 @@ class MainController {
     }
 
     if (this.#appliedOperators[0]?.type !== PROCESS_OPERATIONS.READIMAGE) {
-      throw Error("Read Image block is not added");
+      throw Error("Read File block is not added");
     }
 
-    if (this.#originalImage === null) {
-      throw Error("Image is not set");
+    if (this.#originalImage === null && this.#originalVideo === null) {
+      throw Error("File is not set");
     }
     var image = this.#originalImage;
+    var video = this.#originalVideo;
+    
     this.#appliedOperators.forEach((item) => {
       if (image) {
         image = item.compute(image);
         if(image) {
           this.#processedImage = image;
+        }
+      }
+      else if(video){
+        video = item.compute(video);
+        if(video) {
+          this.#processedVideo = video;
         }
       }
     });
