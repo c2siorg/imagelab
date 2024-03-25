@@ -88,6 +88,10 @@ function App() {
     link.click();
   };
 
+  const themetoggle = () =>{
+    document.getElementById('root').classList.toggle('darkmode');
+  }
+
   return (
     <>
       <Navbar>
@@ -97,7 +101,7 @@ function App() {
               <Button className="bp4-minimal" icon="document-open" text="Open" onClick={() => fileInputRef.current.click()} />
               <input type="file" ref={fileInputRef} onChange={loadWorkspace} style={{ display: 'none' }}/>
               <Button className="bp4-minimal" icon="document-share" text="Save" onClick={saveWorkspace} />
-              <Button className="bp4-minimal" icon="lightbulb" />
+              <Button className="bp4-minimal" icon="lightbulb" onClick={themetoggle}/>
           </Navbar.Group>
           <Navbar.Group align={Alignment.RIGHT}>
               <Button onClick={start} className="bp4-minimal" icon="play" text="Run" />
