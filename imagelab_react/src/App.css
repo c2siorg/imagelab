@@ -26,3 +26,30 @@
   height: calc(100vh - 50px);
   overflow: auto;  /* in case the content exceeds the available height */
 }
+
+/* Darkmode Styles */
+.darkmode{
+  background-color: #4e4e4e;
+  color: white;
+}
+
+.darkmode .bp4-navbar{
+  background-color: #4e4e4e;
+  color: white;
+}
+
+.darkmode .bp4-button{
+  color:white;
+}
+
+.darkmode .bp4-button .bp4-icon{
+  color:white;
+}
+
+.darkmode .bp4-card{
+  color: #1c2127;
+}
+
+.darkmode .blocklyToolboxDiv{
+  background-color: #4e4e4e;
+}
