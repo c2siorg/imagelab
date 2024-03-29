@@ -28,7 +28,7 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "dev": "concurrently -k \"BROWSER=none yarn start\" \"yarn:electron\"",
+    "dev": "concurrently -k \"cross-env BROWSER=none yarn start\" \"yarn:electron\"",
     "electron": "electron ."
   },
   "eslintConfig": {
@@ -51,6 +51,7 @@
   },
   "devDependencies": {
     "concurrently": "^8.1.0",
+    "cross-env": "^7.0.3",
     "wait-on": "^7.0.1"
   }
 }
