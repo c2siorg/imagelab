@@ -1,15 +1,8 @@
 # MacOS
 .DS_Store
 
-# IntelliJ
+# Jetbrains
 .idea
-*.iml
 
-# Java
-*.class
-*.log
-*.jar
-*.war
-
-# Maven
-target/
+# Node
+node_modules
