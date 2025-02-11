@@ -1022,7 +1022,7 @@ Blockly.defineBlocksWithJsonArray([
     nextStatement: null,
     colour: 345,
     tooltip:
-      "This operator allows you to detect edges of an image of both horizontal and vertaical direction Moreover it is a first order derivative.",
+      "Detects image edges horizontally and vertically using first-order derivative.",
     helpUrl: "",
   },
   {
@@ -1049,7 +1049,7 @@ Blockly.defineBlocksWithJsonArray([
     nextStatement: null,
     colour: 345,
     tooltip:
-      "This operator allows you to detect edges of an image in both horizontal and vertaical direction. Moreover it is a second order derivative.",
+      "Detects image edges horizontally and vertically using second-order derivative.",
     helpUrl: "",
   },
 
@@ -1081,31 +1081,29 @@ Blockly.defineBlocksWithJsonArray([
     nextStatement: null,
     colour: 195,
     tooltip:
-      "Distance Transformation generally takes binary images as inputs. In this operation,the gray level intensities of the points inside the foreground regions are changed to distance their respective distances from the closest 0 value.",
+      "Distance Transformation assigns gray intensities based on distance from the nearest 0.",
     helpUrl: "",
   },
   {
-    type: "transformation_laplacian",
-    message0: "Apply laplacian with %1 depth",
-    args0: [
+    "type": "transformation_laplacian",
+    "message0": "Apply laplacian with %1 depth",
+    "args0": [
       {
-        type: "field_number",
-        name: "ddepth",
-        value: 0,
-        min: -10,
-        max: 10,
-      },
+        "type": "field_number",
+        "name": "ddepth",
+        "value": 0,
+        "min": -10,
+        "max": 10
+      }
     ],
-    previousStatement: null,
-    nextStatement: null,
-    colour: 195,
-    tooltip: 
-    "Laplacian Transformation is also a derivative which is used to find edges in an image.It is a second order derivative mask.Moreover, there are two classifications: Positive Laplacian and Negative Laplacian.Unlike other operators, Laplacian doesn't take out edges in any particular direction, but it takes out edges in inward edges and outward edges.",
-
-    helpUrl: "",
- 
-
-  },
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": 195,
+    "tooltip": "Laplacian detects image edges using a second-order derivative, capturing inward and outward edges.",
+    "helpUrl": ""
+  }
+  
+  ,
 ]);
 
 /*
