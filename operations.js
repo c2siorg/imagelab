@@ -25,6 +25,7 @@ const PROCESS_OPERATIONS = {
   MORPHOLOGICAL: "filtering_morphological",
   ADAPTIVETHRESHOLDING: "thresholding_adaptivethreshold",
   SIMPLETHRESHOLDING: "thresholding_applythreshold",
+  FLIP_IMAGE: "flip_image",
 };
 
 module.exports = PROCESS_OPERATIONS;

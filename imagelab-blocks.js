@@ -149,6 +149,26 @@ Blockly.defineBlocksWithJsonArray([
       "Image Affine Translation or shearing express in a materix form. It's a combination of shearing and reflection",
     helpUrl: "",
   },
+  {
+    type: "flip_image",
+    message0: "Flip image with flip code %1",
+    args0: [
+      {
+        type: "field_dropdown",
+        name: "flip_code",
+        options: [
+          ["Vertical", "0"],
+          ["Horizontal", "1"],
+          ["Both", "-1"]
+        ]
+      }
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: 20,
+    tooltip: "Flip the image vertically, horizontally, or both.",
+    helpUrl: ""
+  },
 
   //Convertions
   {

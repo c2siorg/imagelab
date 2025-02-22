@@ -22,6 +22,7 @@ const PyramidUp = require("../operator/filtering/PyramidUp");
 const AffineImage = require("../operator/geometric/AffineImage");
 const ReflectImage = require("../operator/geometric/ReflectImage");
 const RotateImage = require("../operator/geometric/RotateImage");
+const FlipImage = require("../operator/geometric/FlipImage");
 const ScaleImage = require("../operator/geometric/ScaleImage");
 const AdaptiveThreshold = require("../operator/thresholding/AdaptiveThresholding");
 const ApplyThreshold = require("../operator/thresholding/ApplyThreshold");
@@ -116,6 +117,11 @@ class MainController {
    */
   addOperator(operatorType, id) {
     switch (operatorType) {
+      case PROCESS_OPERATIONS.FLIP_IMAGE:
+        this.#appliedOperators.push(
+            new FlipImage(PROCESS_OPERATIONS.FLIP_IMAGE, id)
+        );
+        break;
       case PROCESS_OPERATIONS.READIMAGE:
         this.#appliedOperators.push(
           new ReadImage(PROCESS_OPERATIONS.READIMAGE, id)
