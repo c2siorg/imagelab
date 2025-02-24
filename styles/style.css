@@ -351,3 +351,19 @@ a.action-menu-item {
 .image-preview-div::-webkit-scrollbar-track {
   background-color: rgba(0, 0, 0, 0);
 }
+
+.playground-properties-pane{
+  width: 10vw;
+}
+
+.resizeHorizontal{
+  width:100%  ;
+  background-color: #e8f2fc; 
+  height: 3px;
+}
+
+.resizerVertical{
+  width: 1px;
+  vertical-align: top; 
+  background-color: #e8f2fc; 
+}

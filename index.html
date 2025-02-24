@@ -75,7 +75,7 @@
 -->
     <table>
       <tr>
-        <td style="width: 80vw; vertical-align: top">
+        <td style="vertical-align: top" class="playground-properties-pane">
           <div class="playground-pane">
             <!--div indicates workspace that blocks will be dropped in -->
             <div
@@ -178,6 +178,7 @@
               </xml>
             </div>
           </div>
+          <div id="resizeHorizontal" class="resizeHorizontal"></div>
           <div class="information-pane" id="information-pane">
             <p style="font-size: 15px; margin-top: 5px" id="operator_name">
               Operation name
@@ -190,7 +191,8 @@
             </p>
           </div>
         </td>
-        <td style="vertical-align: top">
+        <td class="resizerVertical"></td>
+        <td style="vertical-align: top" class="preview-properties-pane">
           <div class="preview-pane" style="padding-top: 2px">
             <table>
               <tr>
@@ -330,5 +332,6 @@
       multiple
       onchange="setDirectory()"
     />
+    <script src="windowResizer.js"></script>
   </body>
 </html>
