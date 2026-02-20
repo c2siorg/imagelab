@@ -1,8 +1,27 @@
-# MacOS
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
 
-# Jetbrains
-.idea
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 
-# Node
-node_modules
+# Linux
+*~
+
+# JetBrains IDEs
+.idea/
+
+# VS Code
+.vscode/
+
+# Vim
+*.swp
+*.swo
+
+# Environment files
+.env
+.env.local
+.env.*.local

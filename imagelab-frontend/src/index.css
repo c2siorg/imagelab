@@ -1,0 +1,49 @@
+@import "@fontsource-variable/inter";
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter Variable", system-ui, sans-serif;
+}
+
+.sidebar-drag-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  opacity: 0.85;
+}
+
+.sidebar-drag-ghost--text {
+  padding: 4px 12px;
+  font-size: 12px;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.block-preview-inline {
+  overflow: hidden;
+}
+
+.block-preview-inline > svg {
+  display: block;
+}
+
+.blocklyZoom > image {
+  opacity: 0.4;
+}
+.blocklyZoom > image:hover {
+  opacity: 0.7;
+}
+.blocklyTrash image {
+  opacity: 0.3;
+}
+.blocklyTrash:hover image {
+  opacity: 0.5;
+}
+.blocklyScrollbarHorizontal,
+.blocklyScrollbarVertical {
+  display: none !important;
+}

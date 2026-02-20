@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: imagelab_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build: ./imagelab-backend
+    ports:
+      - "4100:4100"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/imagelab_db
+      CORS_ORIGINS: '["http://localhost:3100"]'
+    depends_on:
+      - db
+
+  frontend:
+    build: ./imagelab-frontend
+    ports:
+      - "3100:3100"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
