@@ -8,6 +8,8 @@ const path = require("path");
 const { app, BrowserWindow, Menu, shell } = electron;
 
 let splash;
+const remoteMain = require('@electron/remote/main');
+remoteMain.initialize();
 
 require("electron-reload")(__dirname, {
   electron: path.join(__dirname, "node_modules", ".bin", "electron"),

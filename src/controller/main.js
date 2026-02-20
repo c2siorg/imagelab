@@ -251,8 +251,9 @@ class MainController {
 
   /**
    * This method compute and generate the output of the selected operators
+   * @param {Canvas} preview - The canvas element to display the processed image
    */
-  computeAll() {
+  computeAll(preview) {
     if (this.#appliedOperators.length === 0) {
       throw Error("No operators are added to the workspace");
     }
@@ -273,6 +274,16 @@ class MainController {
         }
       }
     });
+
+    // Render the processed image to the preview canvas
+    if (preview && this.#processedImage) {
+      const ctx = preview.getContext("2d");
+      preview.width = this.#processedImage.cols;
+      preview.height = this.#processedImage.rows;
+      const imageData = ctx.createImageData(this.#processedImage.cols, this.#processedImage.rows);
+      imageData.data.set(new Uint8ClampedArray(this.#processedImage.data));
+      ctx.putImageData(imageData, 0, 0);
+    }
   }
 
   /**
