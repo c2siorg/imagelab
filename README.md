@@ -4,6 +4,17 @@
 
 A desktop application for visual, block-based image processing using Google Blockly and OpenCV.js. ImageLab lets users drag and connect blocks to build image processing pipelines without writing code. The project includes a legacy Electron app, a new React frontend, and a Python backend.
 
+## Quick Demo
+
+1. **Start the application** using the setup instructions above
+2. **Load an image** using the "Read Image" block
+3. **Add processing blocks** like "Gaussian Blur" or "Gray Image" 
+4. **Connect the blocks** to create your processing pipeline
+5. **See real-time results** as you build your pipeline
+6. **Save your result** using the "Write Image" block
+
+The visual interface makes it easy to experiment with different image processing techniques without writing any code!
+
 ## Features
 
 - Block-based image processing using Google Blockly — no coding required
@@ -16,7 +27,9 @@ A desktop application for visual, block-based image processing using Google Bloc
 
 - [Node.js](https://nodejs.org/) >= 18
 - Python 3.12+
-- PostgreSQL
+- PostgreSQL (for backend database)
+- [uv](https://docs.astral.sh/uv/) (Python package manager)
+- Docker (optional, for containerized deployment)
 
 ## Getting Started
 
@@ -50,6 +63,34 @@ npm run dev
 |----------|------|
 | Frontend | 3100 |
 | Backend  | 4100 |
+
+## Docker Deployment
+
+For containerized deployment, you can use Docker Compose:
+
+```bash
+# Build and start all services
+docker-compose up --build
+
+# Run in detached mode
+docker-compose up -d
+
+# Stop services
+docker-compose down
+```
+
+This will start both the frontend and backend services in containers with the appropriate networking configured.
+
+## Environment Variables
+
+### Backend (.env)
+Make sure to configure your backend environment by copying `.env.example` to `.env` and setting:
+- **DATABASE_URL**: PostgreSQL connection string
+- **CORS_ORIGINS**: Allowed CORS origins (typically frontend URL)
+
+### Frontend (.env)
+Configure your frontend environment by copying `.env.example` to `.env` and setting:
+- **VITE_API_BASE_URL**: Backend API URL (typically `http://localhost:4100`)
 
 ## Running Tests
 
