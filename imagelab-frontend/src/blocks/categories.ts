@@ -88,7 +88,8 @@ export const categories: CategoryInfo[] = [
       { type: "thresholding_applythreshold", label: "Apply Threshold" },
       { type: "thresholding_applyborders", label: "Apply Borders" },
       { type: "border_for_all", label: "Border (All Sides)" },
-      { type: "border_each_side", label: "Border (Each Side)" }
+      { type: "border_each_side", label: "Border (Each Side)" },
+      { type: "thresholding_otsuthreshold", label: "Otsu Threshold" },
     ]
   },
   {

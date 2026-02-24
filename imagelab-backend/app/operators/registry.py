@@ -28,6 +28,7 @@ from app.operators.geometric.scale_image import ScaleImage
 from app.operators.sobel_derivatives.scharr_derivative import ScharrDerivative
 from app.operators.sobel_derivatives.sobel_derivative import SobelDerivative
 from app.operators.thresholding.adaptive_threshold import AdaptiveThreshold
+from app.operators.thresholding.otsu_threshold import OtsuThreshold
 from app.operators.thresholding.apply_borders import ApplyBorders
 from app.operators.thresholding.apply_threshold import ApplyThreshold
 from app.operators.transformation.distance_transform import DistanceTransform
@@ -70,6 +71,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "thresholding_applythreshold": ApplyThreshold,
     "thresholding_adaptivethreshold": AdaptiveThreshold,
     "thresholding_applyborders": ApplyBorders,
+    "thresholding_otsuthreshold": OtsuThreshold,
     # Sobel Derivatives
     "sobelderivatives_soblederivate": SobelDerivative,
     "sobelderivatives_scharrderivate": ScharrDerivative,

@@ -23,6 +23,17 @@ export const thresholdingBlocks = [
     tooltip: "Applies adaptive Gaussian thresholding"
   },
   {
+    type: "thresholding_otsuthreshold",
+    message0: "Apply Otsu threshold with max value %1",
+    args0: [
+      { type: "field_number", name: "maxValue", value: 255, min: 0, max:255 }
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "thresholding_style",
+    tooltip: "Automatically calculates optimal threshold using Otsu's method"
+  },
+  {
     type: "thresholding_applyborders",
     message0: "Apply borders %1",
     args0: [
