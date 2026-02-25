@@ -4,11 +4,17 @@ from app.operators.basic.write_image import WriteImage
 from app.operators.blurring.blur import Blur
 from app.operators.blurring.gaussian_blur import GaussianBlur
 from app.operators.blurring.median_blur import MedianBlur
+from app.operators.conversions.bgr_to_hsv import BgrToHsv
+from app.operators.conversions.bgr_to_lab import BgrToLab
+from app.operators.conversions.bgr_to_ycrcb import BgrToYcrcb
 from app.operators.conversions.channel_split import ChannelSplit
 from app.operators.conversions.color_maps import ColorMaps
 from app.operators.conversions.color_to_binary import ColorToBinary
 from app.operators.conversions.gray_image import GrayImage
 from app.operators.conversions.gray_to_binary import GrayToBinary
+from app.operators.conversions.hsv_to_bgr import HsvToBgr
+from app.operators.conversions.lab_to_bgr import LabToBgr
+from app.operators.conversions.ycrcb_to_bgr import YcrcbToBgr
 from app.operators.drawing.draw_arrow_line import DrawArrowLine
 from app.operators.drawing.draw_circle import DrawCircle
 from app.operators.drawing.draw_ellipse import DrawEllipse
@@ -53,6 +59,12 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "imageconvertions_graytobinary": GrayToBinary,
     "imageconvertions_colormaps": ColorMaps,
     "imageconvertions_colortobinary": ColorToBinary,
+    "imageconvertions_bgrtohsv": BgrToHsv,
+    "imageconvertions_hsvtobgr": HsvToBgr,
+    "imageconvertions_bgrtolab": BgrToLab,
+    "imageconvertions_labtobgr": LabToBgr,
+    "imageconvertions_bgrtoycrcb": BgrToYcrcb,
+    "imageconvertions_ycrcbtobgr": YcrcbToBgr,
     # Drawing
     "drawingoperations_drawline": DrawLine,
     "drawingoperations_drawcircle": DrawCircle,

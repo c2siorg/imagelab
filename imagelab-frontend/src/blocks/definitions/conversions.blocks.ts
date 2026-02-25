@@ -87,5 +87,53 @@ export const conversionsBlocks = [
     nextStatement: null,
     style: "conversions_style",
     tooltip: "Convert colored (RGB) image to binary with adjustable threshold - Applies a binary threshold to a colored image, converting it to black and white. You can choose between 'Threshold Binary' (pixels above the threshold become white) and 'Threshold Binary Inv' (pixels above the threshold become black). Adjust the threshold value to control which pixels are considered foreground (white) or background (black), and set the max value for the output binary image.",
+  },
+  {
+    type: "imageconvertions_bgrtohsv",
+    message0: "Convert BGR to HSV",
+    previousStatement: null,
+    nextStatement: null,
+    style: "conversions_style",
+    tooltip: "Converts an image from BGR to HSV color space (separates color from brightness)."
+  },
+  {
+    type: "imageconvertions_hsvtobgr",
+    message0: "Convert HSV to BGR",
+    previousStatement: null,
+    nextStatement: null,
+    style: "conversions_style",
+    tooltip: "Converts an image from HSV back to BGR color space."
+  },
+  {
+    type: "imageconvertions_bgrtolab",
+    message0: "Convert BGR to LAB",
+    previousStatement: null,
+    nextStatement: null,
+    style: "conversions_style",
+    tooltip: "Converts BGR to LAB color space (approximates human vision)."
+  },
+  {
+    type: "imageconvertions_labtobgr",
+    message0: "Convert LAB to BGR",
+    previousStatement: null,
+    nextStatement: null,
+    style: "conversions_style",
+    tooltip: "Converts LAB back to BGR color space."
+  },
+  {
+    type: "imageconvertions_bgrtoycrcb",
+    message0: "Convert BGR to YCrCb",
+    previousStatement: null,
+    nextStatement: null,
+    style: "conversions_style",
+    tooltip: "Converts BGR to YCrCb color space (separates luma from chroma)."
+  },
+  {
+    type: "imageconvertions_ycrcbtobgr",
+    message0: "Convert YCrCb to BGR",
+    previousStatement: null,
+    nextStatement: null,
+    style: "conversions_style",
+    tooltip: "Converts YCrCb back to BGR color space."
   }
 ];

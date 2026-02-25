@@ -41,7 +41,13 @@ export const categories: CategoryInfo[] = [
       { type: "imageconvertions_channelsplit", label: "Channel Split" },
       { type: "imageconvertions_graytobinary", label: "Gray to Binary" },
       { type: "imageconvertions_colormaps", label: "Color Maps" },
-      { type: "imageconvertions_colortobinary", label: "Color to Binary" }
+      { type: "imageconvertions_colortobinary", label: "Color to Binary" },
+      { type: "imageconvertions_bgrtohsv", label: "BGR to HSV" },
+      { type: "imageconvertions_hsvtobgr", label: "HSV to BGR" },
+      { type: "imageconvertions_bgrtolab", label: "BGR to LAB" },
+      { type: "imageconvertions_labtobgr", label: "LAB to BGR" },
+      { type: "imageconvertions_bgrtoycrcb", label: "BGR to YCrCb" },
+      { type: "imageconvertions_ycrcbtobgr", label: "YCrCb to BGR" }
     ]
   },
   {
