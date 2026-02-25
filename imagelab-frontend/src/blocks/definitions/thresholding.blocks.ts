@@ -13,20 +13,30 @@ export const thresholdingBlocks = [
   },
   {
     type: "thresholding_adaptivethreshold",
-    message0: "Apply adaptive threshold with max value %1",
+    message0: "Apply adaptive threshold method %1 block size %2 C %3 max value %4",
     args0: [
-      { type: "field_number", name: "maxValue", value: 0, min: 0 }
+      {
+        type: "field_dropdown",
+        name: "adaptiveMethod",
+        options: [
+          ["GAUSSIAN", "GAUSSIAN"],
+          ["MEAN", "MEAN"]
+        ]
+      },
+      { type: "field_number", name: "blockSize", value: 3, min: 3, precision: 1 },
+      { type: "field_number", name: "cValue", value: 2 },
+      { type: "field_number", name: "maxValue", value: 255, min: 0, max: 255 }
     ],
     previousStatement: null,
     nextStatement: null,
     style: "thresholding_style",
-    tooltip: "Applies adaptive Gaussian thresholding - This method calculates the threshold for a pixel based on a small region around it, allowing for varying lighting conditions across the image. The 'maxValue' parameter sets the value to assign to pixels that exceed the threshold. This is particularly useful for images with uneven illumination."
+    tooltip: "Applies adaptive Gaussian or Mean thresholding - This method calculates the threshold for a pixel based on a small region around it, allowing for varying lighting conditions across the image. The 'maxValue' parameter sets the value to assign to pixels that exceed the threshold. This is particularly useful for images with uneven illumination."
   },
   {
     type: "thresholding_otsuthreshold",
     message0: "Apply Otsu threshold with max value %1",
     args0: [
-      { type: "field_number", name: "maxValue", value: 255, min: 0, max:255 }
+      { type: "field_number", name: "maxValue", value: 255, min: 0, max: 255 }
     ],
     previousStatement: null,
     nextStatement: null,
