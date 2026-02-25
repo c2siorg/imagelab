@@ -19,7 +19,7 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
         if operator_cls is None:
             return PipelineResponse(
                 success=False,
-                error=f"Unknown operator: {step.type}",
+                error=f"Unknown operator '{step.type}' at step {i}",
                 step=i,
             )
 
@@ -29,14 +29,14 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
         except Exception as e:
             return PipelineResponse(
                 success=False,
-                error=f"Error in step {i} ({step.type}): {e}",
+                error=f"Error in step {i} ({step.type}): {type(e).__name__}: {e}",
                 step=i,
             )
 
     try:
         encoded = encode_image_base64(image, request.image_format)
     except Exception as e:
-        return PipelineResponse(success=False, error=f"Failed to encode result: {e}")
+        return PipelineResponse(success=False, error=f"Failed to encode result: {type(e).__name__}: {e}", step=len(request.pipeline))
 
     return PipelineResponse(
         success=True,

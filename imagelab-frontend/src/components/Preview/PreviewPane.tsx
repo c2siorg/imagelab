@@ -35,8 +35,7 @@ function ZoomControls({
 }
 
 export default function PreviewPane() {
-  const { originalImage, imageFormat, processedImage, error, clearImage } = usePipelineStore();
-
+  const { originalImage, imageFormat, processedImage, error, errorStep, clearImage } = usePipelineStore();
   const [originalZoom, setOriginalZoom] = useState<number | null>(null);
   const [processedZoom, setProcessedZoom] = useState<number | null>(null);
 
@@ -95,6 +94,9 @@ export default function PreviewPane() {
         </div>
         {error && (
           <div className="px-3 py-2 bg-red-50 border-t border-red-200">
+            <p className="text-xs text-red-600 font-semibold mb-0.5">
+              {errorStep !== null ? `Error in Step ${errorStep}` : "Pipeline Error"}
+            </p>
             <p className="text-xs text-red-600">{error}</p>
           </div>
         )}
