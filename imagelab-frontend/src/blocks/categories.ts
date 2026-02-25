@@ -37,6 +37,7 @@ export const categories: CategoryInfo[] = [
     colour: "#FF8A65",
     blocks: [
       { type: "imageconvertions_grayimage", label: "Gray Image" },
+      { type: "imageconvertions_channelsplit", label: "Channel Split" },
       { type: "imageconvertions_graytobinary", label: "Gray to Binary" },
       { type: "imageconvertions_colormaps", label: "Color Maps" },
       { type: "imageconvertions_colortobinary", label: "Color to Binary" }

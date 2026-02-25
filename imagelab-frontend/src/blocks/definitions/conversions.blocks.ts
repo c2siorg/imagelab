@@ -8,6 +8,25 @@ export const conversionsBlocks = [
     tooltip: "Converts the image to grayscale"
   },
   {
+    type: "imageconvertions_channelsplit",
+    message0: "Extract %1 channel from image",
+    args0: [
+      {
+        type: "field_dropdown",
+        name: "channel",
+        options: [
+          ["Red", "RED"],
+          ["Green", "GREEN"],
+          ["Blue", "BLUE"]
+        ]
+      }
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "conversions_style",
+    tooltip: "Splits a multi-channel image and extracts the selected channel as grayscale"
+  },
+  {
     type: "imageconvertions_graytobinary",
     message0: "Convert grayscale image to a binary one %1 with threshold value %2 and max value %3",
     args0: [

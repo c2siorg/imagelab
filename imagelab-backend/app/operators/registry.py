@@ -4,6 +4,7 @@ from app.operators.basic.write_image import WriteImage
 from app.operators.blurring.blur import Blur
 from app.operators.blurring.gaussian_blur import GaussianBlur
 from app.operators.blurring.median_blur import MedianBlur
+from app.operators.conversions.channel_split import ChannelSplit
 from app.operators.conversions.color_maps import ColorMaps
 from app.operators.conversions.color_to_binary import ColorToBinary
 from app.operators.conversions.gray_image import GrayImage
@@ -44,6 +45,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "geometric_affineimage": AffineImage,
     # Conversions
     "imageconvertions_grayimage": GrayImage,
+    "imageconvertions_channelsplit": ChannelSplit,
     "imageconvertions_graytobinary": GrayToBinary,
     "imageconvertions_colormaps": ColorMaps,
     "imageconvertions_colortobinary": ColorToBinary,
