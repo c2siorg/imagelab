@@ -12,7 +12,7 @@ export const blurringBlocks = [
     previousStatement: null,
     nextStatement: null,
     style: "blurring_style",
-    tooltip: "Applies a simple blur to the image"
+    tooltip: "Applies a simple blur to the image - Averages each pixel with its neighbors using a box of the given width and height to soften the image. The anchor point (x, y) sets the filter center; use (-1, -1) to auto-center."
   },
   {
     type: "blurring_applygaussianblur",
@@ -24,7 +24,7 @@ export const blurringBlocks = [
     previousStatement: null,
     nextStatement: null,
     style: "blurring_style",
-    tooltip: "Applies Gaussian blur (width and height must be odd)"
+    tooltip: "Applies Gaussian blur (width and height must be odd) - Uses a Gaussian function to blur the image, giving more weight to closer pixels. The kernel size (width and height) must be odd numbers (e.g., 1, 3, 5) to ensure a central pixel. This results in a smoother blur compared to a simple box blur."
   },
   {
     type: "blurring_applymedianblur",
@@ -35,6 +35,6 @@ export const blurringBlocks = [
     previousStatement: null,
     nextStatement: null,
     style: "blurring_style",
-    tooltip: "Applies median blur (kernel size must be odd)"
+    tooltip: "Applies median blur (kernel size must be odd) - Replaces each pixel with the median value of its neighbors defined by the kernel size. The kernel size must be an odd number (e.g., 1, 3, 5) to ensure a central pixel. This filter is effective at reducing salt-and-pepper noise while preserving edges."
   }
 ];

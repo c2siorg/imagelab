@@ -20,7 +20,7 @@ export const thresholdingBlocks = [
     previousStatement: null,
     nextStatement: null,
     style: "thresholding_style",
-    tooltip: "Applies adaptive Gaussian thresholding"
+    tooltip: "Applies adaptive Gaussian thresholding - This method calculates the threshold for a pixel based on a small region around it, allowing for varying lighting conditions across the image. The 'maxValue' parameter sets the value to assign to pixels that exceed the threshold. This is particularly useful for images with uneven illumination."
   },
   {
     type: "thresholding_applyborders",
@@ -35,7 +35,7 @@ export const thresholdingBlocks = [
     previousStatement: null,
     nextStatement: null,
     style: "thresholding_style",
-    tooltip: "Add a border around the image. Connect a border specification block.",
+    tooltip: "Add a border around the image. Connect a border specification block. - This block allows you to add a border around the image. You can specify the border thickness using either the 'Same border thickness on all sides' block or the 'Set border thickness for each side individually' block. This is useful for framing the image or creating a visual separation from the background.",
   },
   {
     type: "border_for_all",
@@ -45,7 +45,7 @@ export const thresholdingBlocks = [
     ],
     output: "border_for_all",
     style: "thresholding_style",
-    tooltip: "Same border thickness on all sides",
+    tooltip: "Same border thickness on all sides - Sets a uniform border thickness for all sides of the image. The 'border_all_sides' parameter specifies the thickness in pixels. This is a simple way to add a consistent border around the entire image.",
   },
   {
     type: "border_each_side",
@@ -63,6 +63,6 @@ export const thresholdingBlocks = [
     inputsInline: false,
     output: "border_each_side",
     style: "thresholding_style",
-    tooltip: "Set border thickness for each side individually",
+    tooltip: "Set border thickness for each side individually - Allows you to specify different border thicknesses for the top, left, right, and bottom sides of the image. Each 'border' parameter sets the thickness in pixels for its respective side. This is useful for creating asymmetrical borders or emphasizing specific edges of the image.",
   }
 ];

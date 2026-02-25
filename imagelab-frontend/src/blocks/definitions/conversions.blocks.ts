@@ -18,7 +18,7 @@ export const conversionsBlocks = [
     previousStatement: null,
     nextStatement: null,
     style: "conversions_style",
-    tooltip: "Converts grayscale to binary using threshold"
+    tooltip: "Converts grayscale to binary using threshold - Applies a binary threshold to a grayscale image, converting it to black and white. Pixels with intensity above the threshold value will be set to the max value (white), while those below will be set to 0 (black). This is useful for segmenting objects from the background."
   },
   {
     type: "imageconvertions_colormaps",
@@ -44,7 +44,7 @@ export const conversionsBlocks = [
     previousStatement: null,
     nextStatement: null,
     style: "conversions_style",
-    tooltip: "Apply different color maps to an image",
+    tooltip: "Apply different color maps to an image - Transforms the colors of an image using various color maps. This can enhance visual contrast and highlight specific features. For example, the 'JET' colormap transitions from blue to red, while 'HSV' represents hue, saturation, and value. Choose a colormap that best suits your image analysis needs.",
   },
   {
     type: "imageconvertions_colortobinary",
@@ -67,6 +67,6 @@ export const conversionsBlocks = [
     previousStatement: null,
     nextStatement: null,
     style: "conversions_style",
-    tooltip: "Convert colored (RGB) image to binary with adjustable threshold",
+    tooltip: "Convert colored (RGB) image to binary with adjustable threshold - Applies a binary threshold to a colored image, converting it to black and white. You can choose between 'Threshold Binary' (pixels above the threshold become white) and 'Threshold Binary Inv' (pixels above the threshold become black). Adjust the threshold value to control which pixels are considered foreground (white) or background (black), and set the max value for the output binary image.",
   }
 ];

@@ -17,7 +17,7 @@ export const sobelDerivativesBlocks = [
     previousStatement: null,
     nextStatement: null,
     style: "sobel_derivatives_style",
-    tooltip: "Detect edges using Sobel derivative (first order)",
+    tooltip: "Detect edges using Sobel derivative (first order) - Applies the Sobel operator to detect edges in the image. The 'type' parameter specifies the direction of the derivative: 'Horizontal' detects vertical edges, 'Vertical' detects horizontal edges, and 'Both' detects edges in both directions. The 'depth' parameter controls the depth of the output image; a value of 0 means the output will have the same depth as the source image.",
   },
   {
     type: "sobelderivatives_scharrderivate",
@@ -36,6 +36,6 @@ export const sobelDerivativesBlocks = [
     previousStatement: null,
     nextStatement: null,
     style: "sobel_derivatives_style",
-    tooltip: "Detect edges using Scharr derivative (second order)",
+    tooltip: "Detect edges using Scharr derivative (second order) - Applies the Scharr operator, which is a more accurate version of the Sobel operator for edge detection. The 'type' parameter specifies the direction of the derivative: 'Horizontal' detects vertical edges and 'Vertical' detects horizontal edges. The 'depth' parameter controls the depth of the output image; a value of 0 means the output will have the same depth as the source image.",
   },
 ];

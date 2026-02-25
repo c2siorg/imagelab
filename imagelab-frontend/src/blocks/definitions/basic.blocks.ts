@@ -23,7 +23,7 @@ export const basicBlocks = [
     ],
     nextStatement: null,
     style: "basic_style",
-    tooltip: "Click the upload icon to load an image",
+    tooltip: "Click the upload icon to load an image - Allows you to upload an image file from your device. Supported formats include JPEG, PNG, and GIF. Once uploaded, the image will be available for processing in subsequent blocks.",
     extensions: ["read_image_upload"],
   },
   {
@@ -31,6 +31,6 @@ export const basicBlocks = [
     message0: "Write image",
     previousStatement: null,
     style: "basic_style",
-    tooltip: "Output the processed image"
+    tooltip: "Output the processed image - Displays the final processed image as output. Place this block at the end of your pipeline to see the result of all applied operations."
   }
 ];

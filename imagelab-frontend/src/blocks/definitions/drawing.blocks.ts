@@ -16,7 +16,7 @@ export const drawingBlocks = [
     previousStatement: null,
     nextStatement: null,
     style: "drawing_style",
-    tooltip: "Draws a line on the image"
+    tooltip: "Draws a line on the image - Creates a straight line between two points on the image. You can customize the line's thickness and color, as well as specify the starting and ending coordinates. This block is useful for annotating images or highlighting specific features."
   },
   {
     type: "drawingoperations_drawcircle",
@@ -34,7 +34,7 @@ export const drawingBlocks = [
     previousStatement: null,
     nextStatement: null,
     style: "drawing_style",
-    tooltip: "Draws a circle on the image"
+    tooltip: "Draws a circle on the image - Creates a circle defined by its center coordinates and radius. You can adjust the thickness and color of the circle's outline. This block is ideal for marking circular features or areas of interest in an image."
   },
   {
     type: "drawingoperations_drawellipse",
@@ -53,7 +53,7 @@ export const drawingBlocks = [
     previousStatement: null,
     nextStatement: null,
     style: "drawing_style",
-    tooltip: "Draws an ellipse on the image"
+    tooltip: "Draws an ellipse on the image - Creates an ellipse defined by its center coordinates, width, height, and rotation angle. You can customize the thickness and color of the ellipse's outline. This block is useful for highlighting elliptical features or regions in an image."
   },
   {
     type: "drawingoperations_drawrectangle",
@@ -71,7 +71,7 @@ export const drawingBlocks = [
     previousStatement: null,
     nextStatement: null,
     style: "drawing_style",
-    tooltip: "Draws a rectangle on the image"
+    tooltip: "Draws a rectangle on the image - Creates a rectangle defined by its top-left and bottom-right corner coordinates. You can adjust the thickness and color of the rectangle's outline. This block is ideal for marking rectangular areas or features in an image."
   },
   {
     type: "drawingoperations_drawarrowline",
@@ -88,7 +88,7 @@ export const drawingBlocks = [
     previousStatement: null,
     nextStatement: null,
     style: "drawing_style",
-    tooltip: "Draws an arrow line on the image"
+    tooltip: "Draws an arrow line on the image - Creates a line with an arrowhead at the end, defined by its starting and ending coordinates. You can customize the thickness and color of the arrow line. This block is useful for indicating direction or pointing to specific features in an image."
   },
   {
     type: "drawingoperations_drawtext",
@@ -107,6 +107,6 @@ export const drawingBlocks = [
     previousStatement: null,
     nextStatement: null,
     style: "drawing_style",
-    tooltip: "Draws text on the image"
+    tooltip: "Draws text on the image - Places customizable text at specified coordinates on the image. You can adjust the text content, thickness, scale, and color to suit your needs. This block is ideal for adding annotations, labels, or any textual information directly onto the image."
   }
 ];
