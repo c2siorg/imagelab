@@ -72,6 +72,7 @@ export const categories: CategoryInfo[] = [
     colour: "#F06292",
     blocks: [
       { type: "filtering_bilateral", label: "Bilateral Filter" },
+      { type: "filtering_sharpen", label: "Sharpen" },
       { type: "filtering_pyramidup", label: "Pyramid Up" },
       { type: "filtering_boxfilter", label: "Box Filter" },
       { type: "filtering_pyramiddown", label: "Pyramid Down" },

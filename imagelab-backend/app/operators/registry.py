@@ -22,6 +22,7 @@ from app.operators.filtering.erosion import Erosion
 from app.operators.filtering.morphological import Morphological
 from app.operators.filtering.pyramid_down import PyramidDown
 from app.operators.filtering.pyramid_up import PyramidUp
+from app.operators.filtering.sharpen import Sharpen
 from app.operators.geometric.affine_image import AffineImage
 from app.operators.geometric.reflect_image import ReflectImage
 from app.operators.geometric.rotate_image import RotateImage
@@ -64,6 +65,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     # Filtering
     "filtering_boxfilter": BoxFilter,
     "filtering_bilateral": BilateralFilter,
+    "filtering_sharpen": Sharpen,
     "filtering_pyramidup": PyramidUp,
     "filtering_pyramiddown": PyramidDown,
     "filtering_erosion": Erosion,

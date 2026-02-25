@@ -95,5 +95,15 @@ export const filteringBlocks = [
     nextStatement: null,
     style: "filtering_style",
     tooltip: "Applies morphological operation - Performs various morphological transformations based on the selected filter type. 'Open' removes small objects from the foreground, 'Close' fills small holes in the foreground, 'Gradient' highlights the edges of objects, 'Tophat' extracts small elements and details from the image, and 'Black hat' extracts small dark regions on a light background. These operations are useful for enhancing or suppressing specific features in an image."
+  },{
+    type: "filtering_sharpen",
+    message0: "Apply sharpen with strength %1",
+    args0: [
+      { type: "field_number", name: "strength", value: 1.0, min: 0, max: 2, precision: 0.1 }
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "filtering_style",
+    tooltip: "Applies image sharpening to enhance edges and details"
   }
 ];
