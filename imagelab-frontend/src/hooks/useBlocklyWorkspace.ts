@@ -13,6 +13,7 @@ export function useBlocklyWorkspace() {
   const workspaceRef = useRef<Blockly.WorkspaceSvg | null>(null);
   const [workspace, setWorkspace] = useState<Blockly.WorkspaceSvg | null>(null);
   const setSelectedBlock = usePipelineStore((s) => s.setSelectedBlock);
+  const updateBlockStats = usePipelineStore((s) => s.updateBlockStats);
 
   const initWorkspace = useCallback(() => {
     if (!containerRef.current || workspaceRef.current) return;
@@ -66,13 +67,22 @@ export function useBlocklyWorkspace() {
           block.dispose(false);
         }
       }
+
+      // Update stats when blocks are created, deleted, or changed (which might alter their active state but mainly create/delete impact counts)
+      if (
+        event.type === Blockly.Events.BLOCK_CREATE ||
+        event.type === Blockly.Events.BLOCK_DELETE
+      ) {
+        updateBlockStats(ws);
+      }
     });
 
     new WorkspaceSearch(ws).init();
 
     workspaceRef.current = ws;
     setWorkspace(ws);
-  }, [setSelectedBlock]);
+    updateBlockStats(ws); // Initial stats calculation if any blocks loaded
+  }, [setSelectedBlock, updateBlockStats]);
 
   useEffect(() => {
     initWorkspace();
