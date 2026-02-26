@@ -3,10 +3,17 @@ import { FilePlus, Download, Undo2, Redo2, Play, Loader2 } from "lucide-react";
 import { usePipelineStore } from "../store/pipelineStore";
 import { executePipeline } from "../api/pipeline";
 import { extractPipeline } from "../hooks/usePipeline";
+import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 
 interface ToolbarProps {
   workspace: Blockly.WorkspaceSvg | null;
 }
+
+// Detect macOS to show Cmd vs Ctrl in tooltips
+const isMac =
+  typeof navigator !== "undefined" &&
+  /mac/i.test(navigator.platform || navigator.userAgent);
+const mod = isMac ? "⌘" : "Ctrl+";
 
 export default function Toolbar({ workspace }: ToolbarProps) {
   const {
@@ -72,6 +79,15 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     }
   };
 
+  // Register global keyboard shortcuts
+  useKeyboardShortcuts({
+    onRun: handleRun,
+    onDownload: handleDownload,
+    onUndo: handleUndo,
+    onRedo: handleRedo,
+    workspace,
+  });
+
   const iconBtn =
     "p-1.5 rounded hover:bg-gray-100 text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors";
   const separator = "w-px h-5 bg-gray-300 mx-1";
@@ -85,17 +101,17 @@ export default function Toolbar({ workspace }: ToolbarProps) {
         onClick={handleDownload}
         disabled={!processedImage}
         className={iconBtn}
-        title="Download"
+        title={`Download (${mod}S)`}
       >
         <Download size={18} />
       </button>
 
       <div className={separator} />
 
-      <button onClick={handleUndo} className={iconBtn} title="Undo">
+      <button onClick={handleUndo} className={iconBtn} title={`Undo (${mod}Z)`}>
         <Undo2 size={18} />
       </button>
-      <button onClick={handleRedo} className={iconBtn} title="Redo">
+      <button onClick={handleRedo} className={iconBtn} title={`Redo (${mod}Y or ${mod}⇧Z)`}>
         <Redo2 size={18} />
       </button>
 
