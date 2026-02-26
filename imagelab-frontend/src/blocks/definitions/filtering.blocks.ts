@@ -1,3 +1,7 @@
+import * as Blockly from 'blockly';
+import { FieldColour } from '@blockly/field-colour';
+
+Blockly.fieldRegistry.register('field_colour', FieldColour);
 export const filteringBlocks = [
   {
     type: "filtering_bilateral",
@@ -80,6 +84,37 @@ export const filteringBlocks = [
     style: "filtering_style",
     tooltip:
       "Applies dilation to the image - A morphological operation that expands the boundaries of foreground objects. It works by replacing each pixel with the maximum value of its neighbors defined by the structuring element. The 'iteration' parameter controls how many times the dilation is applied, increasing the effect. The anchor point (x, y) sets the filter center; use (-1, -1) to auto-center.",
+  },
+  {
+    type: "filtering_contour",
+    message0: "Apply contour detection with %1 approximation method %2 %3 retrival mode parameter %4 with contours %5 color and %6 thickness",
+    args0: [
+      {
+        type: "field_dropdown",
+        name: "retrieval_mode",
+        options: [
+          ["EXTERNAL", "EXTERNAL"],
+          ["TREE", "TREE"],
+          ["LIST", "LIST"]
+        ]
+      },
+      { type: "input_dummy" },
+      {
+        type: "field_dropdown",
+        name: "approximation_method",
+        options: [
+          ["SIMPLE", "SIMPLE"],
+          ["NONE", "NONE"],
+        ]
+      },
+      { type: "input_dummy" },
+      { type: "field_colour", name: "color", value: "#00FF00" },
+      { type: "field_number", name: "thickness", value: 1, min: 0}
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "filtering_style",
+    tooltip: "Applies contour detection - Detects contours in the image based on the specified retrieval mode and approximation method. The 'retrieval_mode' determines how contours are retrieved (e.g., only external contours, all contours in a tree structure, or all contours in a list). The 'approximation_method' controls how the contours are approximated (e.g., simple approximation or no approximation). The detected contours can be drawn on the image with the specified color and thickness."
   },
   {
     type: "filtering_morphological",

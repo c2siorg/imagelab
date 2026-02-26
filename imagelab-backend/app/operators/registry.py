@@ -29,6 +29,7 @@ from app.operators.filtering.morphological import Morphological
 from app.operators.filtering.pyramid_down import PyramidDown
 from app.operators.filtering.pyramid_up import PyramidUp
 from app.operators.filtering.sharpen import Sharpen
+from app.operators.filtering.contour_detection import ContourDetection
 from app.operators.geometric.affine_image import AffineImage
 from app.operators.geometric.crop_image import CropImage
 from app.operators.geometric.reflect_image import ReflectImage
@@ -87,6 +88,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "filtering_erosion": Erosion,
     "filtering_dilation": Dilation,
     "filtering_morphological": Morphological,
+    "filtering_contour": ContourDetection,
     # Thresholding
     "thresholding_applythreshold": ApplyThreshold,
     "thresholding_adaptivethreshold": AdaptiveThreshold,
