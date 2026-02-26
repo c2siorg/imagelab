@@ -35,7 +35,7 @@ function ZoomControls({
 }
 
 export default function PreviewPane() {
-  const { originalImage, imageFormat, processedImage, error, errorStep, clearImage } =
+  const { originalImage, imageFormat, processedImage, error, errorStep, clearImage, totalDurationMs, stepTimings } =
     usePipelineStore();
   const [originalZoom, setOriginalZoom] = useState<number | null>(null);
   const [processedZoom, setProcessedZoom] = useState<number | null>(null);
@@ -99,6 +99,32 @@ export default function PreviewPane() {
               {errorStep !== null ? `Error in Step ${errorStep}` : "Pipeline Error"}
             </p>
             <p className="text-xs text-red-600">{error}</p>
+          </div>
+        )}
+        {totalDurationMs !== null && (
+          <div className="px-3 py-2 bg-white border-t border-gray-200">
+            <div className="flex justify-between items-center text-xs">
+              <span className="font-semibold text-gray-600">Total Execution Time</span>
+              <span className="text-gray-900 font-medium">{totalDurationMs.toFixed(1)} ms</span>
+            </div>
+            {stepTimings && stepTimings.length > 0 && (
+              <details className="mt-1.5 group">
+                <summary className="text-[10px] uppercase font-semibold text-gray-500 hover:text-indigo-600 cursor-pointer select-none">
+                  Step breakdown
+                </summary>
+                <div className="mt-1 space-y-1">
+                  {stepTimings.map((t, idx) => (
+                    <div key={idx} className="flex justify-between text-[11px] text-gray-500">
+                      <span className="truncate pr-2" title={t.type}>
+                        <span className="text-gray-400 mr-1">{t.step}.</span>
+                        {t.type}
+                      </span>
+                      <span className="flex-shrink-0 text-gray-600">{t.duration_ms.toFixed(1)} ms</span>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
           </div>
         )}
         <ZoomControls

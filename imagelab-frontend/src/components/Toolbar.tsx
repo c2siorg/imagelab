@@ -23,6 +23,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     setProcessedImage,
     setExecuting,
     setError,
+    setTiming,
     reset,
     blockCount,
     uniqueBlockTypes,
@@ -60,6 +61,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
 
     setExecuting(true);
     setError(null);
+    setTiming(null, null);
 
     try {
       const response = await executePipeline({
@@ -68,6 +70,8 @@ export default function Toolbar({ workspace }: ToolbarProps) {
         pipeline,
       });
 
+      setTiming(response.total_duration_ms ?? null, response.step_timings ?? null);
+
       if (response.success && response.image) {
         setProcessedImage(response.image);
       } else {
@@ -75,6 +79,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network error");
+      setTiming(null, null);
     } finally {
       setExecuting(false);
     }

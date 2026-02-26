@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import * as Blockly from "blockly";
 import { categories } from "../blocks/categories";
+import type { StepTiming } from '../types/pipeline';
 
 interface PipelineState {
   originalImage: string | null;
@@ -11,18 +12,20 @@ interface PipelineState {
   errorStep: number | null;
   selectedBlockType: string | null;
   selectedBlockTooltip: string | null;
-
   // Statistics
   blockCount: number;
   uniqueBlockTypes: number;
   categoryCounts: Record<string, number>;
   complexity: "Low" | "Medium" | "High";
+  totalDurationMs: number | null;
+  stepTimings: StepTiming[] | null;
   setOriginalImage: (image: string, format: string) => void;
   setProcessedImage: (image: string | null) => void;
   setExecuting: (executing: boolean) => void;
   setError: (error: string | null, step?: number | null) => void;
   setSelectedBlock: (type: string | null, tooltip: string | null) => void;
   updateBlockStats: (workspace: Blockly.WorkspaceSvg) => void;
+  setTiming: (total: number | null, steps: StepTiming[] | null) => void;
   reset: () => void;
   clearImage: () => void;
   _imageResetFn: (() => void) | null;
@@ -49,19 +52,22 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   uniqueBlockTypes: 0,
   categoryCounts: {},
   complexity: "Low",
+  totalDurationMs: null,
+  stepTimings: null,
   setOriginalImage: (image, format) =>
-    set({ originalImage: image, imageFormat: format, processedImage: null, error: null }),
+    set({ originalImage: image, imageFormat: format, processedImage: null, error: null, totalDurationMs: null, stepTimings: null }),
   setProcessedImage: (image) => set({ processedImage: image, error: null, errorStep: null }),
   setExecuting: (executing) => set({ isExecuting: executing }),
   setError: (error, step = null) => set({ error, errorStep: step }),
   setSelectedBlock: (type, tooltip) =>
     set({ selectedBlockType: type, selectedBlockTooltip: tooltip }),
+  setTiming: (total, steps) => set({ totalDurationMs: total, stepTimings: steps }),
   _imageResetFn: null as (() => void) | null,
   registerImageReset: (fn) => set({ _imageResetFn: fn }),
   clearImage: () => {
     const state = usePipelineStore.getState();
     if (state._imageResetFn) state._imageResetFn();
-    set({ originalImage: null, processedImage: null, error: null, errorStep: null });
+    set({ originalImage: null, processedImage: null, error: null, errorStep: null, totalDurationMs: null, stepTimings: null });
   },
   updateBlockStats: (workspace) => {
     const blocks = workspace.getAllBlocks(false);
@@ -103,5 +109,7 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       uniqueBlockTypes: 0,
       categoryCounts: {},
       complexity: "Low",
+      totalDurationMs: null,
+      stepTimings: null,
     }),
 }));
