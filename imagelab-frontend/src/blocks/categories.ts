@@ -26,6 +26,7 @@ export const categories: CategoryInfo[] = [
     colour: "#64B5F6",
     blocks: [
       { type: "geometric_reflectimage", label: "Reflect Image" },
+      { type: "geometric_cropimage", label: "Crop Image" },
       { type: "geometric_rotateimage", label: "Rotate Image" },
       { type: "geometric_affineimage", label: "Affine Transform" },
       { type: "geometric_scaleimage", label: "Scale Image" }

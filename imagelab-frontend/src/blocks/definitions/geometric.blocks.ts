@@ -39,6 +39,20 @@ export const geometricBlocks = [
     tooltip: "Scales the image by the given factors - Resizes the image by scaling factors along the X and Y axes. A factor greater than 1 enlarges the image, while a factor between 0 and 1 reduces its size. This transformation is useful for resizing images for display, analysis, or to fit specific dimensions."
   },
   {
+    type: "geometric_cropimage",
+    message0: "Crop image to coordinates x1 %1 y1 %2 x2 %3 and y2 %4",
+    args0: [
+      { type: "field_number", name: "x1", value: 0, min: 0 },
+      { type: "field_number", name: "y1", value: 0, min: 0 },
+      { type: "field_number", name: "x2", value: 0, min: 0 },
+      { type: "field_number", name: "y2", value: 0, min: 0 }
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "geometric_style",
+    tooltip: "Crops the image to the specified coordinates"
+  },
+  {
     type: "geometric_affineimage",
     message0: "Apply affine transformation",
     previousStatement: null,

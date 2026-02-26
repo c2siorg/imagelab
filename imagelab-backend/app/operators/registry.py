@@ -26,6 +26,7 @@ from app.operators.geometric.affine_image import AffineImage
 from app.operators.geometric.reflect_image import ReflectImage
 from app.operators.geometric.rotate_image import RotateImage
 from app.operators.geometric.scale_image import ScaleImage
+from app.operators.geometric.crop_image import CropImage
 from app.operators.sobel_derivatives.scharr_derivative import ScharrDerivative
 from app.operators.sobel_derivatives.sobel_derivative import SobelDerivative
 from app.operators.thresholding.adaptive_threshold import AdaptiveThreshold
@@ -44,6 +45,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "geometric_rotateimage": RotateImage,
     "geometric_scaleimage": ScaleImage,
     "geometric_affineimage": AffineImage,
+    "geometric_cropimage": CropImage,
     # Conversions
     "imageconvertions_grayimage": GrayImage,
     "imageconvertions_channelsplit": ChannelSplit,
