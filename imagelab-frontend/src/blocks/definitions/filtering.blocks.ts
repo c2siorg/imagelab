@@ -108,7 +108,7 @@ export const filteringBlocks = [
         ]
       },
       { type: "input_dummy" },
-      { type: "field_colour", name: "color", value: "#00FF00" },
+      { type: "field_colour", name: "color", value: "#ffffff" },
       { type: "field_number", name: "thickness", value: 1, min: 0}
     ],
     previousStatement: null,
