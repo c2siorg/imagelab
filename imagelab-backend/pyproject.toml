@@ -33,6 +33,8 @@ quote-style = "double"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Run pytest from imagelab-backend/: uv run pytest -v
+pythonpath = ["."]
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
