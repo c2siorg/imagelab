@@ -1,5 +1,18 @@
 export const conversionsBlocks = [
   {
+    type: "imageconvertions_clache",
+    message0: "Apply CLAHE with clip limit %1 and tile grid size x: %2 y: %3",
+    args0: [
+      { type: "field_number", name: "clipLimit", value: 2.0, min: 0 },
+      { type: "field_number", name: "tileGridSizeX", value: 8, min: 1 },
+      { type: "field_number", name: "tileGridSizeY", value: 8, min: 1 }
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "conversions_style",
+    tooltip: "Applies CLAHE (Contrast Limited Adaptive Histogram Equalization) to enhance local contrast in an image. The 'clipLimit' controls the amount of contrast enhancement, and 'tileGridSizeX' and 'tileGridSizeY' define the grid size for local histogram equalization."
+  },
+  {
     type: "imageconvertions_grayimage",
     message0: "Gray the image",
     previousStatement: null,
