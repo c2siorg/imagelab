@@ -8,9 +8,45 @@ import { usePipelineStore } from "../store/pipelineStore";
 import { imagelabTheme } from "../blocks/theme";
 import { SINGLETON_BLOCK_TYPES } from "../utils/blockLimits";
 
+const STORAGE_KEY = "imagelab.pipeline.workspace.v1";
+const SAVE_DEBOUNCE_MS = 500;
+const STORAGE_TTL_MS = 3 * 60 * 60 * 1000;
+type WorkspaceState = ReturnType<typeof Blockly.serialization.workspaces.save>;
+
+function loadPersistedWorkspaceState(): WorkspaceState | null {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return null;
+
+  try {
+    const payload = JSON.parse(raw) as {
+      expiresAt?: number;
+      data?: WorkspaceState;
+    };
+
+    if (!payload.expiresAt || Date.now() > payload.expiresAt || !payload.data) {
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+
+    return payload.data;
+  } catch {
+    localStorage.removeItem(STORAGE_KEY);
+    return null;
+  }
+}
+
+function saveWorkspaceState(state: WorkspaceState) {
+  const payload = {
+    expiresAt: Date.now() + STORAGE_TTL_MS,
+    data: state,
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+}
+
 export function useBlocklyWorkspace() {
   const containerRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<Blockly.WorkspaceSvg | null>(null);
+  const saveTimeoutRef = useRef<number | null>(null);
   const [workspace, setWorkspace] = useState<Blockly.WorkspaceSvg | null>(null);
   const setSelectedBlock = usePipelineStore((s) => s.setSelectedBlock);
   const updateBlockStats = usePipelineStore((s) => s.updateBlockStats);
@@ -43,6 +79,11 @@ export function useBlocklyWorkspace() {
         scaleSpeed: 1.2,
       },
     });
+    // Load persisted workspace state if available and valid
+    const persistedState = loadPersistedWorkspaceState();
+    if (persistedState) {
+      Blockly.serialization.workspaces.load(persistedState, ws);
+    }
 
     ws.addChangeListener((event: Blockly.Events.Abstract) => {
       if (event.type === Blockly.Events.SELECTED) {
@@ -75,6 +116,23 @@ export function useBlocklyWorkspace() {
       ) {
         updateBlockStats(ws);
       }
+
+      // Debounced save on any change that modifies the workspace (create, delete, change, move)
+      if (
+        event.type === Blockly.Events.BLOCK_CREATE ||
+        event.type === Blockly.Events.BLOCK_DELETE ||
+        event.type === Blockly.Events.BLOCK_CHANGE ||
+        event.type === Blockly.Events.BLOCK_MOVE
+      ) {
+        // Clear any existing save timeout to debounce rapid changes
+        if (saveTimeoutRef.current !== null) {
+          window.clearTimeout(saveTimeoutRef.current);
+        }
+        saveTimeoutRef.current = window.setTimeout(() => {
+          const state = Blockly.serialization.workspaces.save(ws);
+          saveWorkspaceState(state);
+        }, SAVE_DEBOUNCE_MS);
+      }
     });
 
     new WorkspaceSearch(ws).init();
@@ -87,6 +145,10 @@ export function useBlocklyWorkspace() {
   useEffect(() => {
     initWorkspace();
     return () => {
+      //  Cleanup on unmount: dispose workspace and clear any pending save timeout
+      if (saveTimeoutRef.current !== null) {
+        window.clearTimeout(saveTimeoutRef.current);
+      }
       if (workspaceRef.current) {
         workspaceRef.current.dispose();
         workspaceRef.current = null;
