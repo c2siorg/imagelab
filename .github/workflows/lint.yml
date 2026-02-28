@@ -1,3 +1,4 @@
+# Test: verify continue-on-error works for fork PRs
 name: Lint
 
 on:
