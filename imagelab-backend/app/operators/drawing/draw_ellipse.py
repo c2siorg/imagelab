@@ -15,5 +15,5 @@ class DrawEllipse(BaseOperator):
         color = hex_to_bgr(self.params.get("rgbcolors_input", "#2828cc"))
         cx = int(self.params.get("center_point_x", 0))
         cy = int(self.params.get("center_point_y", 0))
-        cv2.ellipse(result, (cx, cy), (height, width), angle, 0, 360, color, thickness)
+        cv2.ellipse(result, (cx, cy), (width, height), angle, 0, 360, color, thickness)
         return result
