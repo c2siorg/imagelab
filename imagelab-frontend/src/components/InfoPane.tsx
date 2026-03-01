@@ -25,7 +25,14 @@ export default function InfoPane() {
     }
   }, []);
 
-  if (!selectedBlockType) return null;
+  if (!selectedBlockType) {
+    return (
+      <div className="flex flex-col items-center justify-center p-6 text-gray-400 text-xs text-center border-t border-gray-200">
+        <Lightbulb size={20} className="mb-2" />
+        <p>Select a block to view its documentation</p>
+      </div>
+    );
+  }
 
   const doc = operatorDocs[selectedBlockType];
 
@@ -70,7 +77,7 @@ export default function InfoPane() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="flex flex-col gap-6">
           {/* Parameters */}
           {doc.parameters && doc.parameters.length > 0 && (
             <div>

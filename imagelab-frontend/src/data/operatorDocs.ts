@@ -341,7 +341,13 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     type: "thresholding_applyborders",
     name: "Apply Borders",
     description: "Forms a padded image border.",
-    parameters: [{ name: "Border Type", description: "Constant, Replicate, Reflect, Wrap." }],
+    parameters: [
+      {
+        name: "Border Type",
+        description:
+          "Border extrapolation method: Constant (fixed value), Replicate (edge pixels repeated), Reflect (mirrored), Wrap (tiled).",
+      },
+    ],
     useCases: ["Padding images before convolution to preserve boundary pixels."],
   },
   border_for_all: {
@@ -349,18 +355,41 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     name: "Border (All Sides)",
     description: "Applies a uniform border thickness to all four sides of the image.",
     parameters: [
-      { name: "Thickness", description: "Integer size array." },
+      { name: "Border Width", description: "Thickness of the border in pixels." },
+      {
+        name: "Border Type",
+        description:
+          "Border extrapolation method: Constant (fixed value), Replicate (edge pixels repeated), Reflect (mirrored), Wrap (tiled).",
+      },
       { name: "Value", description: "Color of the border if constant type." },
     ],
-    useCases: ["Standardizing input size for ML models."],
+    useCases: [
+      "Standardizing input size for ML models.",
+      "Creating decorative frames for display.",
+      "Padding an image proportionally before applying a large kernel convolution to prevent data loss.",
+    ],
   },
   border_each_side: {
     type: "border_each_side",
     name: "Border (Each Side)",
     description:
-      "Applies variable border thickness independently to top, bottom, left, and right sides.",
-    parameters: [{ name: "T/B/L/R", description: "Individual side padding amounts." }],
-    useCases: ["Offsetting an image inside a fixed-size canvas."],
+      "Applies a configurable border thickness independently to top, bottom, left, and right sides.",
+    parameters: [
+      { name: "Top", description: "Thickness of the top border." },
+      { name: "Bottom", description: "Thickness of the bottom border." },
+      { name: "Left", description: "Thickness of the left border." },
+      { name: "Right", description: "Thickness of the right border." },
+      {
+        name: "Border Type",
+        description:
+          "Border extrapolation method: Constant (fixed value), Replicate (edge pixels repeated), Reflect (mirrored), Wrap (tiled).",
+      },
+      { name: "Value", description: "Color of the border if constant type." },
+    ],
+    useCases: [
+      "Asymmetric padding to center an off-center subject.",
+      "Letterboxing an image to fit a specific aspect ratio without distorting pixels.",
+    ],
   },
   thresholding_otsuthreshold: {
     type: "thresholding_otsuthreshold",
