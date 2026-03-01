@@ -15,12 +15,16 @@ export interface StepTiming {
   duration_ms: number;
 }
 
+export interface PipelineTimings {
+  total_ms: number;
+  steps: StepTiming[];
+}
+
 export interface PipelineResponse {
   success: boolean;
   image?: string;
   image_format?: string;
   error?: string;
   step?: number;
-  total_duration_ms?: number;
-  step_timings?: StepTiming[];
+  timings?: PipelineTimings;
 }

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useBlocklyWorkspace } from "../hooks/useBlocklyWorkspace";
+import { usePipelineStore } from "../store/pipelineStore";
 import Navbar from "./Navbar";
 import Toolbar from "./Toolbar";
 import Sidebar from "./Sidebar/Sidebar";
@@ -9,10 +10,12 @@ import { ErrorBoundary } from "./ErrorBoundary";
 
 export default function Layout() {
   const { containerRef, workspace } = useBlocklyWorkspace();
+  const { reset } = usePipelineStore();
   const [resetKey, setResetKey] = useState(0);
 
   const handleEditorReset = () => {
     setResetKey((prev) => prev + 1);
+    reset();
   };
 
   return (

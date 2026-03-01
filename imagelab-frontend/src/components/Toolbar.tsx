@@ -61,7 +61,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
 
     setExecuting(true);
     setError(null);
-    setTiming(null, null);
+    setTiming(null);
 
     try {
       const response = await executePipeline({
@@ -70,7 +70,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
         pipeline,
       });
 
-      setTiming(response.total_duration_ms ?? null, response.step_timings ?? null);
+      setTiming(response.timings ?? null);
 
       if (response.success && response.image) {
         setProcessedImage(response.image);
@@ -79,7 +79,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network error");
-      setTiming(null, null);
+      setTiming(null);
     } finally {
       setExecuting(false);
     }
@@ -144,13 +144,12 @@ export default function Toolbar({ workspace }: ToolbarProps) {
               {blockCount} {blockCount === 1 ? "block" : "blocks"}
             </span>
             <span
-              className={`text-[10px] uppercase font-bold tracking-wide ${
-                complexity === "High"
+              className={`text-[10px] uppercase font-bold tracking-wide ${complexity === "High"
                   ? "text-red-500"
                   : complexity === "Medium"
                     ? "text-orange-500"
                     : "text-green-500"
-              }`}
+                }`}
             >
               {complexity} Complexity
             </span>

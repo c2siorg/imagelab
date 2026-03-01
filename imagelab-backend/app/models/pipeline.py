@@ -18,11 +18,15 @@ class StepTiming(BaseModel):
     duration_ms: float
 
 
+class PipelineTimings(BaseModel):
+    total_ms: float
+    steps: list[StepTiming]
+
+
 class PipelineResponse(BaseModel):
     success: bool
     image: str | None = None
     image_format: str | None = None
     error: str | None = None
     step: int | None = None
-    total_duration_ms: float | None = None
-    step_timings: list[StepTiming] | None = None
+    timings: PipelineTimings | None = None
