@@ -55,7 +55,14 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   totalDurationMs: null,
   stepTimings: null,
   setOriginalImage: (image, format) =>
-    set({ originalImage: image, imageFormat: format, processedImage: null, error: null, totalDurationMs: null, stepTimings: null }),
+    set({
+      originalImage: image,
+      imageFormat: format,
+      processedImage: null,
+      error: null,
+      totalDurationMs: null,
+      stepTimings: null,
+    }),
   setProcessedImage: (image) => set({ processedImage: image, error: null, errorStep: null }),
   setExecuting: (executing) => set({ isExecuting: executing }),
   setError: (error, step = null) => set({ error, errorStep: step }),
@@ -67,7 +74,14 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   clearImage: () => {
     const state = usePipelineStore.getState();
     if (state._imageResetFn) state._imageResetFn();
-    set({ originalImage: null, processedImage: null, error: null, errorStep: null, totalDurationMs: null, stepTimings: null });
+    set({
+      originalImage: null,
+      processedImage: null,
+      error: null,
+      errorStep: null,
+      totalDurationMs: null,
+      stepTimings: null,
+    });
   },
   updateBlockStats: (workspace) => {
     const blocks = workspace.getAllBlocks(false);

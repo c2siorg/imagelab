@@ -35,8 +35,16 @@ function ZoomControls({
 }
 
 export default function PreviewPane() {
-  const { originalImage, imageFormat, processedImage, error, errorStep, clearImage, totalDurationMs, stepTimings } =
-    usePipelineStore();
+  const {
+    originalImage,
+    imageFormat,
+    processedImage,
+    error,
+    errorStep,
+    clearImage,
+    totalDurationMs,
+    stepTimings,
+  } = usePipelineStore();
   const [originalZoom, setOriginalZoom] = useState<number | null>(null);
   const [processedZoom, setProcessedZoom] = useState<number | null>(null);
 
@@ -119,7 +127,9 @@ export default function PreviewPane() {
                         <span className="text-gray-400 mr-1">{t.step}.</span>
                         {t.type}
                       </span>
-                      <span className="flex-shrink-0 text-gray-600">{t.duration_ms.toFixed(1)} ms</span>
+                      <span className="flex-shrink-0 text-gray-600">
+                        {t.duration_ms.toFixed(1)} ms
+                      </span>
                     </div>
                   ))}
                 </div>
