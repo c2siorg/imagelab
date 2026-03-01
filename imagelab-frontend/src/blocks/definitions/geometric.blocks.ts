@@ -46,6 +46,30 @@ export const geometricBlocks = [
       "Scales the image by the given factors - Resizes the image by scaling factors along the X and Y axes. A factor greater than 1 enlarges the image, while a factor between 0 and 1 reduces its size. This transformation is useful for resizing images for display, analysis, or to fit specific dimensions.",
   },
   {
+    type: "geometric_resizeimage",
+    message0: "Resize Image to width %1 and height %2 | Interpolation %3",
+    args0: [
+      { type: "field_number", name: "width", value: 1, min: 0 },
+      { type: "field_number", name: "height", value: 1, min: 0 },
+      {
+        type: "field_dropdown",
+        name: "interpolation",
+        options: [
+          ["LINEAR", "LINEAR"],
+          ["AREA", "AREA"],
+          ["CUBIC", "CUBIC"],
+          ["NEAREST", "NEAREST"],
+          ["LANCZOS4", "LANCZOS4"],
+        ],
+      },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "geometric_style",
+    tooltip:
+      "Resizes the image to absolute dimensions in pixels. Distinct from Scale which uses a multiplier factor. INTER_LINEAR for general use, INTER_AREA for shrinking, INTER_CUBIC/INTER_LANCZOS4 for enlarging.",
+  },
+  {
     type: "geometric_cropimage",
     message0: "Crop image to coordinates x1 %1 y1 %2 x2 %3 and y2 %4",
     args0: [

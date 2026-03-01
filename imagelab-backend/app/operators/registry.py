@@ -32,6 +32,7 @@ from app.operators.filtering.sharpen import Sharpen
 from app.operators.geometric.affine_image import AffineImage
 from app.operators.geometric.crop_image import CropImage
 from app.operators.geometric.reflect_image import ReflectImage
+from app.operators.geometric.resize_image import ResizeImage
 from app.operators.geometric.rotate_image import RotateImage
 from app.operators.geometric.scale_image import ScaleImage
 from app.operators.sobel_derivatives.scharr_derivative import ScharrDerivative
@@ -49,6 +50,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "basic_writeimage": WriteImage,
     # Geometric
     "geometric_reflectimage": ReflectImage,
+    "geometric_resizeimage": ResizeImage,
     "geometric_rotateimage": RotateImage,
     "geometric_scaleimage": ScaleImage,
     "geometric_affineimage": AffineImage,
