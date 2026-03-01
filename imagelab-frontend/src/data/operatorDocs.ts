@@ -21,7 +21,10 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     parameters: [
       { name: "Image Path", description: "Absolute or relative path to the image file." },
     ],
-    useCases: ["Starting point for any image processing pipeline."],
+    useCases: [
+      "Starting point for any image processing pipeline.",
+      "Loading a reference image for comparison or background subtraction.",
+    ],
   },
   basic_writeimage: {
     type: "basic_writeimage",
@@ -30,7 +33,10 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     parameters: [
       { name: "Output Path", description: "Path where the output image should be saved." },
     ],
-    useCases: ["Finalizing a pipeline to export the processed result."],
+    useCases: [
+      "Finalizing a pipeline to export the processed result.",
+      "Saving intermediate processing stages for debugging or inspection.",
+    ],
   },
 
   // --- Geometric ---
@@ -41,7 +47,10 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     parameters: [
       { name: "Flip Code", description: "0 for X-axis, >0 for Y-axis, <0 for both axes." },
     ],
-    useCases: ["Data augmentation, correcting upside-down images."],
+    useCases: [
+      "Data augmentation, correcting upside-down images.",
+      "Creating mirror effects for symmetric analysis.",
+    ],
   },
   geometric_cropimage: {
     type: "geometric_cropimage",
@@ -413,7 +422,10 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       { name: "KSize", description: "Size of the extended Sobel kernel (must be 1, 3, 5, or 7)." },
     ],
     formula: "G = √(Gx² + Gy²)",
-    useCases: ["Edge detection, finding intensity gradients."],
+    useCases: [
+      "Edge detection, finding intensity gradients.",
+      "Feature extraction for object detection pipelines.",
+    ],
   },
   sobelderivatives_scharrderivate: {
     type: "sobelderivatives_scharrderivate",
@@ -426,8 +438,11 @@ export const operatorDocs: Record<string, OperatorDoc> = {
         description: "Order of the derivative in x and y (only one can be 1, the other 0).",
       },
     ],
-    formula: "Gx = [[-3, 0, 3], [-10, 0, 10], [-3, 0, 3]]",
-    useCases: ["Accurate gradient direction computation."],
+    formula: "Gx = [[-3,0,3],[-10,0,10],[-3,0,3]], Gy = Gx^T",
+    useCases: [
+      "Accurate gradient direction computation.",
+      "Fine-grained edge detection on medical or scientific images requiring higher rotational symmetry than Sobel.",
+    ],
   },
 
   // --- Transformation ---
@@ -440,7 +455,10 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       { name: "Distance Type", description: "L1, L2 (Euclidean), or C (Chebyshev) metrics." },
       { name: "Mask Size", description: "3x3, 5x5, or precise calculation methods." },
     ],
-    useCases: ["Watershed segmentation, finding the skeleton of shapes."],
+    useCases: [
+      "Watershed segmentation, finding the skeleton of shapes.",
+      "Measuring the width of thin structures like veins or road markings.",
+    ],
   },
   transformation_laplacian: {
     type: "transformation_laplacian",
