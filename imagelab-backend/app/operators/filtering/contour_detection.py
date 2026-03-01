@@ -1,56 +1,53 @@
-import re
-
 import cv2
 import numpy as np
 
 from app.operators.base import BaseOperator
+from app.utils.color import hex_to_bgr
 
 
 class ContourDetection(BaseOperator):
     def compute(self, image: np.ndarray) -> np.ndarray:
-        color = self.params.get("color", "#00FF00")
-        thickness = int(self.params.get("thickness", 1))
-        mode = self.params.get("retrieval_mode", "EXTERNAL")
-        method = self.params.get("approximation_method", "SIMPLE")
-        blur_kernel_size = int(self.params.get("kernel_size", 1))
-        blur_kernel_size = max(1, blur_kernel_size | 1)  # Ensure kernel size is odd and at least 1
+        mode_str = str(self.params.get("mode", "EXTERNAL")).upper()
+        method_str = str(self.params.get("method", "SIMPLE")).upper()
+        thickness = int(self.params.get("thickness", 2))
+        hex_color = self.params.get("rgbcolors_input", "#00ff00")
+        bgr_color = hex_to_bgr(hex_color)
 
-        # Convert hex color to BGR
-        hex_color = color.lstrip("#") if isinstance(color, str) else "00FF00"
-        if not re.fullmatch(r"[0-9A-Fa-f]{6}", hex_color):
-            hex_color = "00FF00"  # fallback to default green
-        r = int(hex_color[0:2], 16)
-        g = int(hex_color[2:4], 16)
-        b = int(hex_color[4:6], 16)
-        color = (b, g, r)
-        # Convert RGBA to BGR if needed
-        if len(image.shape) == 3 and image.shape[2] == 4:
-            image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
+        mode = cv2.RETR_TREE if mode_str == "TREE" else cv2.RETR_EXTERNAL
+        method = cv2.CHAIN_APPROX_NONE if method_str == "NONE" else cv2.CHAIN_APPROX_SIMPLE
 
-        # Reduce noise with a Gaussian blur
-        gray = cv2.GaussianBlur(gray, (blur_kernel_size, blur_kernel_size), 0)
-
-        # Use binary thresholding to create a binary image
-        mean_intensity = np.mean(gray)
-        if mean_intensity > 127:
-            thresh_type = cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+        # Convert to single-channel 8-bit image for findContours
+        if image.ndim == 3 and image.shape[2] == 3:
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        elif image.ndim == 3 and image.shape[2] == 4:
+            gray = cv2.cvtColor(image, cv2.COLOR_BGRA2GRAY)
         else:
-            thresh_type = cv2.THRESH_BINARY + cv2.THRESH_OTSU
+            gray = image.copy()
 
-        _, thresh = cv2.threshold(gray, 0, 255, thresh_type)
+        if gray.dtype != np.uint8:
+            gray = gray.astype(np.uint8)
 
-        if mode == "TREE":
-            mode = cv2.RETR_TREE
-        elif mode == "LIST":
-            mode = cv2.RETR_LIST
-        elif mode == "CCOMP":
-            mode = cv2.RETR_CCOMP
+        # Do not bake in opinionated thresholding/blur here.
+        # findContours expects a binary mask or single-channel image directly.
+        # Standard OpenCV behavior: non-zero pixels are treated as 1 (foreground).
+        ret = cv2.findContours(gray, mode, method)
+        contours = ret[-2]
+
+        if not contours:
+            return image
+
+        result = image.copy()
+
+        # Format the color properly for the output channels to prevent crashes
+        if result.ndim == 2:
+            result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
+            draw_color = bgr_color
+        elif result.ndim == 3 and result.shape[2] == 4:
+            # For BGRA images, OpenCV drawContours supports 4-tuple colors
+            draw_color = (*bgr_color, 255)
         else:
-            mode = cv2.RETR_EXTERNAL
+            draw_color = bgr_color
 
-        method = cv2.CHAIN_APPROX_NONE if method == "NONE" else cv2.CHAIN_APPROX_SIMPLE
-        contours, _ = cv2.findContours(thresh, mode, method)
-        output = image.copy()
-        cv2.drawContours(output, contours, -1, color, thickness)
-        return output
+        cv2.drawContours(result, contours, -1, draw_color, thickness)
+
+        return result

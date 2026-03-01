@@ -82,41 +82,6 @@ export const filteringBlocks = [
       "Applies dilation to the image - A morphological operation that expands the boundaries of foreground objects. It works by replacing each pixel with the maximum value of its neighbors defined by the structuring element. The 'iteration' parameter controls how many times the dilation is applied, increasing the effect. The anchor point (x, y) sets the filter center; use (-1, -1) to auto-center.",
   },
   {
-    type: "filtering_contour",
-    message0:
-      "Apply contour detection with %1 approximation method %2 %3 retrieval mode %4 gaussian kernel size parameter %5 with contours %6 color and %7 thickness",
-    args0: [
-      {
-        type: "field_dropdown",
-        name: "approximation_method",
-        options: [
-          ["SIMPLE", "SIMPLE"],
-          ["NONE", "NONE"],
-        ],
-      },
-      { type: "input_dummy" },
-      {
-        type: "field_dropdown",
-        name: "retrieval_mode",
-        options: [
-          ["EXTERNAL", "EXTERNAL"],
-          ["TREE", "TREE"],
-          ["LIST", "LIST"],
-          ["CCOMP", "CCOMP"],
-        ],
-      },
-      { type: "input_dummy" },
-      { type: "field_number", name: "kernel_size", value: 5, min: 1 },
-      { type: "field_colour", name: "color", value: "#00FF00" },
-      { type: "field_number", name: "thickness", value: 1, min: -1 },
-    ],
-    previousStatement: null,
-    nextStatement: null,
-    style: "filtering_style",
-    tooltip:
-      "Applies contour detection - Detects contours in the image based on the specified retrieval mode and approximation method. The 'retrieval_mode' determines how contours are retrieved (e.g., only external contours, all contours in a tree structure, or all contours in a list). The 'approximation_method' controls how the contours are approximated (e.g., simple approximation or no approximation). The detected contours can be drawn on the image with the specified color and thickness.",
-  },
-  {
     type: "filtering_morphological",
     message0: "Apply morphological with %1 filter",
     args0: [
@@ -146,5 +111,36 @@ export const filteringBlocks = [
     nextStatement: null,
     style: "filtering_style",
     tooltip: "Applies image sharpening to enhance edges and details",
+  },
+  {
+    type: "filtering_contourdetection",
+    message0: "Draw Contours with mode %1 %2 method %3 %4 color %5 %6 thickness %7",
+    args0: [
+      {
+        type: "field_dropdown",
+        name: "mode",
+        options: [
+          ["External", "EXTERNAL"],
+          ["Tree", "TREE"],
+        ],
+      },
+      { type: "input_dummy" },
+      {
+        type: "field_dropdown",
+        name: "method",
+        options: [
+          ["Simple", "SIMPLE"],
+          ["None", "NONE"],
+        ],
+      },
+      { type: "input_dummy" },
+      { type: "field_colour", name: "rgbcolors_input", colour: "#00ff00" },
+      { type: "input_dummy" },
+      { type: "field_number", name: "thickness", value: 2, min: 1 },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "filtering_style",
+    tooltip: "Detects contours on an image and renders them over the original graphic.",
   },
 ];
