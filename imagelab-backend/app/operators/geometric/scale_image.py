@@ -24,4 +24,7 @@ class ScaleImage(BaseOperator):
             )
         interpolation_flag = _INTERPOLATION_MAP[interpolation_str]
 
+        if fx <= 0 or fy <= 0:
+            raise ValueError("fx and fy must be greater than 0")
+
         return cv2.resize(image, dsize=(0, 0), fx=fx, fy=fy, interpolation=interpolation_flag)
