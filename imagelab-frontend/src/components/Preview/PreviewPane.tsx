@@ -35,15 +35,8 @@ function ZoomControls({
 }
 
 export default function PreviewPane() {
-  const {
-    originalImage,
-    imageFormat,
-    processedImage,
-    error,
-    errorStep,
-    clearImage,
-    timings,
-  } = usePipelineStore();
+  const { originalImage, imageFormat, processedImage, error, errorStep, clearImage, timings } =
+    usePipelineStore();
   const [originalZoom, setOriginalZoom] = useState<number | null>(null);
   const [processedZoom, setProcessedZoom] = useState<number | null>(null);
 
@@ -123,20 +116,26 @@ export default function PreviewPane() {
               </summary>
               <div className="mt-1.5 space-y-1">
                 {timings.steps.map((t) => {
-                  const label = t.type.includes('_') ? t.type.split('_').slice(1).join('_') : t.type;
-                  const maxMs = Math.max(...timings.steps.map(s => s.duration_ms));
+                  const label = t.type.includes("_")
+                    ? t.type.split("_").slice(1).join("_")
+                    : t.type;
+                  const maxMs = Math.max(...timings.steps.map((s) => s.duration_ms));
                   const barWidth = maxMs > 0 ? (t.duration_ms / maxMs) * 100 : 0;
                   return (
                     <div key={t.step} className="flex items-center gap-2 text-[11px] text-gray-500">
                       <span className="w-4 text-right text-gray-400 flex-shrink-0">{t.step}.</span>
-                      <span className="truncate flex-1 pr-1" title={t.type}>{label}</span>
+                      <span className="truncate flex-1 pr-1" title={t.type}>
+                        {label}
+                      </span>
                       <div className="w-16 h-1.5 bg-gray-100 rounded-full flex-shrink-0">
                         <div
                           className="h-full bg-indigo-400 rounded-full"
                           style={{ width: `${barWidth}%` }}
                         />
                       </div>
-                      <span className="flex-shrink-0 text-gray-600 w-14 text-right">{t.duration_ms.toFixed(1)} ms</span>
+                      <span className="flex-shrink-0 text-gray-600 w-14 text-right">
+                        {t.duration_ms.toFixed(1)} ms
+                      </span>
                     </div>
                   );
                 })}

@@ -144,12 +144,13 @@ export default function Toolbar({ workspace }: ToolbarProps) {
               {blockCount} {blockCount === 1 ? "block" : "blocks"}
             </span>
             <span
-              className={`text-[10px] uppercase font-bold tracking-wide ${complexity === "High"
+              className={`text-[10px] uppercase font-bold tracking-wide ${
+                complexity === "High"
                   ? "text-red-500"
                   : complexity === "Medium"
                     ? "text-orange-500"
                     : "text-green-500"
-                }`}
+              }`}
             >
               {complexity} Complexity
             </span>
