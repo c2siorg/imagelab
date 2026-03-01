@@ -35,6 +35,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         },
     )
 
+
 def register_exception_handlers(app: FastAPI) -> None:
     """Register all custom exception handlers on the FastAPI app."""
     app.add_exception_handler(AppException, app_exception_handler)
