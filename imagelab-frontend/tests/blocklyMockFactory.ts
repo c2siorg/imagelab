@@ -5,7 +5,7 @@ export type MockField = {
   getValue: () => unknown;
 };
 
-export function field(name: string, value: unknown): MockField {
+export function field(name: string | undefined, value: unknown): MockField {
   return { name, getValue: () => value };
 }
 
@@ -46,6 +46,14 @@ export type MockWorkspace = {
   getTopBlocks: (ordered?: boolean) => MockBlock[];
 };
 
-export function workspace(topBlocks: MockBlock[]): MockWorkspace {
-  return { getTopBlocks: () => topBlocks };
+export function workspace(
+  topBlocks: MockBlock[],
+  opts?: { onGetTopBlocks?: (ordered?: boolean) => void },
+): MockWorkspace {
+  return {
+    getTopBlocks: (ordered?: boolean) => {
+      opts?.onGetTopBlocks?.(ordered);
+      return topBlocks;
+    },
+  };
 }
