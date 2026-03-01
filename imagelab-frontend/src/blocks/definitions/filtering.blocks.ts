@@ -83,7 +83,7 @@ export const filteringBlocks = [
   },
   {
     type: "filtering_morphological",
-    message0: "Apply morphological with %1 filter",
+    message0: "Apply morphological with %1 filter kernel size %2",
     args0: [
       {
         type: "field_dropdown",
@@ -96,12 +96,14 @@ export const filteringBlocks = [
           ["Open", "OPEN"],
         ],
       },
+      { type: "field_number", name: "kernelSize", value: 5, min: 1, max: 99, precision: 1 },
     ],
     previousStatement: null,
     nextStatement: null,
     style: "filtering_style",
+    extensions: ["odd_kernel_validator"],
     tooltip:
-      "Applies morphological operation - Performs various morphological transformations based on the selected filter type. 'Open' removes small objects from the foreground, 'Close' fills small holes in the foreground, 'Gradient' highlights the edges of objects, 'Tophat' extracts small elements and details from the image, and 'Black hat' extracts small dark regions on a light background. These operations are useful for enhancing or suppressing specific features in an image.",
+      "Applies morphological operation - Performs various morphological transformations based on the selected filter type. 'Open' removes small objects from the foreground, 'Close' fills small holes in the foreground, 'Gradient' highlights the edges of objects, 'Tophat' extracts small elements and details from the image, and 'Black hat' extracts small dark regions on a light background. Kernel size must be a positive odd integer and controls how strongly structures are affected.",
   },
   {
     type: "filtering_sharpen",
