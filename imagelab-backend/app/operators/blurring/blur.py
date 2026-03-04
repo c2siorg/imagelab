@@ -17,7 +17,7 @@ class Blur(BaseOperator):
 
         return cv2.blur(
             image,
-            (height_size, width_size),
+            (width_size, height_size),  # OpenCV ksize convention: (width, height)
             anchor=(point_x, point_y),
             borderType=cv2.BORDER_DEFAULT,
         )
