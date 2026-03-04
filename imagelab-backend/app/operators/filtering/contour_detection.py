@@ -1,3 +1,5 @@
+import re
+
 import cv2
 import numpy as np
 
@@ -10,9 +12,13 @@ class ContourDetection(BaseOperator):
         thickness = int(self.params.get("thickness", 1))
         mode = self.params.get("retrieval_mode", "EXTERNAL")
         method = self.params.get("approximation_method", "SIMPLE")
+        blur_kernel_size = int(self.params.get("kernel_size", 1))
+        blur_kernel_size = max(1, blur_kernel_size | 1)  # Ensure kernel size is odd and at least 1
 
         # Convert hex color to BGR
-        hex_color = color.lstrip('#')
+        hex_color = color.lstrip("#") if isinstance(color, str) else "00FF00"
+        if not re.fullmatch(r"[0-9A-Fa-f]{6}", hex_color):
+            hex_color = "00FF00"  # fallback to default green
         r = int(hex_color[0:2], 16)
         g = int(hex_color[2:4], 16)
         b = int(hex_color[4:6], 16)
@@ -20,33 +26,31 @@ class ContourDetection(BaseOperator):
         # Convert RGBA to BGR if needed
         if len(image.shape) == 3 and image.shape[2] == 4:
             image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
-        if len(image.shape) == 3:
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        else:
-            gray = image
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
 
-        #Reduce noise with a Gaussian blur
-        gray = cv2.GaussianBlur(gray, (5, 5), 0)
+        # Reduce noise with a Gaussian blur
+        gray = cv2.GaussianBlur(gray, (blur_kernel_size, blur_kernel_size), 0)
 
-        #Use binary thresholding to create a binary image
+        # Use binary thresholding to create a binary image
         mean_intensity = np.mean(gray)
         if mean_intensity > 127:
-            thresh_type = cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU
+            thresh_type = cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
         else:
-            thresh_type = cv2.THRESH_BINARY+cv2.THRESH_OTSU
+            thresh_type = cv2.THRESH_BINARY + cv2.THRESH_OTSU
 
-        _,thresh = cv2.threshold(gray, 0, 255, thresh_type + cv2.THRESH_OTSU)
+        _, thresh = cv2.threshold(gray, 0, 255, thresh_type)
 
         if mode == "TREE":
             mode = cv2.RETR_TREE
         elif mode == "LIST":
             mode = cv2.RETR_LIST
+        elif mode == "CCOMP":
+            mode = cv2.RETR_CCOMP
         else:
             mode = cv2.RETR_EXTERNAL
 
-        if method == "NONE":
-            method = cv2.CHAIN_APPROX_NONE
-        else:
-            method = cv2.CHAIN_APPROX_SIMPLE
-        contours,_ = cv2.findContours(thresh, mode, method)
-        return cv2.drawContours(image, contours, -1, color, thickness)
+        method = cv2.CHAIN_APPROX_NONE if method == "NONE" else cv2.CHAIN_APPROX_SIMPLE
+        contours, _ = cv2.findContours(thresh, mode, method)
+        output = image.copy()
+        cv2.drawContours(output, contours, -1, color, thickness)
+        return output

@@ -87,8 +87,8 @@ export const categories: CategoryInfo[] = [
       { type: "filtering_erosion", label: "Erosion" },
       { type: "filtering_dilation", label: "Dilation" },
       { type: "filtering_contour", label: "Contour Detection" },
-      { type: "filtering_morphological", label: "Morphological" }
-    ]
+      { type: "filtering_morphological", label: "Morphological" },
+    ],
   },
   {
     name: "Thresholding",

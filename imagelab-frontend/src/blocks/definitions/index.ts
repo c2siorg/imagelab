@@ -12,7 +12,6 @@ import { transformationBlocks } from "./transformation.blocks";
 
 export function registerAllBlocks() {
   registerReadImageExtension();
-
   Blockly.defineBlocksWithJsonArray([
     ...basicBlocks,
     ...geometricBlocks,
