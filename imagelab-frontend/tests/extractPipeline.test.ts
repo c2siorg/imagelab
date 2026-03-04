@@ -1,26 +1,30 @@
-import type { WorkspaceSvg } from "blockly";
 import { describe, expect, it, vi } from "vitest";
 import { extractPipeline } from "../src/hooks/usePipeline";
-import { block, field, input, INPUT_TYPE_VALUE, workspace } from "./blocklyMockFactory";
-
-// helper to avoid repeating the cast everywhere
-function asWs(ws: unknown): WorkspaceSvg {
-  return ws as WorkspaceSvg;
-}
+import {
+  block,
+  field,
+  input,
+  INPUT_TYPE_VALUE,
+  workspace,
+} from "./blocklyMockFactory";
+import type { ExtractPipelineWorkspace } from "./blocklyMockFactory";
 
 describe("extractPipeline", () => {
   it("returns [] when there are no blocks at all", () => {
-    expect(extractPipeline(asWs(workspace([])))).toEqual([]);
+    const ws: ExtractPipelineWorkspace = workspace([]);
+    expect(extractPipeline(ws)).toEqual([]);
   });
 
   it("returns [] if basic_readimage is not in the workspace", () => {
     // pipeline can only start from a reader block
-    expect(extractPipeline(asWs(workspace([block("filtering_bilateral")])))).toEqual([]);
+    const ws: ExtractPipelineWorkspace = workspace([block("filtering_bilateral")]);
+    expect(extractPipeline(ws)).toEqual([]);
   });
 
   it("handles a standalone reader block with a filename param", () => {
     const read = block("basic_readimage", [input([field("filename_label", "cat.png")])]);
-    const pipeline = extractPipeline(asWs(workspace([read])));
+    const ws: ExtractPipelineWorkspace = workspace([read]);
+    const pipeline = extractPipeline(ws);
     expect(pipeline).toHaveLength(1);
     expect(pipeline[0].type).toBe("basic_readimage");
     expect(pipeline[0].params).toMatchObject({ filename_label: "cat.png" });
@@ -30,7 +34,8 @@ describe("extractPipeline", () => {
     const sharpen = block("filtering_sharpen", [input([field("strength", 1.2)])]);
     const morph = block("filtering_morphological", [input([field("type", "TOPHAT")])], sharpen);
     const reader = block("basic_readimage", [input([field("filename_label", "x.png")])], morph);
-    const pipeline = extractPipeline(asWs(workspace([reader])));
+    const ws: ExtractPipelineWorkspace = workspace([reader]);
+    const pipeline = extractPipeline(ws);
     expect(pipeline.map((s) => s.type)).toEqual([
       "basic_readimage",
       "filtering_morphological",
@@ -44,7 +49,8 @@ describe("extractPipeline", () => {
       input([field("thickness", 2), field("rgbcolors_input", "#ff00ff")]),
     ]);
     const reader = block("basic_readimage", [input([field("filename_label", "x.png")])], drawLine);
-    const pipeline = extractPipeline(asWs(workspace([reader])));
+    const ws: ExtractPipelineWorkspace = workspace([reader]);
+    const pipeline = extractPipeline(ws);
     expect(pipeline[1].params).toMatchObject({ thickness: 2, rgbcolors_input: "#ff00ff" });
   });
 
@@ -65,7 +71,8 @@ describe("extractPipeline", () => {
       [input([field("filename_label", "x.png")])],
       applyBorders,
     );
-    const pipeline = extractPipeline(asWs(workspace([read])));
+    const ws: ExtractPipelineWorkspace = workspace([read]);
+    const pipeline = extractPipeline(ws);
     expect(pipeline.map((s) => s.type)).toEqual(["basic_readimage", "thresholding_applyborders"]);
     expect(pipeline[1].params).toMatchObject({
       borderTop: 3,
@@ -80,7 +87,8 @@ describe("extractPipeline", () => {
     const child = block("border_for_all", [input([field("border_all_sides", 9)])]);
     const parent = block("some_parent", [input([], { type: 2, connected: child })]);
     const read = block("basic_readimage", [input([field("filename_label", "x.png")])], parent);
-    const pipeline = extractPipeline(asWs(workspace([read])));
+    const ws: ExtractPipelineWorkspace = workspace([read]);
+    const pipeline = extractPipeline(ws);
     expect(pipeline[1].params).toEqual({});
   });
 
@@ -88,7 +96,7 @@ describe("extractPipeline", () => {
     const onGetTopBlocks = vi.fn();
     const read = block("basic_readimage", [input([field("filename_label", "x.png")])]);
 
-    extractPipeline(asWs(workspace([read], { onGetTopBlocks })));
+    extractPipeline(workspace([read], { onGetTopBlocks }));
 
     expect(onGetTopBlocks).toHaveBeenCalledWith(true);
   });
@@ -99,7 +107,8 @@ describe("extractPipeline", () => {
     ]);
     const reader = block("basic_readimage", [input([field("filename_label", "x.png")])], drawLine);
 
-    const pipeline = extractPipeline(asWs(workspace([reader])));
+    const ws: ExtractPipelineWorkspace = workspace([reader]);
+    const pipeline = extractPipeline(ws);
 
     expect(pipeline[1].params).toEqual({ thickness: 2 });
   });

@@ -12,7 +12,9 @@ export function field(name: string | undefined, value: unknown): MockField {
 export type MockInput = {
   fieldRow: MockField[];
   type: number;
-  connection?: { targetBlock: () => MockBlock | null };
+  // Always present — matches Blockly's real model where connection is never
+  // undefined; when nothing is connected, targetBlock() returns null.
+  connection: { targetBlock: () => MockBlock | null };
 };
 
 export function input(
@@ -24,7 +26,8 @@ export function input(
   return {
     fieldRow,
     type,
-    connection: connected ? { targetBlock: () => connected } : undefined,
+    // Always supply a connection object; unconnected => targetBlock returns null
+    connection: { targetBlock: () => connected },
   };
 }
 
@@ -45,6 +48,12 @@ export function block(
 export type MockWorkspace = {
   getTopBlocks: (ordered?: boolean) => MockBlock[];
 };
+
+// Minimal interface that mirrors only what extractPipeline actually uses.
+// MockWorkspace already satisfies this shape — no type cast needed in tests.
+export interface ExtractPipelineWorkspace {
+  getTopBlocks(ordered?: boolean): MockBlock[];
+}
 
 export function workspace(
   topBlocks: MockBlock[],
