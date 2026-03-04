@@ -9,22 +9,23 @@ import {
 } from "./blocklyMockFactory";
 import type { ExtractPipelineWorkspace } from "./blocklyMockFactory";
 
+// Narrow cast helper — asserts MockWorkspace satisfies the minimal interface
+// that extractPipeline actually uses, without bypassing structural checking.
+const ws = (w: ExtractPipelineWorkspace) => w as unknown as Parameters<typeof extractPipeline>[0];
+
 describe("extractPipeline", () => {
   it("returns [] when there are no blocks at all", () => {
-    const ws: ExtractPipelineWorkspace = workspace([]);
-    expect(extractPipeline(ws)).toEqual([]);
+    expect(extractPipeline(ws(workspace([])))).toEqual([]);
   });
 
   it("returns [] if basic_readimage is not in the workspace", () => {
     // pipeline can only start from a reader block
-    const ws: ExtractPipelineWorkspace = workspace([block("filtering_bilateral")]);
-    expect(extractPipeline(ws)).toEqual([]);
+    expect(extractPipeline(ws(workspace([block("filtering_bilateral")])))).toEqual([]);
   });
 
   it("handles a standalone reader block with a filename param", () => {
     const read = block("basic_readimage", [input([field("filename_label", "cat.png")])]);
-    const ws: ExtractPipelineWorkspace = workspace([read]);
-    const pipeline = extractPipeline(ws);
+    const pipeline = extractPipeline(ws(workspace([read])));
     expect(pipeline).toHaveLength(1);
     expect(pipeline[0].type).toBe("basic_readimage");
     expect(pipeline[0].params).toMatchObject({ filename_label: "cat.png" });
@@ -34,8 +35,7 @@ describe("extractPipeline", () => {
     const sharpen = block("filtering_sharpen", [input([field("strength", 1.2)])]);
     const morph = block("filtering_morphological", [input([field("type", "TOPHAT")])], sharpen);
     const reader = block("basic_readimage", [input([field("filename_label", "x.png")])], morph);
-    const ws: ExtractPipelineWorkspace = workspace([reader]);
-    const pipeline = extractPipeline(ws);
+    const pipeline = extractPipeline(ws(workspace([reader])));
     expect(pipeline.map((s) => s.type)).toEqual([
       "basic_readimage",
       "filtering_morphological",
@@ -49,8 +49,7 @@ describe("extractPipeline", () => {
       input([field("thickness", 2), field("rgbcolors_input", "#ff00ff")]),
     ]);
     const reader = block("basic_readimage", [input([field("filename_label", "x.png")])], drawLine);
-    const ws: ExtractPipelineWorkspace = workspace([reader]);
-    const pipeline = extractPipeline(ws);
+    const pipeline = extractPipeline(ws(workspace([reader])));
     expect(pipeline[1].params).toMatchObject({ thickness: 2, rgbcolors_input: "#ff00ff" });
   });
 
@@ -71,8 +70,7 @@ describe("extractPipeline", () => {
       [input([field("filename_label", "x.png")])],
       applyBorders,
     );
-    const ws: ExtractPipelineWorkspace = workspace([read]);
-    const pipeline = extractPipeline(ws);
+    const pipeline = extractPipeline(ws(workspace([read])));
     expect(pipeline.map((s) => s.type)).toEqual(["basic_readimage", "thresholding_applyborders"]);
     expect(pipeline[1].params).toMatchObject({
       borderTop: 3,
@@ -87,16 +85,16 @@ describe("extractPipeline", () => {
     const child = block("border_for_all", [input([field("border_all_sides", 9)])]);
     const parent = block("some_parent", [input([], { type: 2, connected: child })]);
     const read = block("basic_readimage", [input([field("filename_label", "x.png")])], parent);
-    const ws: ExtractPipelineWorkspace = workspace([read]);
-    const pipeline = extractPipeline(ws);
+    const pipeline = extractPipeline(ws(workspace([read])));
     expect(pipeline[1].params).toEqual({});
   });
 
-  it("calls getTopBlocks with ordered=true", () => {
+  it("calls getTopBlocks with ordered=true — ensures pipeline order is deterministic", () => {
+    // getTopBlocks(true) returns top-to-bottom order; false/undefined = insertion order
     const onGetTopBlocks = vi.fn();
     const read = block("basic_readimage", [input([field("filename_label", "x.png")])]);
 
-    extractPipeline(workspace([read], { onGetTopBlocks }));
+    extractPipeline(ws(workspace([read], { onGetTopBlocks })));
 
     expect(onGetTopBlocks).toHaveBeenCalledWith(true);
   });
@@ -107,9 +105,50 @@ describe("extractPipeline", () => {
     ]);
     const reader = block("basic_readimage", [input([field("filename_label", "x.png")])], drawLine);
 
-    const ws: ExtractPipelineWorkspace = workspace([reader]);
-    const pipeline = extractPipeline(ws);
+    const pipeline = extractPipeline(ws(workspace([reader])));
 
     expect(pipeline[1].params).toEqual({ thickness: 2 });
+  });
+
+  it("uses only the first basic_readimage chain when multiple reader blocks exist", () => {
+    const r1 = block("basic_readimage", [input([field("filename_label", "a.png")])]);
+    const r2 = block("basic_readimage", [input([field("filename_label", "b.png")])]);
+    // extractPipeline uses find() — picks the first match; r2's chain is ignored
+    const pipeline = extractPipeline(ws(workspace([r1, r2])));
+    expect(pipeline).toHaveLength(1);
+    expect(pipeline[0].params).toMatchObject({ filename_label: "a.png" });
+  });
+
+  it("merges only one level of VALUE-connected block params (current behaviour)", () => {
+    // Documents that deep nesting (VALUE child of a VALUE child) is NOT traversed
+    const innerChild = block("inner_child", [input([field("x", 10)])]);
+    const outerChild = block("outer_child", [
+      input([], { type: INPUT_TYPE_VALUE, connected: innerChild }),
+    ]);
+    const parent = block("parent_block", [
+      input([], { type: INPUT_TYPE_VALUE, connected: outerChild }),
+    ]);
+    const read = block("basic_readimage", [input([field("filename_label", "x.png")])], parent);
+    const pipeline = extractPipeline(ws(workspace([read])));
+    // outerChild has no direct fieldRow, and innerChild (nested) is not traversed
+    expect(pipeline[1].params).toEqual({});
+  });
+
+  it("finds basic_readimage even when it is not at index 0 of getTopBlocks", () => {
+    const unrelated = block("filtering_bilateral", []);
+    const reader = block("basic_readimage", [input([field("filename_label", "z.png")])]);
+    // reader is at index 1 — find() still locates it regardless of position
+    const pipeline = extractPipeline(ws(workspace([unrelated, reader])));
+    expect(pipeline).toHaveLength(1);
+    expect(pipeline[0].type).toBe("basic_readimage");
+  });
+
+  it("handles a block with an empty inputList without crashing", () => {
+    // block() defaults inputList to [] — produces no params but must not throw
+    const emptyBlock = block("filtering_sharpen");
+    const read = block("basic_readimage", [input([field("filename_label", "x.png")])], emptyBlock);
+    const pipeline = extractPipeline(ws(workspace([read])));
+    expect(pipeline).toHaveLength(2);
+    expect(pipeline[1].params).toEqual({});
   });
 });

@@ -1,3 +1,6 @@
+/** Mirrors Blockly.inputTypes.VALUE (= 1). See blockly/core/input_types.ts.
+ *  Blockly does not export inputTypes in its ESM build, so the value is
+ *  kept here with an explicit reference rather than imported at runtime. */
 export const INPUT_TYPE_VALUE = 1;
 
 export type MockField = {
@@ -49,7 +52,7 @@ export type MockWorkspace = {
   getTopBlocks: (ordered?: boolean) => MockBlock[];
 };
 
-// Minimal interface that mirrors only what extractPipeline actually uses.
+// Minimal interface mirroring only what extractPipeline actually calls.
 // MockWorkspace already satisfies this shape — no type cast needed in tests.
 export interface ExtractPipelineWorkspace {
   getTopBlocks(ordered?: boolean): MockBlock[];
