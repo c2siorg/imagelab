@@ -87,12 +87,12 @@ def test_contour_detection_invalid_method_raises():
 def test_contour_detection_invalid_thickness_raises():
     operator = ContourDetection({"mode": "EXTERNAL", "method": "SIMPLE", "rgbcolors_input": "#00ff00", "thickness": 0})
     image = np.zeros((50, 50, 3), dtype=np.uint8)
-    with pytest.raises(ValueError, match="thickness must be >= 1"):
+    with pytest.raises(ValueError, match="thickness must be between 1 and 50"):
         operator.compute(image)
 
 
 def test_contour_detection_thickness_too_large_raises():
     operator = ContourDetection({"mode": "EXTERNAL", "method": "SIMPLE", "rgbcolors_input": "#00ff00", "thickness": 51})
     image = np.zeros((50, 50, 3), dtype=np.uint8)
-    with pytest.raises(ValueError, match="thickness must be <= 50"):
+    with pytest.raises(ValueError, match="thickness must be between 1 and 50"):
         operator.compute(image)
