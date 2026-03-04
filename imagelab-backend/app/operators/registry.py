@@ -8,6 +8,7 @@ from app.operators.conversions.bgr_to_hsv import BgrToHsv
 from app.operators.conversions.bgr_to_lab import BgrToLab
 from app.operators.conversions.bgr_to_ycrcb import BgrToYcrcb
 from app.operators.conversions.channel_split import ChannelSplit
+from app.operators.conversions.clahe import claheImage
 from app.operators.conversions.color_maps import ColorMaps
 from app.operators.conversions.color_to_binary import ColorToBinary
 from app.operators.conversions.gray_image import GrayImage
@@ -15,7 +16,6 @@ from app.operators.conversions.gray_to_binary import GrayToBinary
 from app.operators.conversions.hsv_to_bgr import HsvToBgr
 from app.operators.conversions.lab_to_bgr import LabToBgr
 from app.operators.conversions.ycrcb_to_bgr import YcrcbToBgr
-from app.operators.conversions.clache import ClacheImage
 from app.operators.drawing.draw_arrow_line import DrawArrowLine
 from app.operators.drawing.draw_circle import DrawCircle
 from app.operators.drawing.draw_ellipse import DrawEllipse
@@ -60,7 +60,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "geometric_affineimage": AffineImage,
     "geometric_cropimage": CropImage,
     # Conversions
-    "imageconvertions_clache": ClacheImage,
+    "imageconvertions_clahe": claheImage,
     "imageconvertions_grayimage": GrayImage,
     "imageconvertions_channelsplit": ChannelSplit,
     "imageconvertions_graytobinary": GrayToBinary,
