@@ -25,7 +25,8 @@ def test_rotate_preserves_shape(angle: int) -> None:
 
 
 def test_rotate_0_is_identity() -> None:
-    img = np.random.randint(0, 256, size=(120, 160), dtype=np.uint8)
+    rng = np.random.default_rng(42)
+    img = rng.integers(0, 256, size=(120, 160), dtype=np.uint8)
     out = RotateImage({"angle": 0, "scale": 1.0}).compute(img)
     assert np.array_equal(out, img)
 
@@ -39,6 +40,6 @@ def test_rotate_moves_sentinel_pixel_to_expected_location(angle: int) -> None:
     out = RotateImage({"angle": angle, "scale": 1.0}).compute(img)
     cx, cy = w / 2, h / 2
     x1, y1 = _expected_rotated_xy(x0, y0, cx, cy, float(angle))
-    assert out.max() > 0
+    assert out.max() > 200, f"Sentinel pixel too dim after {angle}° rotation: max={out.max()}"
     y_got, x_got = np.unravel_index(out.argmax(), out.shape)
     assert (int(x_got), int(y_got)) == (x1, y1)

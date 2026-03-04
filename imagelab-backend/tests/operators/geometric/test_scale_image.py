@@ -14,7 +14,7 @@ from app.operators.geometric.scale_image import ScaleImage
         (0.25, 3.0, (30, 5, 3)),
     ],
 )
-def test_scale_output_dimensions(fx: float, fy: float, shape: tuple) -> None:
+def test_scale_output_dimensions(fx: float, fy: float, shape: tuple[int, int, int]) -> None:
     img = np.zeros((10, 20, 3), dtype=np.uint8)
     out = ScaleImage({"fx": fx, "fy": fy}).compute(img)
     assert out.shape == shape
@@ -32,3 +32,10 @@ def test_scale_constant_image_stays_constant() -> None:
     out = ScaleImage({"fx": 2.0, "fy": 3.0}).compute(img)
     assert out.shape == (21, 18, 3)
     assert np.all(out == 7)
+
+
+def test_scale_missing_parameters_uses_defaults() -> None:
+    # ScaleImage defaults: fx=1, fy=1 — output shape equals input shape
+    img = np.zeros((10, 20, 3), dtype=np.uint8)
+    out = ScaleImage({}).compute(img)
+    assert out.shape == img.shape
