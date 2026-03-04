@@ -1,0 +1,48 @@
+@keyframes float1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, -40px) scale(1.05); }
+}
+@keyframes float2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-20px, 30px) scale(0.95); }
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.startBtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #7c3aed, #059669) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 20px 40px rgba(99, 102, 241, 0.4) !important;
+}
+.startBtn:active:not(:disabled) {
+  transform: translateY(0px) !important;
+}
+.startBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.startBtn:focus-visible {
+  outline: 3px solid #a5b4fc;
+  outline-offset: 3px;
+}
+.stepCard:hover {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border-color: rgba(99, 102, 241, 0.4) !important;
+}
+.checkbox:focus-visible {
+  outline: 2px solid #a5b4fc;
+  outline-offset: 2px;
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
