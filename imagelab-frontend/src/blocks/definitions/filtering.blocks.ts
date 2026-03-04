@@ -136,7 +136,7 @@ export const filteringBlocks = [
       { type: "input_dummy" },
       { type: "field_colour", name: "rgbcolors_input", colour: "#00ff00" },
       { type: "input_dummy" },
-      { type: "field_number", name: "thickness", value: 2, min: 1 },
+      { type: "field_number", name: "thickness", value: 2, min: 1, max: 50 },
     ],
     previousStatement: null,
     nextStatement: null,
