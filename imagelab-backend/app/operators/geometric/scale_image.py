@@ -1,3 +1,5 @@
+import math
+
 import cv2
 import numpy as np
 
@@ -14,8 +16,19 @@ _INTERPOLATION_MAP: dict[str, int] = {
 
 class ScaleImage(BaseOperator):
     def compute(self, image: np.ndarray) -> np.ndarray:
-        fx = float(self.params.get("fx", 1))
-        fy = float(self.params.get("fy", 1))
+        try:
+            fx = float(self.params.get("fx", 1))
+            fy = float(self.params.get("fy", 1))
+        except (TypeError, ValueError) as e:
+            raise ValueError(f"fx and fy must be numeric values: {e}") from e
+
+        if not math.isfinite(fx) or not math.isfinite(fy):
+            raise ValueError(f"fx and fy must be finite numeric values, got fx={fx}, fy={fy}")
+
+        if fx <= 0:
+            raise ValueError(f"fx must be greater than 0, got {fx}")
+        if fy <= 0:
+            raise ValueError(f"fy must be greater than 0, got {fy}")
 
         interpolation_str = str(self.params.get("interpolation", "LINEAR")).upper()
         if interpolation_str not in _INTERPOLATION_MAP:
@@ -24,7 +37,6 @@ class ScaleImage(BaseOperator):
             )
         interpolation_flag = _INTERPOLATION_MAP[interpolation_str]
 
-        if fx <= 0 or fy <= 0:
-            raise ValueError("fx and fy must be greater than 0")
-
-        return cv2.resize(image, dsize=(0, 0), fx=fx, fy=fy, interpolation=interpolation_flag)
+        rows, cols = image.shape[:2]
+        new_size = (max(1, int(cols * fx)), max(1, int(rows * fy)))
+        return cv2.resize(image, new_size, interpolation=interpolation_flag)
