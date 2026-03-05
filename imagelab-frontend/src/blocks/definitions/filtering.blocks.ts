@@ -103,7 +103,7 @@ export const filteringBlocks = [
     style: "filtering_style",
     extensions: ["odd_kernel_validator"],
     tooltip:
-      "Applies morphological operation - Performs various morphological transformations based on the selected filter type. 'Open' removes small objects from the foreground, 'Close' fills small holes in the foreground, 'Gradient' highlights the edges of objects, 'Tophat' extracts small elements and details from the image, and 'Black hat' extracts small dark regions on a light background. Kernel size must be a positive odd integer and controls how strongly structures are affected.",
+      "Applies morphological operation - Performs various morphological transformations based on the selected filter type. 'Open' removes small objects from the foreground, 'Close' fills small holes in the foreground, 'Gradient' highlights the edges of objects, 'Tophat' extracts small elements and details from the image, and 'Black hat' extracts small dark regions on a light background. Kernel size must be a positive odd integer and controls how strongly structures are affected. Even values are automatically rounded up to the nearest odd number.",
   },
   {
     type: "filtering_sharpen",

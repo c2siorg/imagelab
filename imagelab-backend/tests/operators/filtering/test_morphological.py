@@ -54,6 +54,12 @@ def test_morphological_top_hat_converts_rgba_to_rgb() -> None:
     assert out.shape == (20, 20, 3)
 
 
+def test_morphological_accepts_kernel_size_1() -> None:
+    image = np.zeros((20, 20), dtype=np.uint8)
+    out = Morphological({"type": "OPEN", "kernelSize": 1}).compute(image)
+    assert out.shape == image.shape
+
+
 def test_morphological_kernel_larger_than_image_does_not_crash() -> None:
     image = np.zeros((20, 20), dtype=np.uint8)
     image[5:15, 5:15] = 255
