@@ -12,6 +12,10 @@ def test_gray_image_returns_2d_grayscale_input_unchanged() -> None:
 
     assert out.shape == image.shape
     assert np.array_equal(out, image)
+    assert out is not image, "compute() must return a copy, not the original array"
+    # Verify no aliasing:
+    out[0, 0] = 255
+    assert image[0, 0] != 255, "Mutating output must not affect input"
 
 
 def test_gray_image_converts_bgr_to_grayscale() -> None:
@@ -25,6 +29,9 @@ def test_gray_image_converts_bgr_to_grayscale() -> None:
 
     assert out.shape == (6, 6)
     assert np.array_equal(out, expected)
+    # B=10, G=20, R=30: Y ≈ 22 (OpenCV integer approximation)
+    assert int(out[0, 0]) == int(expected[0, 0])
+    assert int(out[0, 0]) == 22
 
 
 def test_gray_image_converts_bgra_to_grayscale() -> None:
@@ -39,6 +46,9 @@ def test_gray_image_converts_bgra_to_grayscale() -> None:
 
     assert out.shape == (6, 6)
     assert np.array_equal(out, expected)
+    # B=10, G=20, R=30: Y ≈ 22 (OpenCV integer approximation)
+    assert int(out[0, 0]) == int(expected[0, 0])
+    assert int(out[0, 0]) == 22
 
 
 def test_gray_image_handles_single_channel_3d_input() -> None:
@@ -48,13 +58,23 @@ def test_gray_image_handles_single_channel_3d_input() -> None:
 
     assert out.shape == (8, 8)
     assert np.array_equal(out, image[:, :, 0])
+    assert out is not image[:, :, 0], "compute() must return a copy"
+    # Verify no aliasing:
+    out[0, 0] = 255
+    assert image[0, 0, 0] != 255, "Mutating output must not affect input"
 
 
-def test_gray_image_rejects_unsupported_channel_count() -> None:
-    image = np.zeros((4, 4, 2), dtype=np.uint8)
+@pytest.mark.parametrize(
+    "shape",
+    [
+        (10,),  # 1-D flat array
+        (4, 4, 2),  # 3-D, 2-channel
+        (4, 4, 5),  # 3-D, 5-channel
+        (2, 4, 4, 3),  # 4-D batch
+    ],
+)
+def test_gray_image_rejects_unsupported_shapes(shape: tuple) -> None:
+    image = np.zeros(shape, dtype=np.uint8)
 
-    with pytest.raises(
-        ValueError,
-        match="GrayImage expects a 2D grayscale image or a 3D image with 1, 3, or 4 channels",
-    ):
+    with pytest.raises(ValueError, match=r"GrayImage expects"):
         GrayImage({}).compute(image)
