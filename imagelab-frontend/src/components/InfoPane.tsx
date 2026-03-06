@@ -29,7 +29,6 @@ export default function InfoPane() {
         });
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // stable module-level ref — empty deps is intentional
 
   if (!selectedBlockType) {
