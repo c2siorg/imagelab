@@ -8,6 +8,14 @@ NOOP_TYPES = {"basic_readimage", "basic_writeimage", "border_for_all", "border_e
 
 
 def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
+    """
+    Execute the image-processing pipeline described by *request*.
+
+    Returns a PipelineResponse that always includes a ``timings`` field
+    populated with every step that completed before the function returned,
+    even when the response indicates failure.  This allows callers to
+    inspect partial execution progress on error.
+    """
     t_start_total = time.perf_counter()
     step_timings: list[StepTiming] = []
 
@@ -31,23 +39,25 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
             t_fail = time.perf_counter()
             return PipelineResponse(
                 success=False,
-                error=f"Unknown operator '{step.type}' at step {i}",
-                step=i,
+                error=f"Unknown operator '{step.type}' at step {i + 1}",
+                step=i + 1,
                 timings=PipelineTimings(total_ms=(t_fail - t_start_total) * 1000, steps=step_timings),
             )
 
         try:
-            operator = operator_cls(step.params)
             t_step_start = time.perf_counter()
+            operator = operator_cls(step.params)
             image = operator.compute(image)
             t_step_end = time.perf_counter()
-            step_timings.append(StepTiming(step=i + 1, type=step.type, duration_ms=(t_step_end - t_step_start) * 1000))
+            step_timings.append(
+                StepTiming(step=i + 1, operator_type=step.type, duration_ms=(t_step_end - t_step_start) * 1000)
+            )
         except Exception as e:
             t_fail = time.perf_counter()
             return PipelineResponse(
                 success=False,
                 error=f"Error in step {i + 1} ({step.type}): {type(e).__name__}: {e}",
-                step=i,
+                step=i + 1,
                 timings=PipelineTimings(total_ms=(t_fail - t_start_total) * 1000, steps=step_timings),
             )
 

@@ -14,7 +14,7 @@ class PipelineRequest(BaseModel):
 
 class StepTiming(BaseModel):
     step: int
-    type: str
+    operator_type: str
     duration_ms: float
 
 

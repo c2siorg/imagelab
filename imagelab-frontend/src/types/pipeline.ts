@@ -11,7 +11,7 @@ export interface PipelineRequest {
 
 export interface StepTiming {
   step: number;
-  type: string;
+  operator_type: string;
   duration_ms: number;
 }
 
