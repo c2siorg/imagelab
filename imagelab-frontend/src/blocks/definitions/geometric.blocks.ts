@@ -49,8 +49,8 @@ export const geometricBlocks = [
     type: "geometric_resizeimage",
     message0: "Resize Image to width %1 and height %2 | Interpolation %3",
     args0: [
-      { type: "field_number", name: "width", value: 1, min: 0 },
-      { type: "field_number", name: "height", value: 1, min: 0 },
+      { type: "field_number", name: "width", value: 640, min: 1 },
+      { type: "field_number", name: "height", value: 480, min: 1 },
       {
         type: "field_dropdown",
         name: "interpolation",
@@ -67,7 +67,7 @@ export const geometricBlocks = [
     nextStatement: null,
     style: "geometric_style",
     tooltip:
-      "Resizes the image to absolute dimensions in pixels. Distinct from Scale which uses a multiplier factor. INTER_LINEAR for general use, INTER_AREA for shrinking, INTER_CUBIC/INTER_LANCZOS4 for enlarging.",
+      "Resizes the image to absolute dimensions in pixels. Distinct from Scale which uses a multiplier factor. LINEAR for general use, AREA for shrinking, CUBIC/LANCZOS4 for high-quality enlarging.",
   },
   {
     type: "geometric_cropimage",

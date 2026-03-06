@@ -30,7 +30,7 @@ export const categories: CategoryInfo[] = [
       { type: "geometric_rotateimage", label: "Rotate Image" },
       { type: "geometric_affineimage", label: "Affine Transform" },
       { type: "geometric_scaleimage", label: "Scale Image" },
-      { type: "geometric_resizeimage", label: "Resize Image" },
+      { type: "geometric_resizeimage", label: "Resize Image (Pixels)" },
     ],
   },
   {

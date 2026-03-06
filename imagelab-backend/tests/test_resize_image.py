@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from app.operators.geometric.resize_image import ResizeImage
 
@@ -37,8 +36,41 @@ def test_resize_interpolation_methods():
 
     for method in ["LINEAR", "AREA", "CUBIC", "NEAREST", "LANCZOS4"]:
         op = ResizeImage(params={"width": 15, "height": 15, "interpolation": method})
-        try:
-            result = op.compute(image)
-            assert result.shape == (15, 15, 3), f"{method} interpolation produced incorrect shape"
-        except Exception as e:
-            pytest.fail(f"Interpolation {method} threw an exception: {e}")
+        result = op.compute(image)
+        assert result.shape == (15, 15, 3), f"{method} interpolation produced incorrect shape"
+
+
+def test_resize_zero_dimension_fallback():
+    image = np.zeros((15, 25, 3), dtype=np.uint8)
+
+    op = ResizeImage(params={"width": 0, "height": 0})
+
+    result = op.compute(image)
+    assert result.shape == (15, 25, 3), "Zero dimensions should fall back to original"
+
+
+def test_resize_partial_zero_dimension():
+    image = np.zeros((15, 25, 3), dtype=np.uint8)
+
+    op = ResizeImage(params={"width": 0, "height": 30})
+
+    result = op.compute(image)
+    assert result.shape == (30, 25, 3), "Zero width falls back; valid height applies"
+
+
+def test_resize_unknown_interpolation_defaults_to_linear():
+    image = np.zeros((10, 10, 3), dtype=np.uint8)
+
+    op = ResizeImage(params={"width": 20, "height": 20, "interpolation": "BILINEAR"})
+
+    result = op.compute(image)  # Should not raise; falls back to LINEAR
+    assert result.shape == (20, 20, 3)
+
+
+def test_resize_grayscale_image():
+    image = np.zeros((10, 10), dtype=np.uint8)  # 2D grayscale
+
+    op = ResizeImage(params={"width": 20, "height": 30})
+
+    result = op.compute(image)
+    assert result.shape == (30, 20), "Grayscale image should resize correctly"
