@@ -4,7 +4,6 @@ export interface OperatorParameter {
 }
 
 export interface OperatorDoc {
-  type: string;
   name: string;
   description: string;
   parameters: OperatorParameter[];
@@ -15,7 +14,6 @@ export interface OperatorDoc {
 export const operatorDocs: Record<string, OperatorDoc> = {
   // --- Basic ---
   basic_readimage: {
-    type: "basic_readimage",
     name: "Read Image",
     description: "Loads an image from a specified file path into the memory grid.",
     parameters: [
@@ -27,7 +25,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     ],
   },
   basic_writeimage: {
-    type: "basic_writeimage",
     name: "Write Image",
     description: "Saves the processed image matrix back to the disk.",
     parameters: [
@@ -41,7 +38,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
 
   // --- Geometric ---
   geometric_reflectimage: {
-    type: "geometric_reflectimage",
     name: "Reflect Image",
     description: "Flips a 2D array around vertical, horizontal, or both axes.",
     parameters: [
@@ -53,7 +49,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     ],
   },
   geometric_cropimage: {
-    type: "geometric_cropimage",
     name: "Crop Image",
     description: "Extracts a rectangular region of interest (ROI) from the image.",
     parameters: [
@@ -63,7 +58,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     useCases: ["Isolating specific objects, removing image borders."],
   },
   geometric_rotateimage: {
-    type: "geometric_rotateimage",
     name: "Rotate Image",
     description:
       "Rotates the image by a specified angle around a chosen center point using an affine transformation.",
@@ -74,7 +68,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     useCases: ["Correcting skew, data augmentation."],
   },
   geometric_affineimage: {
-    type: "geometric_affineimage",
     name: "Affine Transform",
     description: "Applies a 2x3 affine transformation matrix to warp the image.",
     parameters: [
@@ -86,7 +79,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     useCases: ["Perspective correction, scaling, and skewing."],
   },
   geometric_scaleimage: {
-    type: "geometric_scaleimage",
     name: "Scale Image",
     description: "Resizes the image to specified dimensions or scale factors using interpolation.",
     parameters: [
@@ -99,8 +91,8 @@ export const operatorDocs: Record<string, OperatorDoc> = {
   },
 
   // --- Conversions ---
+  // NOTE: 'imageconvertions' matches the pre-existing block-type naming in categories.ts (intentional misspelling)
   imageconvertions_grayimage: {
-    type: "imageconvertions_grayimage",
     name: "Color to Grayscale",
     description:
       "Converts a multi-channel RGB/BGR image into a single-channel grayscale image. Uses the standard weighted luminosity method.",
@@ -111,14 +103,12 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     ],
   },
   imageconvertions_channelsplit: {
-    type: "imageconvertions_channelsplit",
     name: "Channel Split",
     description: "Splits a multi-channel image into several single-channel image layers.",
     parameters: [],
     useCases: ["Analyzing individual R, G, B channels, applying filters to specific color bands."],
   },
   imageconvertions_graytobinary: {
-    type: "imageconvertions_graytobinary",
     name: "Gray to Binary",
     description:
       "Applies a threshold to turn a grayscale image into a pure black and white (binary) image.",
@@ -132,7 +122,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     useCases: ["Creating masks, separating foreground objects from background."],
   },
   imageconvertions_colormaps: {
-    type: "imageconvertions_colormaps",
     name: "Color Maps",
     description:
       "Applies a pseudo-color map to a grayscale image to enhance visual perception of intensity.",
@@ -142,7 +131,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     useCases: ["Visualizing depth maps, temperature distribution, or heatmaps."],
   },
   imageconvertions_colortobinary: {
-    type: "imageconvertions_colortobinary",
     name: "Color to Binary",
     description:
       "Directly converts a color image to a binary mask using predefined threshold configurations.",
@@ -154,7 +142,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
 
   // --- Drawing ---
   drawingoperations_drawline: {
-    type: "drawingoperations_drawline",
     name: "Draw Line",
     description: "Draws a straight line segment connecting two points on the image.",
     parameters: [
@@ -166,7 +153,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     useCases: ["Highlighting vectors, drawing bounding box edges."],
   },
   drawingoperations_drawellipse: {
-    type: "drawingoperations_drawellipse",
     name: "Draw Ellipse",
     description: "Draws a simple or thick elliptic arc or a solid ellipse section.",
     parameters: [
@@ -177,14 +163,12 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     useCases: ["Highlighting circular or oval objects in an image."],
   },
   drawingoperations_drawarrowline: {
-    type: "drawingoperations_drawarrowline",
     name: "Draw Arrow Line",
     description: "Draws an arrow segment pointing from the first point to the second point.",
     parameters: [{ name: "Start/End Points", description: "Tail and head of the arrow." }],
     useCases: ["Showing direction of motion, visualizing gradients."],
   },
   drawingoperations_drawtext: {
-    type: "drawingoperations_drawtext",
     name: "Draw Text",
     description: "Renders fixed-size text strings over the image using OpenCV's built-in fonts.",
     parameters: [
@@ -195,7 +179,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     useCases: ["Adding watermarks, labeling objects, overlaying debug data."],
   },
   drawingoperations_drawcircle: {
-    type: "drawingoperations_drawcircle",
     name: "Draw Circle",
     description: "Draws a circle with a given center and radius.",
     parameters: [
@@ -206,7 +189,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     useCases: ["Highlighting keypoints, drawing masks."],
   },
   drawingoperations_drawrectangle: {
-    type: "drawingoperations_drawrectangle",
     name: "Draw Rectangle",
     description: "Draws a simple, thick, or filled up-right rectangle.",
     parameters: [
@@ -218,7 +200,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
 
   // --- Blurring ---
   blurring_applyblur: {
-    type: "blurring_applyblur",
     name: "Simple Blur",
     description:
       "Smoothes an image using a normalized box filter. Replaces each pixel with the average of its neighbors.",
@@ -227,7 +208,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     useCases: ["Removing camera noise, softening image features."],
   },
   blurring_applygaussianblur: {
-    type: "blurring_applygaussianblur",
     name: "Gaussian Blur",
     description:
       "Blurs an image using a Gaussian filter. Highly effective at removing Gaussian noise from the image.",
@@ -239,7 +219,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     useCases: ["Preparing images for edge detection, general noise removal."],
   },
   blurring_applymedianblur: {
-    type: "blurring_applymedianblur",
     name: "Median Blur",
     description:
       "Replaces each pixel's value with the median of its neighboring pixels. Highly effective against salt-and-pepper noise.",
@@ -251,7 +230,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
 
   // --- Filtering ---
   filtering_bilateral: {
-    type: "filtering_bilateral",
     name: "Bilateral Filter",
     description: "A highly effective noise-reducing filter that preserves sharp edges.",
     parameters: [
@@ -262,7 +240,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     useCases: ["Smoothing textures while keeping edges crisp (e.g., cartoonizing)."],
   },
   filtering_sharpen: {
-    type: "filtering_sharpen",
     name: "Sharpen",
     description:
       "Enhances edges and high-frequency detail in an image using a custom convolution kernel.",
@@ -271,7 +248,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     useCases: ["Enhancing blurry photos, making text more readable."],
   },
   filtering_pyramidup: {
-    type: "filtering_pyramidup",
     name: "Pyramid Up",
     description:
       "Upsamples an image by injecting even zero rows/cols and applying a Gaussian filter.",
@@ -279,7 +255,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     useCases: ["Reconstructing images to double their spatial resolution."],
   },
   filtering_boxfilter: {
-    type: "filtering_boxfilter",
     name: "Box Filter",
     description:
       "Blurs an image using a box filter convolution. Similar to normalized blur but can be unnormalized.",
@@ -290,14 +265,12 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     useCases: ["Fast integral image calculation, crude smoothing."],
   },
   filtering_pyramiddown: {
-    type: "filtering_pyramiddown",
     name: "Pyramid Down",
     description: "Blurs an image and downsamples it by rejecting even rows and columns.",
     parameters: [],
     useCases: ["Creating image pyramids for multi-scale feature detection."],
   },
   filtering_erosion: {
-    type: "filtering_erosion",
     name: "Erosion",
     description:
       "Erodes away the boundaries of foreground object. The pixel in the original image will be considered 1 only if all the pixels under the kernel is 1.",
@@ -305,7 +278,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     useCases: ["Removing small white noises, detaching two connected objects."],
   },
   filtering_dilation: {
-    type: "filtering_dilation",
     name: "Dilation",
     description:
       "Increases the white region in the image or size of foreground object. Opposite of erosion.",
@@ -313,7 +285,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     useCases: ["Joining broken parts of an object, accentuating features."],
   },
   filtering_morphological: {
-    type: "filtering_morphological",
     name: "Morphological Ops",
     description:
       "Advanced morphological operations like Opening (erosion followed by dilation) and Closing (dilation followed by erosion).",
@@ -325,7 +296,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
 
   // --- Thresholding ---
   thresholding_adaptivethreshold: {
-    type: "thresholding_adaptivethreshold",
     name: "Adaptive Threshold",
     description:
       "Calculates the threshold for small regions of the image, getting better results for varying lighting conditions.",
@@ -337,7 +307,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     useCases: ["Reading text over shadows, document OCR."],
   },
   thresholding_applythreshold: {
-    type: "thresholding_applythreshold",
     name: "Apply Threshold",
     description: "Applies a fixed-level threshold to every pixel.",
     parameters: [
@@ -347,7 +316,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     useCases: ["Creating masks directly from uniform lighting conditions."],
   },
   thresholding_applyborders: {
-    type: "thresholding_applyborders",
     name: "Apply Borders",
     description: "Forms a padded image border.",
     parameters: [
@@ -360,7 +328,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     useCases: ["Padding images before convolution to preserve boundary pixels."],
   },
   border_for_all: {
-    type: "border_for_all",
     name: "Border (All Sides)",
     description: "Applies a uniform border thickness to all four sides of the image.",
     parameters: [
@@ -379,7 +346,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     ],
   },
   border_each_side: {
-    type: "border_each_side",
     name: "Border (Each Side)",
     description:
       "Applies a configurable border thickness independently to top, bottom, left, and right sides.",
@@ -401,7 +367,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     ],
   },
   thresholding_otsuthreshold: {
-    type: "thresholding_otsuthreshold",
     name: "Otsu's Thresholding",
     description:
       "Automatically calculates an optimal threshold value by analyzing the image histogram to minimize intra-class variance.",
@@ -412,8 +377,8 @@ export const operatorDocs: Record<string, OperatorDoc> = {
   },
 
   // --- Sobel Derivatives ---
+  // NOTE: 'soblederivate' and 'scharrderivate' match the pre-existing block-type naming in categories.ts (intentional misspelling)
   sobelderivatives_soblederivate: {
-    type: "sobelderivatives_soblederivate",
     name: "Sobel Operator",
     description:
       "Calculates the first, second, third, or mixed image derivatives using an extended Sobel operator.",
@@ -428,7 +393,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     ],
   },
   sobelderivatives_scharrderivate: {
-    type: "sobelderivatives_scharrderivate",
     name: "Scharr Operator",
     description:
       "Calculates the first spatial image derivative using the Scharr filter instead of Sobel for better rotational symmetry.",
@@ -447,7 +411,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
 
   // --- Transformation ---
   transformation_distance: {
-    type: "transformation_distance",
     name: "Distance Transform",
     description:
       "Calculates the distance to the closest zero pixel for each pixel of the source image.",
@@ -461,7 +424,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     ],
   },
   transformation_laplacian: {
-    type: "transformation_laplacian",
     name: "Laplacian Operator",
     description:
       "Calculates the Laplacian of an image, highlighting regions of rapid intensity change.",
