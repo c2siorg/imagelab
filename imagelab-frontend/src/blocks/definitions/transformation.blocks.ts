@@ -1,20 +1,17 @@
 export const transformationBlocks = [
   {
     type: "transformation_distance",
-    message0: "Apply %1 distance with %2 depth",
+    message0: "Apply %1 distance transform",
     args0: [
       {
         type: "field_dropdown",
         name: "type",
         options: [
-          ["DISTC", "DIST_C"],
-          ["DISTL1", "DIST_L1"],
-          ["DISTL2", "DIST_L2"],
-          ["DISTLABEL_PIXEL", "DIST_LABEL_PIXEL"],
-          ["DISTMASK_3", "DIST_MASK_3"],
+          ["DIST_C", "DIST_C"],
+          ["DIST_L1", "DIST_L1"],
+          ["DIST_L2", "DIST_L2"],
         ],
       },
-      { type: "field_number", name: "ddepth", value: 0, min: -10, max: 10 },
     ],
     previousStatement: null,
     nextStatement: null,

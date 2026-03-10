@@ -7,8 +7,6 @@ DISTANCE_TYPES = {
     "DIST_C": cv2.DIST_C,
     "DIST_L1": cv2.DIST_L1,
     "DIST_L2": cv2.DIST_L2,
-    "DIST_LABEL_PIXEL": cv2.DIST_L2,
-    "DIST_MASK_3": cv2.DIST_L2,
 }
 
 
