@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import * as Blockly from "blockly";
 import { categories } from "../blocks/categories";
-import type { PipelineTimings } from "../types/pipeline";
+import type { PipelineTimings, StepResult } from "../types/pipeline";
 
 interface PipelineState {
   originalImage: string | null;
@@ -14,17 +14,26 @@ interface PipelineState {
   selectedBlockTooltip: string | null;
   timings: PipelineTimings | null;
 
+  // Step-by-step preview (Feature 1 & 2)
+  intermediates: StepResult[] | null;
+  showStepPreviews: boolean;
+  selectedStepIndex: number | null;
+
   // Statistics
   blockCount: number;
   uniqueBlockTypes: number;
   categoryCounts: Record<string, number>;
   complexity: "Low" | "Medium" | "High";
+
   setOriginalImage: (image: string, format: string) => void;
   setProcessedImage: (image: string | null) => void;
   setExecuting: (executing: boolean) => void;
   setError: (error: string | null, step?: number | null) => void;
   setSelectedBlock: (type: string | null, tooltip: string | null) => void;
   setTiming: (timings: PipelineTimings | null) => void;
+  setIntermediates: (intermediates: StepResult[] | null) => void;
+  setShowStepPreviews: (show: boolean) => void;
+  setSelectedStepIndex: (index: number | null) => void;
   updateBlockStats: (workspace: Blockly.WorkspaceSvg) => void;
   reset: () => void;
   clearImage: () => void;
@@ -49,6 +58,9 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   selectedBlockType: null,
   selectedBlockTooltip: null,
   timings: null,
+  intermediates: null,
+  showStepPreviews: false,
+  selectedStepIndex: null,
   blockCount: 0,
   uniqueBlockTypes: 0,
   categoryCounts: {},
@@ -60,6 +72,8 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       processedImage: null,
       error: null,
       timings: null,
+      intermediates: null,
+      selectedStepIndex: null,
     }),
   setProcessedImage: (image) => set({ processedImage: image, error: null, errorStep: null }),
   setExecuting: (executing) => set({ isExecuting: executing }),
@@ -67,6 +81,9 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   setSelectedBlock: (type, tooltip) =>
     set({ selectedBlockType: type, selectedBlockTooltip: tooltip }),
   setTiming: (timings) => set({ timings }),
+  setIntermediates: (intermediates) => set({ intermediates }),
+  setShowStepPreviews: (show) => set({ showStepPreviews: show }),
+  setSelectedStepIndex: (index) => set({ selectedStepIndex: index }),
   _imageResetFn: null as (() => void) | null,
   registerImageReset: (fn) => set({ _imageResetFn: fn }),
   clearImage: () => {
@@ -78,6 +95,8 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       error: null,
       errorStep: null,
       timings: null,
+      intermediates: null,
+      selectedStepIndex: null,
     });
   },
   updateBlockStats: (workspace) => {
@@ -121,5 +140,8 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       categoryCounts: {},
       complexity: "Low",
       timings: null,
+      intermediates: null,
+      showStepPreviews: false,
+      selectedStepIndex: null,
     }),
 }));

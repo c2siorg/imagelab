@@ -6,11 +6,12 @@ import Toolbar from "./Toolbar";
 import Sidebar from "./Sidebar/Sidebar";
 import PreviewPane from "./Preview/PreviewPane";
 import InfoPane from "./InfoPane";
+import StepPreviewList from "./Preview/StepPreviewList";
 import { ErrorBoundary } from "./ErrorBoundary";
 
 export default function Layout() {
   const { containerRef, workspace } = useBlocklyWorkspace();
-  const { reset } = usePipelineStore();
+  const { reset, showStepPreviews, intermediates } = usePipelineStore();
   const [resetKey, setResetKey] = useState(0);
 
   const handleEditorReset = () => {
@@ -31,6 +32,19 @@ export default function Layout() {
               <InfoPane />
             </div>
             <PreviewPane />
+            {showStepPreviews && intermediates && intermediates.length > 0 && (
+              <div className="w-60 flex-shrink-0 border-l border-gray-200 bg-white flex flex-col min-h-0">
+                <div className="px-3 py-2 border-b border-gray-100 flex-shrink-0">
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                    Step Preview
+                  </p>
+                  <p className="text-[10px] text-gray-400">{intermediates.length} steps</p>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  <StepPreviewList steps={intermediates} />
+                </div>
+              </div>
+            )}
           </div>
         </ErrorBoundary>
       </div>

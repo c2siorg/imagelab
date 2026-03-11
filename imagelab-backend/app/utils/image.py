@@ -18,3 +18,50 @@ def encode_image_base64(image: np.ndarray, fmt: str = "png") -> str:
     if not success:
         raise ValueError(f"Could not encode image as {fmt}")
     return base64.b64encode(buf).decode("utf-8")
+
+
+def compute_image_stats(image: np.ndarray) -> dict:
+    """Compute pixel statistics and per-channel histograms for an image.
+
+    Returns a plain dict (not a Pydantic model) to avoid coupling utils to
+    the models layer.  The executor converts this dict into an ``ImageStats``
+    model.
+
+    Float images are normalised to [0, 255] before histogram computation so
+    that ``cv2.calcHist`` produces meaningful bucket counts regardless of the
+    original value range.  Alpha channels are excluded from histograms.
+    """
+    h, w = image.shape[:2]
+    channels = 1 if image.ndim == 2 else image.shape[2]
+    dtype = str(image.dtype)
+
+    flat = image.flatten().astype(np.float64)
+    mn = float(flat.min())
+    mx = float(flat.max())
+    mean_val = round(float(flat.mean()), 3)
+
+    # Normalise to uint8 for histogram computation.
+    # float images may have arbitrary ranges; integer images > uint8 need scaling too.
+    if mx > mn:
+        img_u8 = ((image.astype(np.float64) - mn) / (mx - mn) * 255).clip(0, 255).astype(np.uint8)
+    else:
+        # Uniform image — all pixels identical; put everything in bucket 0.
+        img_u8 = np.zeros_like(image, dtype=np.uint8)
+
+    histograms: list[list[int]] = []
+    n_hist_channels = 1 if img_u8.ndim == 2 else min(img_u8.shape[2], 3)  # max 3 (no alpha)
+    for c in range(n_hist_channels):
+        channel = img_u8 if img_u8.ndim == 2 else img_u8[:, :, c]
+        hist = cv2.calcHist([channel], [0], None, [256], [0, 256])
+        histograms.append(hist.flatten().astype(int).tolist())
+
+    return {
+        "width": w,
+        "height": h,
+        "channels": channels,
+        "dtype": dtype,
+        "min_val": mn,
+        "max_val": mx,
+        "mean_val": mean_val,
+        "histograms": histograms,
+    }

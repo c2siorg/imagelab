@@ -1,17 +1,17 @@
 import { useState } from "react";
 import * as Blockly from "blockly";
-import { FilePlus, Download, Undo2, Redo2, Play, Loader2, Share2 } from "lucide-react";
+import { FilePlus, Download, Undo2, Redo2, Play, Loader2, Share2, Eye, EyeOff, FolderOpen } from "lucide-react";
 import { usePipelineStore } from "../store/pipelineStore";
 import { executePipeline } from "../api/pipeline";
 import { extractPipeline } from "../hooks/usePipeline";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import SharePipelineModal from "./SharePipelineModal";
+import SavedPipelinesModal from "./SavedPipelinesModal";
 
 interface ToolbarProps {
   workspace: Blockly.WorkspaceSvg | null;
 }
 
-// Detect macOS to show Cmd vs Ctrl in tooltips
 const isMac =
   typeof navigator !== "undefined" && /mac/i.test(navigator.platform || navigator.userAgent);
 const mod = isMac ? "⌘" : "Ctrl+";
@@ -22,10 +22,13 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     imageFormat,
     processedImage,
     isExecuting,
+    showStepPreviews,
     setProcessedImage,
     setExecuting,
     setError,
     setTiming,
+    setIntermediates,
+    setShowStepPreviews,
     reset,
     blockCount,
     uniqueBlockTypes,
@@ -34,11 +37,10 @@ export default function Toolbar({ workspace }: ToolbarProps) {
   } = usePipelineStore();
 
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showSavedModal, setShowSavedModal] = useState(false);
 
   const handleNew = () => {
-    if (!window.confirm("This will clear all blocks and the uploaded image. Continue?")) {
-      return;
-    }
+    if (!window.confirm("This will clear all blocks and the uploaded image. Continue?")) return;
     reset();
     if (workspace) workspace.clear();
   };
@@ -66,15 +68,18 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     setExecuting(true);
     setError(null);
     setTiming(null);
+    setIntermediates(null);
 
     try {
       const response = await executePipeline({
         image: originalImage,
         image_format: imageFormat,
         pipeline,
+        include_intermediates: showStepPreviews,
       });
 
       setTiming(response.timings ?? null);
+      setIntermediates(response.intermediates ?? null);
 
       if (response.success && response.image) {
         setProcessedImage(response.image);
@@ -89,14 +94,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     }
   };
 
-  // Register global keyboard shortcuts
-  useKeyboardShortcuts({
-    onRun: handleRun,
-    onDownload: handleDownload,
-    onUndo: handleUndo,
-    onRedo: handleRedo,
-    workspace,
-  });
+  useKeyboardShortcuts({ onRun: handleRun, onDownload: handleDownload, onUndo: handleUndo, onRedo: handleRedo, workspace });
 
   const iconBtn =
     "p-1.5 rounded hover:bg-gray-100 text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors";
@@ -105,10 +103,11 @@ export default function Toolbar({ workspace }: ToolbarProps) {
   return (
     <>
       <div className="h-10 flex items-center gap-1 px-3 bg-white border-b border-gray-200 flex-shrink-0">
-        <button onClick={handleNew} className={iconBtn} title="New">
+        <button type="button" onClick={handleNew} className={iconBtn} title="New">
           <FilePlus size={18} />
         </button>
         <button
+          type="button"
           onClick={handleDownload}
           disabled={!processedImage}
           className={iconBtn}
@@ -119,16 +118,17 @@ export default function Toolbar({ workspace }: ToolbarProps) {
 
         <div className={separator} />
 
-        <button onClick={handleUndo} className={iconBtn} title={`Undo (${mod}Z)`}>
+        <button type="button" onClick={handleUndo} className={iconBtn} title={`Undo (${mod}Z)`}>
           <Undo2 size={18} />
         </button>
-        <button onClick={handleRedo} className={iconBtn} title={`Redo (${mod}Y or ${mod}⇧Z)`}>
+        <button type="button" onClick={handleRedo} className={iconBtn} title={`Redo (${mod}Y or ${mod}⇧Z)`}>
           <Redo2 size={18} />
         </button>
 
         <div className={separator} />
 
         <button
+          type="button"
           onClick={() => setShowShareModal(true)}
           disabled={!workspace}
           className={iconBtn}
@@ -137,9 +137,31 @@ export default function Toolbar({ workspace }: ToolbarProps) {
           <Share2 size={18} />
         </button>
 
+        <button
+          type="button"
+          onClick={() => setShowSavedModal(true)}
+          disabled={!workspace}
+          className={iconBtn}
+          title="Save / Load Pipeline"
+        >
+          <FolderOpen size={18} />
+        </button>
+
         <div className={separator} />
 
         <button
+          type="button"
+          onClick={() => setShowStepPreviews(!showStepPreviews)}
+          className={`${iconBtn} ${showStepPreviews ? "bg-indigo-50 text-indigo-600 hover:bg-indigo-100" : ""}`}
+          title={showStepPreviews ? "Hide Step Previews" : "Show Step Previews"}
+        >
+          {showStepPreviews ? <Eye size={18} /> : <EyeOff size={18} />}
+        </button>
+
+        <div className={separator} />
+
+        <button
+          type="button"
           onClick={handleRun}
           disabled={isExecuting || !originalImage}
           className="flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -149,10 +171,8 @@ export default function Toolbar({ workspace }: ToolbarProps) {
           {isExecuting ? "Running..." : "Run"}
         </button>
 
-        {/* Spacer to push stats to the right */}
         <div className="flex-1" />
 
-        {/* Live Statistics Display */}
         {blockCount > 0 && (
           <div className="relative group cursor-help px-2 flex items-center h-full border-l border-gray-100 ml-2">
             <div className="flex flex-col items-end leading-tight">
@@ -180,31 +200,23 @@ export default function Toolbar({ workspace }: ToolbarProps) {
                 {Object.entries(categoryCounts)
                   .sort((a, b) => b[1] - a[1])
                   .map(([cat, count]) => (
-                    <div
-                      key={cat}
-                      className="flex justify-between items-center text-xs text-gray-600"
-                    >
+                    <div key={cat} className="flex justify-between items-center text-xs text-gray-600">
                       <span className="truncate pr-2">{cat}</span>
-                      <span className="font-medium bg-gray-100 px-1.5 py-0.5 rounded text-[10px]">
-                        {count}
-                      </span>
+                      <span className="font-medium bg-gray-100 px-1.5 py-0.5 rounded text-[10px]">{count}</span>
                     </div>
                   ))}
               </div>
               <div className="mt-2.5 pt-2 border-t border-gray-100 flex justify-between items-center text-gray-500 text-[10px] uppercase">
                 <span>Unique Types</span>
-                <span className="font-bold text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded">
-                  {uniqueBlockTypes}
-                </span>
+                <span className="font-bold text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded">{uniqueBlockTypes}</span>
               </div>
             </div>
           </div>
         )}
       </div>
 
-      {showShareModal && (
-        <SharePipelineModal workspace={workspace} onClose={() => setShowShareModal(false)} />
-      )}
+      {showShareModal && <SharePipelineModal workspace={workspace} onClose={() => setShowShareModal(false)} />}
+      {showSavedModal && <SavedPipelinesModal workspace={workspace} onClose={() => setShowSavedModal(false)} />}
     </>
   );
 }

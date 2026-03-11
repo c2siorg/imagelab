@@ -1,27 +1,66 @@
+import base64
 import time
 
-from app.models.pipeline import PipelineRequest, PipelineResponse, PipelineTimings, StepTiming
+import cv2
+import numpy as np
+
+from app.models.pipeline import (
+    ImageStats,
+    PipelineRequest,
+    PipelineResponse,
+    PipelineTimings,
+    StepResult,
+    StepTiming,
+)
 from app.operators.registry import get_operator
-from app.utils.image import decode_base64_image, encode_image_base64
+from app.utils.image import compute_image_stats, decode_base64_image, encode_image_base64
 
 NOOP_TYPES = {"basic_readimage", "basic_writeimage", "border_for_all", "border_each_side"}
+_THUMB_MAX_WIDTH = 200
+
+
+def _make_thumbnail(image: np.ndarray) -> str:
+    """Encode *image* as a base64 JPEG thumbnail (max 200 px wide)."""
+    h, w = image.shape[:2]
+    if w > _THUMB_MAX_WIDTH:
+        scale = _THUMB_MAX_WIDTH / w
+        new_w, new_h = _THUMB_MAX_WIDTH, max(1, int(h * scale))
+        thumb = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_AREA)
+    else:
+        thumb = image
+
+    # Ensure uint8 for JPEG encoding
+    if thumb.dtype != np.uint8:
+        mn, mx = thumb.min(), thumb.max()
+        if mx > mn:
+            thumb = ((thumb.astype(np.float64) - mn) / (mx - mn) * 255).clip(0, 255).astype(np.uint8)
+        else:
+            thumb = np.zeros_like(thumb, dtype=np.uint8)
+
+    # Drop alpha channel for JPEG (JPEG does not support transparency)
+    if thumb.ndim == 3 and thumb.shape[2] == 4:
+        thumb = thumb[:, :, :3]
+
+    success, buf = cv2.imencode(".jpg", thumb, [cv2.IMWRITE_JPEG_QUALITY, 80])
+    if not success:
+        return ""
+    return base64.b64encode(buf).decode("utf-8")
 
 
 # Thread-safety: this function is safe to call concurrently from FastAPI's
 # threadpool. All processing state (image array, operator instances, encoded
-# output) is local to each invocation. The module-level NOOP_TYPES set and
-# OPERATOR_REGISTRY dict are read-only after import and never mutated.
+# output) is local to each invocation.
 def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
-    """
-    Execute the image-processing pipeline described by *request*.
+    """Execute the image-processing pipeline described by *request*.
 
-    Returns a PipelineResponse that always includes a ``timings`` field
-    populated with every step that completed before the function returned,
-    even when the response indicates failure.  This allows callers to
-    inspect partial execution progress on error.
+    When ``request.include_intermediates`` is ``True`` the response includes a
+    ``StepResult`` for every non-NOOP operator, containing a JPEG thumbnail and
+    pixel statistics for that step's output image.
     """
     t_start_total = time.perf_counter()
     step_timings: list[StepTiming] = []
+    intermediates: list[StepResult] = []
+    collect = request.include_intermediates
 
     try:
         image = decode_base64_image(request.image)
@@ -56,6 +95,16 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
             step_timings.append(
                 StepTiming(step=i + 1, operator_type=step.type, duration_ms=(t_step_end - t_step_start) * 1000)
             )
+            if collect:
+                raw_stats = compute_image_stats(image)
+                intermediates.append(
+                    StepResult(
+                        step=i + 1,
+                        operator_type=step.type,
+                        thumbnail=_make_thumbnail(image),
+                        stats=ImageStats(**raw_stats),
+                    )
+                )
         except Exception as e:
             t_fail = time.perf_counter()
             return PipelineResponse(
@@ -69,10 +118,9 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
         encoded = encode_image_base64(image, request.image_format)
     except Exception as e:
         t_fail = time.perf_counter()
-        error_msg = f"Failed to encode result: {type(e).__name__}: {e}"
         return PipelineResponse(
             success=False,
-            error=error_msg,
+            error=f"Failed to encode result: {type(e).__name__}: {e}",
             step=len(request.pipeline),
             timings=PipelineTimings(total_ms=(t_fail - t_start_total) * 1000, steps=step_timings),
         )
@@ -84,4 +132,5 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
         image=encoded,
         image_format=request.image_format,
         timings=PipelineTimings(total_ms=(t_end_total - t_start_total) * 1000, steps=step_timings),
+        intermediates=intermediates if collect else None,
     )

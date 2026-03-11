@@ -10,6 +10,7 @@ class PipelineRequest(BaseModel):
     image: str
     image_format: str = "png"
     pipeline: list[PipelineStep]
+    include_intermediates: bool = False
 
 
 class StepTiming(BaseModel):
@@ -23,6 +24,24 @@ class PipelineTimings(BaseModel):
     steps: list[StepTiming]
 
 
+class ImageStats(BaseModel):
+    width: int
+    height: int
+    channels: int
+    dtype: str
+    min_val: float
+    max_val: float
+    mean_val: float
+    histograms: list[list[int]]  # one 256-bucket list per channel (max 3)
+
+
+class StepResult(BaseModel):
+    step: int
+    operator_type: str
+    thumbnail: str  # base64-encoded JPEG thumbnail, max 200px wide
+    stats: ImageStats
+
+
 class PipelineResponse(BaseModel):
     success: bool
     image: str | None = None
@@ -30,3 +49,4 @@ class PipelineResponse(BaseModel):
     error: str | None = None
     step: int | None = None
     timings: PipelineTimings | None = None
+    intermediates: list[StepResult] | None = None
