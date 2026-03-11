@@ -19,15 +19,11 @@ NEEDS_RGB_CONVERSION = {"GRADIENT", "TOPHAT", "BLACKHAT"}
 def _validate_kernel_size(value: Any) -> int:
     # bool is a subclass of int in Python; True/False must be rejected explicitly
     if isinstance(value, bool):
-        raise ValueError(
-            f"kernelSize must be a positive odd integer, got bool ({value!r})"
-        )
+        raise ValueError(f"kernelSize must be a positive odd integer, got bool ({value!r})")
 
     if isinstance(value, float):
         if not value.is_integer():
-            raise ValueError(
-                f"kernelSize must be a positive odd integer, got non-integer float ({value!r})"
-            )
+            raise ValueError(f"kernelSize must be a positive odd integer, got non-integer float ({value!r})")
         parsed = int(value)
     else:
         try:
