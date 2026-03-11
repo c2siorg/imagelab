@@ -29,7 +29,9 @@ export default function SavedPipelinesModal({ workspace, onClose }: SavedPipelin
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [onClose]);
@@ -81,7 +83,9 @@ export default function SavedPipelinesModal({ workspace, onClose }: SavedPipelin
       try {
         if (saved.workspace_state) {
           Blockly.serialization.workspaces.load(
-            JSON.parse(saved.workspace_state) as Parameters<typeof Blockly.serialization.workspaces.load>[0],
+            JSON.parse(saved.workspace_state) as Parameters<
+              typeof Blockly.serialization.workspaces.load
+            >[0],
             workspace,
           );
         }
@@ -112,9 +116,11 @@ export default function SavedPipelinesModal({ workspace, onClose }: SavedPipelin
     }
   };
 
-  const tabBtn = (t: Tab, label: string) =>
+  const tabBtn = (t: Tab) =>
     `flex-1 py-2 text-xs font-semibold border-b-2 transition-colors ${
-      tab === t ? "border-indigo-500 text-indigo-600" : "border-transparent text-gray-500 hover:text-gray-700"
+      tab === t
+        ? "border-indigo-500 text-indigo-600"
+        : "border-transparent text-gray-500 hover:text-gray-700"
     }`;
 
   return (
@@ -135,16 +141,20 @@ export default function SavedPipelinesModal({ workspace, onClose }: SavedPipelin
             <FolderOpen size={18} className="text-indigo-500" />
             <h2 className="text-sm font-semibold text-gray-800">Saved Pipelines</h2>
           </div>
-          <button type="button" onClick={onClose} className="p-1 rounded hover:bg-gray-100 text-gray-400">
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 rounded hover:bg-gray-100 text-gray-400"
+          >
             <X size={16} />
           </button>
         </div>
 
         <div className="flex border-b border-gray-100">
-          <button type="button" className={tabBtn("save", "Save")} onClick={() => setTab("save")}>
+          <button type="button" className={tabBtn("save")} onClick={() => setTab("save")}>
             Save Current
           </button>
-          <button type="button" className={tabBtn("load", "Load")} onClick={() => setTab("load")}>
+          <button type="button" className={tabBtn("load")} onClick={() => setTab("load")}>
             My Pipelines
           </button>
         </div>
@@ -192,7 +202,10 @@ export default function SavedPipelinesModal({ workspace, onClose }: SavedPipelin
                 <p className="text-xs text-gray-400 text-center py-6">No saved pipelines yet.</p>
               )}
               {pipelines.map((p) => (
-                <div key={p.id} className="flex items-center gap-2 p-2.5 rounded-lg border border-gray-100 hover:bg-gray-50">
+                <div
+                  key={p.id}
+                  className="flex items-center gap-2 p-2.5 rounded-lg border border-gray-100 hover:bg-gray-50"
+                >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-700 truncate">{p.name}</p>
                     {p.description && (
@@ -217,7 +230,11 @@ export default function SavedPipelinesModal({ workspace, onClose }: SavedPipelin
                     className="p-1.5 rounded hover:bg-red-50 text-red-400 transition-colors disabled:opacity-40"
                     title="Delete pipeline"
                   >
-                    {deletingId === p.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                    {deletingId === p.id ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Trash2 size={14} />
+                    )}
                   </button>
                 </div>
               ))}
