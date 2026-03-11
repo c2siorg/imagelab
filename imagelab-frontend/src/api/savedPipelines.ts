@@ -1,4 +1,8 @@
-import type { SavePipelineRequest, SavedPipelineResponse, SavedPipelineSummary } from "../types/pipeline";
+import type {
+  SavePipelineRequest,
+  SavedPipelineResponse,
+  SavedPipelineSummary,
+} from "../types/pipeline";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4100";
 
@@ -29,7 +33,10 @@ export async function getPipelineByToken(token: string): Promise<SavedPipelineRe
   return request<SavedPipelineResponse>(`/share/${token}`);
 }
 
-export async function updatePipeline(id: number, req: SavePipelineRequest): Promise<SavedPipelineResponse> {
+export async function updatePipeline(
+  id: number,
+  req: SavePipelineRequest,
+): Promise<SavedPipelineResponse> {
   return request<SavedPipelineResponse>(`/${id}`, { method: "PUT", body: JSON.stringify(req) });
 }
 

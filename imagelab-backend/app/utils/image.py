@@ -45,8 +45,10 @@ def compute_image_stats(image: np.ndarray) -> dict:
     if mx > mn:
         img_u8 = ((image.astype(np.float64) - mn) / (mx - mn) * 255).clip(0, 255).astype(np.uint8)
     else:
-        # Uniform image — all pixels identical; put everything in bucket 0.
-        img_u8 = np.zeros_like(image, dtype=np.uint8)
+        # Uniform image — preserve the actual pixel value in [0, 255] so that the
+        # histogram bucket reflects the true intensity (e.g. all-128 → bucket 128).
+        val = int(np.clip(mn, 0, 255))
+        img_u8 = np.full(image.shape, val, dtype=np.uint8)
 
     histograms: list[list[int]] = []
     n_hist_channels = 1 if img_u8.ndim == 2 else min(img_u8.shape[2], 3)  # max 3 (no alpha)

@@ -73,9 +73,17 @@ class TestComputeImageStatsHistogram:
         total = sum(stats["histograms"][0])
         assert total == 100
 
-    def test_uniform_image_histogram_bucket_zero(self):
-        """All-same-value image: every pixel must fall in bucket 0 after normalisation."""
+    def test_uniform_image_histogram_preserves_true_bucket(self):
+        """Uniform uint8 image: pixels must fall in the bucket matching the actual value."""
         img = np.full((10, 10), 42, dtype=np.uint8)
         stats = compute_image_stats(img)
-        # After our normalisation a uniform image maps to 0, so bucket 0 gets all pixels
-        assert stats["histograms"][0][0] == 100
+        # Value 42 → bucket 42 (not bucket 0)
+        assert stats["histograms"][0][42] == 100
+        assert stats["histograms"][0][0] == 0
+
+    def test_uniform_128_histogram_at_bucket_128(self):
+        """Regression: all-128 image must report bucket 128, not bucket 0."""
+        img = np.full((5, 5), 128, dtype=np.uint8)
+        stats = compute_image_stats(img)
+        assert stats["histograms"][0][128] == 25
+        assert stats["histograms"][0][0] == 0

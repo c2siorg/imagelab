@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import * as Blockly from "blockly";
-import { X, Save, FolderOpen, Trash2, Download, Loader2 } from "lucide-react";
+import { X, Save, FolderOpen, Trash2, Download, Loader2, Link } from "lucide-react";
 import { savePipeline, listPipelines, getPipeline, deletePipeline } from "../api/savedPipelines";
 import { extractPipeline } from "../hooks/usePipeline";
 import type { SavedPipelineSummary } from "../types/pipeline";
@@ -215,6 +215,17 @@ export default function SavedPipelinesModal({ workspace, onClose }: SavedPipelin
                       {new Date(p.updated_at).toLocaleDateString()}
                     </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const url = `${window.location.origin}${window.location.pathname}?share=${p.share_token}`;
+                      navigator.clipboard.writeText(url).catch(() => {});
+                    }}
+                    className="p-1.5 rounded hover:bg-gray-100 text-gray-400 transition-colors"
+                    title="Copy share link"
+                  >
+                    <Link size={14} />
+                  </button>
                   <button
                     type="button"
                     onClick={() => handleLoad(p.id)}

@@ -88,7 +88,9 @@ def get_pipeline(pipeline_id: int, db: Session = Depends(get_db)) -> SavedPipeli
 
 @router.put("/{pipeline_id}", response_model=SavedPipelineResponse)
 def update_pipeline(
-    pipeline_id: int, request: SavePipelineRequest, db: Session = Depends(get_db)  # noqa: B008
+    pipeline_id: int,
+    request: SavePipelineRequest,
+    db: Session = Depends(get_db),  # noqa: B008
 ) -> SavedPipelineResponse:
     """Update a saved pipeline's name, description, or steps."""
     pipeline = db.get(SavedPipeline, pipeline_id)

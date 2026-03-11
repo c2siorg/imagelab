@@ -1,4 +1,5 @@
 import base64
+import logging
 import time
 
 import cv2
@@ -15,6 +16,7 @@ from app.models.pipeline import (
 from app.operators.registry import get_operator
 from app.utils.image import compute_image_stats, decode_base64_image, encode_image_base64
 
+logger = logging.getLogger(__name__)
 NOOP_TYPES = {"basic_readimage", "basic_writeimage", "border_for_all", "border_each_side"}
 _THUMB_MAX_WIDTH = 200
 
@@ -95,7 +97,19 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
             step_timings.append(
                 StepTiming(step=i + 1, operator_type=step.type, duration_ms=(t_step_end - t_step_start) * 1000)
             )
-            if collect:
+        except Exception as e:
+            t_fail = time.perf_counter()
+            return PipelineResponse(
+                success=False,
+                error=f"Error in step {i + 1} ({step.type}): {type(e).__name__}: {e}",
+                step=i + 1,
+                timings=PipelineTimings(total_ms=(t_fail - t_start_total) * 1000, steps=step_timings),
+            )
+
+        # Intermediate capture is isolated from operator execution: a stats/thumbnail
+        # failure must never turn a successful pipeline step into an error response.
+        if collect:
+            try:
                 raw_stats = compute_image_stats(image)
                 intermediates.append(
                     StepResult(
@@ -105,14 +119,8 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
                         stats=ImageStats(**raw_stats),
                     )
                 )
-        except Exception as e:
-            t_fail = time.perf_counter()
-            return PipelineResponse(
-                success=False,
-                error=f"Error in step {i + 1} ({step.type}): {type(e).__name__}: {e}",
-                step=i + 1,
-                timings=PipelineTimings(total_ms=(t_fail - t_start_total) * 1000, steps=step_timings),
-            )
+            except Exception:
+                logger.warning("Failed to capture intermediate for step %d (%s)", i + 1, step.type, exc_info=True)
 
     try:
         encoded = encode_image_base64(image, request.image_format)

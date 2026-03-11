@@ -34,7 +34,7 @@ export default function HistogramCanvas({ histograms, height = 64 }: HistogramCa
 
     histograms.forEach((hist, ci) => {
       ctx.beginPath();
-      ctx.strokeStyle = isGray ? GRAY_COLOR : CHANNEL_COLORS[ci] ?? GRAY_COLOR;
+      ctx.strokeStyle = isGray ? GRAY_COLOR : (CHANNEL_COLORS[ci] ?? GRAY_COLOR);
       ctx.lineWidth = 1;
       ctx.globalAlpha = isGray ? 0.9 : 0.7;
 
@@ -52,5 +52,7 @@ export default function HistogramCanvas({ histograms, height = 64 }: HistogramCa
     ctx.globalAlpha = 1;
   }, [histograms, height]);
 
-  return <canvas ref={canvasRef} className="w-full" style={{ height }} aria-label="Pixel histogram" />;
+  return (
+    <canvas ref={canvasRef} className="w-full" style={{ height }} aria-label="Pixel histogram" />
+  );
 }

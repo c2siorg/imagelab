@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import * as Blockly from "blockly";
 import { useBlocklyWorkspace } from "../hooks/useBlocklyWorkspace";
 import { usePipelineStore } from "../store/pipelineStore";
 import Navbar from "./Navbar";
@@ -8,11 +9,42 @@ import PreviewPane from "./Preview/PreviewPane";
 import InfoPane from "./InfoPane";
 import StepPreviewList from "./Preview/StepPreviewList";
 import { ErrorBoundary } from "./ErrorBoundary";
+import { getPipelineByToken } from "../api/savedPipelines";
+
+const READ_IMAGE_BLOCK_TYPE = "basic_readimage";
+const FILENAME_LABEL_FIELD = "filename_label";
 
 export default function Layout() {
   const { containerRef, workspace } = useBlocklyWorkspace();
   const { reset, showStepPreviews, intermediates } = usePipelineStore();
   const [resetKey, setResetKey] = useState(0);
+
+  // Load a shared pipeline from ?share=<token> on first mount.
+  useEffect(() => {
+    if (!workspace) return;
+    const token = new URLSearchParams(window.location.search).get("share");
+    if (!token) return;
+
+    getPipelineByToken(token)
+      .then((saved) => {
+        if (!saved.workspace_state) return;
+        workspace.clear();
+        Blockly.serialization.workspaces.load(
+          JSON.parse(saved.workspace_state) as Parameters<
+            typeof Blockly.serialization.workspaces.load
+          >[0],
+          workspace,
+        );
+        workspace.getBlocksByType(READ_IMAGE_BLOCK_TYPE, false).forEach((block) => {
+          block.getField(FILENAME_LABEL_FIELD)?.setValue("No image");
+        });
+        // Remove the query param without reloading the page
+        window.history.replaceState({}, "", window.location.pathname);
+      })
+      .catch(() => {
+        // Silently ignore — bad or expired share tokens should not break the app
+      });
+  }, [workspace]);
 
   const handleEditorReset = () => {
     setResetKey((prev) => prev + 1);
