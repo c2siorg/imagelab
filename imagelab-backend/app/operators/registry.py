@@ -27,6 +27,7 @@ from app.operators.filtering.box_filter import BoxFilter
 from app.operators.filtering.contour_detection import ContourDetection
 from app.operators.filtering.dilation import Dilation
 from app.operators.filtering.erosion import Erosion
+from app.operators.filtering.gabor_filter import GaborFilter
 from app.operators.filtering.morphological import Morphological
 from app.operators.filtering.pyramid_down import PyramidDown
 from app.operators.filtering.pyramid_up import PyramidUp
@@ -38,6 +39,7 @@ from app.operators.geometric.resize_image import ResizeImage
 from app.operators.geometric.rotate_image import RotateImage
 from app.operators.geometric.scale_image import ScaleImage
 from app.operators.segmentation.kmeans_segmentation import KMeansSegmentation
+from app.operators.segmentation.mean_shift_segmentation import MeanShiftSegmentation
 from app.operators.segmentation.watershed import Watershed
 from app.operators.sobel_derivatives.scharr_derivative import ScharrDerivative
 from app.operators.sobel_derivatives.sobel_derivative import SobelDerivative
@@ -92,6 +94,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "filtering_erosion": Erosion,
     "filtering_dilation": Dilation,
     "filtering_morphological": Morphological,
+    "filtering_gaborfilter": GaborFilter,
     "filtering_contourdetection": ContourDetection,
     # Thresholding
     "thresholding_applythreshold": ApplyThreshold,
@@ -107,6 +110,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     # Segmentation
     "segmentation_watershed": Watershed,
     "segmentation_kmeans": KMeansSegmentation,
+    "segmentation_meanshift": MeanShiftSegmentation,
 }
 
 

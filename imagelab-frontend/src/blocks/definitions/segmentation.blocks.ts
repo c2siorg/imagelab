@@ -44,4 +44,22 @@ export const segmentationBlocks = [
     tooltip:
       "Applies K-Means color segmentation - Groups pixels into K clusters based on color similarity, replacing each pixel with the average color of its cluster. K controls the number of color segments (2–10). Higher K values produce more detailed segmentation. Max iterations (1–500) and epsilon (0.01–10.0) control the convergence of the algorithm. Great for simplifying images and understanding dominant color regions.",
   },
+  {
+    type: "segmentation_meanshift",
+    message0:
+      "Apply Mean Shift Segmentation %1 spatial radius %2 %3 colour radius %4 %5 max level %6",
+    args0: [
+      { type: "input_dummy" },
+      { type: "field_number", name: "sp", value: 21, min: 1, precision: 1 },
+      { type: "input_dummy" },
+      { type: "field_number", name: "sr", value: 51, min: 1, precision: 1 },
+      { type: "input_dummy" },
+      { type: "field_number", name: "maxLevel", value: 1, min: 0, max: 4, precision: 1 },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "segmentation_style",
+    tooltip:
+      "Apply Mean Shift Segmentation for colour-based region clustering - Groups pixels with similar colours and spatial proximity into flat regions, producing a simplified, posterised version of the image with preserved edges. 'Spatial radius' controls how far away in pixel distance neighbours are considered. 'Colour radius' controls how different in colour a pixel can be and still be merged — higher values produce larger, more uniform regions. 'Max level' sets the pyramid depth for multi-scale processing (0–4).",
+  },
 ];

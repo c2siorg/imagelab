@@ -88,6 +88,7 @@ export const categories: CategoryInfo[] = [
       { type: "filtering_erosion", label: "Erosion" },
       { type: "filtering_dilation", label: "Dilation" },
       { type: "filtering_morphological", label: "Morphological" },
+      { type: "filtering_gaborfilter", label: "Gabor Filter" },
       { type: "filtering_contourdetection", label: "Contour Detection" },
       { type: "filtering_cannyedge", label: "Canny Edge Detection" },
     ],
@@ -112,6 +113,7 @@ export const categories: CategoryInfo[] = [
     blocks: [
       { type: "segmentation_watershed", label: "Watershed" },
       { type: "segmentation_kmeans", label: "K-Means" },
+      { type: "segmentation_meanshift", label: "Mean Shift" },
     ],
   },
   {
