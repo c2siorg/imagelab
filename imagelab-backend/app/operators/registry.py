@@ -47,6 +47,9 @@ from app.operators.thresholding.adaptive_threshold import AdaptiveThreshold
 from app.operators.thresholding.apply_borders import ApplyBorders
 from app.operators.thresholding.apply_threshold import ApplyThreshold
 from app.operators.thresholding.otsu_threshold import OtsuThreshold
+from app.operators.conversions.brightness_contrast import BrightnessContrast
+from app.operators.conversions.histogram_equalization import HistogramEqualization
+from app.operators.filtering.hough_line_detection import HoughLineDetection
 from app.operators.transformation.distance_transform import DistanceTransform
 from app.operators.transformation.laplacian import Laplacian
 
@@ -62,6 +65,8 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "geometric_affineimage": AffineImage,
     "geometric_cropimage": CropImage,
     # Conversions
+    "imageconvertions_brightnesscontrast": BrightnessContrast,
+    "imageconvertions_histogramequalization": HistogramEqualization,
     "imageconvertions_clahe": CLAHE,
     "imageconvertions_grayimage": GrayImage,
     "imageconvertions_channelsplit": ChannelSplit,
@@ -95,6 +100,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "filtering_dilation": Dilation,
     "filtering_morphological": Morphological,
     "filtering_gaborfilter": GaborFilter,
+    "filtering_houghlinedetection": HoughLineDetection,
     "filtering_contourdetection": ContourDetection,
     # Thresholding
     "thresholding_applythreshold": ApplyThreshold,
