@@ -38,4 +38,13 @@ export const sobelDerivativesBlocks = [
     tooltip:
       "Detect edges using Scharr derivative (first order) - Applies the Scharr operator, which is a more accurate first-order derivative operator than Sobel due to its optimized kernel weights. The 'type' parameter specifies the direction: 'Horizontal' detects vertical edges and 'Vertical' detects horizontal edges. The output is always a uint8 image.",
   },
+  {
+    type: "sobelderivatives_robertscross",
+    message0: "Apply Roberts Cross edge detection",
+    previousStatement: null,
+    nextStatement: null,
+    style: "sobel_derivatives_style",
+    tooltip:
+      "Detect edges using the Roberts Cross operator - Applies two 2x2 diagonal kernels to compute the gradient magnitude. One of the oldest edge detection operators; works on grayscale images and highlights sharp intensity transitions. Colour images are converted to grayscale automatically.",
+  },
 ];

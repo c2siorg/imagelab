@@ -418,6 +418,18 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       "Fine-grained edge detection on medical or scientific images requiring higher rotational symmetry than Sobel.",
     ],
   },
+  sobelderivatives_robertscross: {
+    name: "Roberts Cross",
+    description:
+      "Applies the Roberts Cross operator to detect edges using two 2x2 diagonal gradient kernels. One of the earliest edge detection operators, sensitive to diagonal edges and sharp transitions.",
+    parameters: [],
+    formula: "G = √(Gx² + Gy²), Gx = [[1,0],[0,-1]], Gy = [[0,1],[-1,0]]",
+    useCases: [
+      "Teaching the fundamentals of gradient-based edge detection.",
+      "Fast edge detection where computational simplicity is preferred over accuracy.",
+      "Detecting diagonal edges in simple images.",
+    ],
+  },
 
   // --- Transformation ---
   transformation_distance: {
