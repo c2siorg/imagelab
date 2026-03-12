@@ -32,7 +32,7 @@ class ImageStats(BaseModel):
     min_val: float
     max_val: float
     mean_val: float
-    histograms: list[list[int]]  # one 256-bucket list per channel (max 3)
+    histograms: list[list[int]]  # one list for grayscale, three lists for B/G/R; alpha excluded
 
 
 class StepResult(BaseModel):

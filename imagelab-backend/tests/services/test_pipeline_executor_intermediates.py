@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import numpy as np
 
 from app.models.pipeline import PipelineRequest, PipelineStep
@@ -56,4 +58,10 @@ class TestIntermediatesFlag:
 
     def test_final_image_still_returned(self):
         result = execute_pipeline(_make_request(include_intermediates=True))
+        assert result.image is not None
+
+    def test_intermediate_capture_failure_does_not_fail_pipeline(self):
+        with patch("app.services.pipeline_executor.compute_image_stats", side_effect=RuntimeError("boom")):
+            result = execute_pipeline(_make_request(include_intermediates=True))
+        assert result.success
         assert result.image is not None

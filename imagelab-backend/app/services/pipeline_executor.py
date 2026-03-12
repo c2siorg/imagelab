@@ -22,7 +22,12 @@ _THUMB_MAX_WIDTH = 200
 
 
 def _make_thumbnail(image: np.ndarray) -> str:
-    """Encode *image* as a base64 JPEG thumbnail (max 200 px wide)."""
+    """Encode *image* as a base64 JPEG thumbnail (max 200 px wide).
+
+    Notes:
+    - Float images in [0, 1] are scaled to [0, 255].
+    - Other non-uint8 inputs are contrast-stretched for visibility.
+    """
     h, w = image.shape[:2]
     if w > _THUMB_MAX_WIDTH:
         scale = _THUMB_MAX_WIDTH / w
@@ -31,11 +36,14 @@ def _make_thumbnail(image: np.ndarray) -> str:
     else:
         thumb = image
 
-    # Ensure uint8 for JPEG encoding
     if thumb.dtype != np.uint8:
-        mn, mx = thumb.min(), thumb.max()
-        if mx > mn:
-            thumb = ((thumb.astype(np.float64) - mn) / (mx - mn) * 255).clip(0, 255).astype(np.uint8)
+        thumb_f = thumb.astype(np.float64)
+        mn = float(thumb_f.min())
+        mx = float(thumb_f.max())
+        if thumb.dtype.kind == "f" and mn >= 0.0 and mx <= 1.0:
+            thumb = (thumb_f * 255.0).clip(0, 255).astype(np.uint8)
+        elif mx > mn:
+            thumb = ((thumb_f - mn) / (mx - mn) * 255).clip(0, 255).astype(np.uint8)
         else:
             thumb = np.zeros_like(thumb, dtype=np.uint8)
 

@@ -87,3 +87,10 @@ class TestComputeImageStatsHistogram:
         stats = compute_image_stats(img)
         assert stats["histograms"][0][128] == 25
         assert stats["histograms"][0][0] == 0
+
+    def test_uniform_float_05_histogram_maps_to_mid_bucket(self):
+        """Uniform float images in [0,1] should map to proportional uint8 buckets."""
+        img = np.full((5, 5), 0.5, dtype=np.float32)
+        stats = compute_image_stats(img)
+        assert stats["histograms"][0][127] == 25
+        assert stats["histograms"][0][0] == 0

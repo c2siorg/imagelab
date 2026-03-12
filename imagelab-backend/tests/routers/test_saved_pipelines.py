@@ -47,6 +47,14 @@ class TestSavePipeline:
         r = client.post("/api/pipelines", json={"name": "Bad", "pipeline_json": "not-json{"})
         assert r.status_code == 422
 
+    def test_save_rejects_oversized_workspace_state(self, client):
+        huge = "x" * 1_000_001
+        r = client.post(
+            "/api/pipelines",
+            json={"name": "Too Big", "pipeline_json": SAMPLE_PIPELINE, "workspace_state": huge},
+        )
+        assert r.status_code == 422
+
 
 class TestListPipelines:
     def test_list_empty(self, client):
@@ -59,6 +67,20 @@ class TestListPipelines:
         client.post("/api/pipelines", json={"name": "P2", "pipeline_json": SAMPLE_PIPELINE})
         r = client.get("/api/pipelines")
         assert len(r.json()) == 2
+
+    def test_list_is_ordered_by_updated_at_desc(self, client):
+        first = client.post("/api/pipelines", json={"name": "First", "pipeline_json": SAMPLE_PIPELINE}).json()
+        second = client.post("/api/pipelines", json={"name": "Second", "pipeline_json": SAMPLE_PIPELINE}).json()
+        client.put(
+            f"/api/pipelines/{first['id']}",
+            json={"name": "First Updated", "pipeline_json": SAMPLE_PIPELINE},
+        )
+
+        r = client.get("/api/pipelines")
+        names = [p["name"] for p in r.json()]
+        assert names[0] == "First Updated"
+        assert "share_token" not in r.json()[0]
+        assert second["name"] in names
 
 
 class TestGetPipeline:

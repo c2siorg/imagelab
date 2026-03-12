@@ -24,30 +24,31 @@ def compute_image_stats(image: np.ndarray) -> dict:
     """Compute pixel statistics and per-channel histograms for an image.
 
     Returns a plain dict (not a Pydantic model) to avoid coupling utils to
-    the models layer.  The executor converts this dict into an ``ImageStats``
+    the models layer. The executor converts this dict into an ``ImageStats``
     model.
 
     Float images are normalised to [0, 255] before histogram computation so
     that ``cv2.calcHist`` produces meaningful bucket counts regardless of the
-    original value range.  Alpha channels are excluded from histograms.
+    original value range. Alpha channels are excluded from histograms.
     """
     h, w = image.shape[:2]
     channels = 1 if image.ndim == 2 else image.shape[2]
     dtype = str(image.dtype)
 
-    flat = image.flatten().astype(np.float64)
-    mn = float(flat.min())
-    mx = float(flat.max())
-    mean_val = round(float(flat.mean()), 3)
+    mn = float(image.min())
+    mx = float(image.max())
+    mean_val = round(float(image.mean(dtype=np.float64)), 3)
 
     # Normalise to uint8 for histogram computation.
     # float images may have arbitrary ranges; integer images > uint8 need scaling too.
     if mx > mn:
         img_u8 = ((image.astype(np.float64) - mn) / (mx - mn) * 255).clip(0, 255).astype(np.uint8)
     else:
-        # Uniform image — preserve the actual pixel value in [0, 255] so that the
-        # histogram bucket reflects the true intensity (e.g. all-128 → bucket 128).
-        val = int(np.clip(mn, 0, 255))
+        # Uniform image: map float [0,1] values to [0,255] buckets; otherwise clamp.
+        if image.dtype.kind == "f" and 0.0 <= mn <= 1.0:
+            val = int(np.clip(mn * 255.0, 0, 255))
+        else:
+            val = int(np.clip(mn, 0, 255))
         img_u8 = np.full(image.shape, val, dtype=np.uint8)
 
     histograms: list[list[int]] = []

@@ -25,6 +25,8 @@ def upgrade() -> None:
         sa.Column("description", sa.String(length=1000), nullable=False, server_default=""),
         sa.Column("pipeline_json", sa.Text(), nullable=False),
         sa.Column("workspace_state", sa.Text(), nullable=False, server_default=""),
+        # Intentionally no DB-side default for share_token: application code
+        # generates tokens to keep format/entropy under explicit control.
         sa.Column("share_token", sa.String(length=50), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),

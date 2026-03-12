@@ -2,11 +2,9 @@ import { useState, useEffect } from "react";
 import * as Blockly from "blockly";
 import { X, Save, FolderOpen, Trash2, Download, Loader2, Link } from "lucide-react";
 import { savePipeline, listPipelines, getPipeline, deletePipeline } from "../api/savedPipelines";
+import { FILENAME_LABEL_FIELD, READ_IMAGE_BLOCK_TYPE } from "../blocks/constants";
 import { extractPipeline } from "../hooks/usePipeline";
 import type { SavedPipelineSummary } from "../types/pipeline";
-
-const READ_IMAGE_BLOCK_TYPE = "basic_readimage";
-const FILENAME_LABEL_FIELD = "filename_label";
 
 interface SavedPipelinesModalProps {
   workspace: Blockly.WorkspaceSvg | null;
@@ -27,6 +25,7 @@ export default function SavedPipelinesModal({ workspace, onClose }: SavedPipelin
   const [loadingList, setLoadingList] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [copyingId, setCopyingId] = useState<number | null>(null);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -45,6 +44,11 @@ export default function SavedPipelinesModal({ workspace, onClose }: SavedPipelin
         .finally(() => setLoadingList(false));
     }
   }, [tab]);
+
+  const confirmAction = (message: string): boolean => {
+    if (typeof window === "undefined" || typeof window.confirm !== "function") return true;
+    return window.confirm(message);
+  };
 
   const handleSave = async () => {
     if (!workspace || !name.trim()) return;
@@ -74,37 +78,48 @@ export default function SavedPipelinesModal({ workspace, onClose }: SavedPipelin
     setLoadError(null);
     try {
       const saved = await getPipeline(id);
+      const parsedState = saved.workspace_state
+        ? (JSON.parse(saved.workspace_state) as Parameters<
+            typeof Blockly.serialization.workspaces.load
+          >[0])
+        : null;
+
       const existingBlocks = workspace.getAllBlocks(false);
-      if (existingBlocks.length > 0) {
-        if (!window.confirm("Loading will replace your current workspace. Continue?")) return;
+      if (
+        existingBlocks.length > 0 &&
+        !confirmAction("Loading will replace your current workspace. Continue?")
+      ) {
+        return;
       }
+
       const snapshot = Blockly.serialization.workspaces.save(workspace);
-      workspace.clear();
       try {
-        if (saved.workspace_state) {
-          Blockly.serialization.workspaces.load(
-            JSON.parse(saved.workspace_state) as Parameters<
-              typeof Blockly.serialization.workspaces.load
-            >[0],
-            workspace,
-          );
-        }
+        workspace.clear();
+        if (parsedState) Blockly.serialization.workspaces.load(parsedState, workspace);
       } catch {
-        Blockly.serialization.workspaces.load(snapshot, workspace);
-        setLoadError("Failed to restore workspace state");
+        try {
+          Blockly.serialization.workspaces.load(snapshot, workspace);
+        } catch {
+          // Ignore secondary restore errors and surface the primary failure.
+        }
+        setLoadError("Failed to load workspace state");
         return;
       }
       workspace.getBlocksByType(READ_IMAGE_BLOCK_TYPE, false).forEach((block) => {
         block.getField(FILENAME_LABEL_FIELD)?.setValue("No image");
       });
       onClose();
-    } catch {
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        setLoadError("Saved workspace state is corrupt");
+        return;
+      }
       setLoadError("Failed to load pipeline");
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm("Delete this pipeline?")) return;
+    if (!confirmAction("Delete this pipeline?")) return;
     setDeletingId(id);
     try {
       await deletePipeline(id);
@@ -113,6 +128,25 @@ export default function SavedPipelinesModal({ workspace, onClose }: SavedPipelin
       setLoadError("Failed to delete pipeline");
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleCopyShareLink = async (id: number) => {
+    if (typeof window === "undefined") return;
+    setLoadError(null);
+    setCopyingId(id);
+    try {
+      const saved = await getPipeline(id);
+      const url = `${window.location.origin}${window.location.pathname}?share=${saved.share_token}`;
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else if (typeof window.prompt === "function") {
+        window.prompt("Copy share link:", url);
+      }
+    } catch {
+      setLoadError("Failed to copy share link");
+    } finally {
+      setCopyingId(null);
     }
   };
 
@@ -217,14 +251,16 @@ export default function SavedPipelinesModal({ workspace, onClose }: SavedPipelin
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      const url = `${window.location.origin}${window.location.pathname}?share=${p.share_token}`;
-                      navigator.clipboard.writeText(url).catch(() => {});
-                    }}
+                    onClick={() => handleCopyShareLink(p.id)}
+                    disabled={copyingId === p.id}
                     className="p-1.5 rounded hover:bg-gray-100 text-gray-400 transition-colors"
                     title="Copy share link"
                   >
-                    <Link size={14} />
+                    {copyingId === p.id ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Link size={14} />
+                    )}
                   </button>
                   <button
                     type="button"

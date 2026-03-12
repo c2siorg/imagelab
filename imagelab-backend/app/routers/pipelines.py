@@ -1,4 +1,3 @@
-import json
 import logging
 from datetime import UTC, datetime
 
@@ -18,27 +17,12 @@ router = APIRouter(prefix="/pipelines", tags=["pipelines"])
 
 
 def _to_response(p: SavedPipeline) -> SavedPipelineResponse:
-    return SavedPipelineResponse(
-        id=p.id,  # type: ignore[arg-type]
-        name=p.name,
-        description=p.description,
-        share_token=p.share_token,
-        created_at=p.created_at,
-        updated_at=p.updated_at,
-        pipeline_json=p.pipeline_json,
-        workspace_state=p.workspace_state,
-    )
+    return SavedPipelineResponse.model_validate(p)
 
 
 @router.post("", response_model=SavedPipelineResponse, status_code=201)
 def save_pipeline(request: SavePipelineRequest, db: Session = Depends(get_db)) -> SavedPipelineResponse:  # noqa: B008
     """Persist a pipeline and return its record (including share token)."""
-    # Validate pipeline_json is well-formed JSON
-    try:
-        json.loads(request.pipeline_json)
-    except json.JSONDecodeError as exc:
-        raise HTTPException(status_code=422, detail=f"pipeline_json is not valid JSON: {exc}") from exc
-
     pipeline = SavedPipeline(
         name=request.name,
         description=request.description,
@@ -53,19 +37,9 @@ def save_pipeline(request: SavePipelineRequest, db: Session = Depends(get_db)) -
 
 @router.get("", response_model=list[SavedPipelineSummary])
 def list_pipelines(db: Session = Depends(get_db)) -> list[SavedPipelineSummary]:  # noqa: B008
-    """Return all saved pipelines (summary only — no pipeline_json payload)."""
+    """Return all saved pipelines (summary only; no pipeline_json payload)."""
     rows = db.exec(select(SavedPipeline).order_by(SavedPipeline.updated_at.desc())).all()  # type: ignore[arg-type]
-    return [
-        SavedPipelineSummary(
-            id=p.id,  # type: ignore[arg-type]
-            name=p.name,
-            description=p.description,
-            share_token=p.share_token,
-            created_at=p.created_at,
-            updated_at=p.updated_at,
-        )
-        for p in rows
-    ]
+    return [SavedPipelineSummary.model_validate(p) for p in rows]
 
 
 @router.get("/share/{token}", response_model=SavedPipelineResponse)
@@ -96,11 +70,6 @@ def update_pipeline(
     pipeline = db.get(SavedPipeline, pipeline_id)
     if pipeline is None:
         raise HTTPException(status_code=404, detail="Pipeline not found")
-
-    try:
-        json.loads(request.pipeline_json)
-    except json.JSONDecodeError as exc:
-        raise HTTPException(status_code=422, detail=f"pipeline_json is not valid JSON: {exc}") from exc
 
     pipeline.name = request.name
     pipeline.description = request.description

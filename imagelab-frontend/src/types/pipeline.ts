@@ -29,7 +29,7 @@ export interface ImageStats {
   min_val: number;
   max_val: number;
   mean_val: number;
-  histograms: number[][]; // one 256-bucket array per channel (max 3)
+  histograms: number[][]; // one array for grayscale, three arrays for B/G/R (alpha excluded)
 }
 
 export interface StepResult {
@@ -61,7 +61,6 @@ export interface SavedPipelineSummary {
   id: number;
   name: string;
   description: string;
-  share_token: string;
   created_at: string;
   updated_at: string;
 }

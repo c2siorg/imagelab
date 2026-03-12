@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { categories } from "../../blocks/categories";
 import type { StepResult } from "../../types/pipeline";
 import HistogramCanvas from "./HistogramCanvas";
 
@@ -7,11 +8,20 @@ interface StepPreviewListProps {
   steps: StepResult[];
 }
 
+const OPERATOR_LABELS: Record<string, string> = Object.fromEntries(
+  categories.flatMap((category) => category.blocks.map((block) => [block.type, block.label])),
+);
+
 function formatOperatorName(type: string): string {
-  // e.g. "blurring_applyblur" -> "Apply Blur"
-  const parts = type.split("_");
-  const name = parts.slice(1).join(" ");
-  return name.charAt(0).toUpperCase() + name.slice(1).replace(/([a-z])([A-Z])/g, "$1 $2");
+  const label = OPERATOR_LABELS[type];
+  if (label) return label;
+
+  const parts = type.split("_").slice(1);
+  if (parts.length === 0) return type;
+  return parts
+    .join(" ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function StatRow({ label, value }: { label: string; value: string | number }) {

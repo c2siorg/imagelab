@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import * as Blockly from "blockly";
 import { useBlocklyWorkspace } from "../hooks/useBlocklyWorkspace";
 import { usePipelineStore } from "../store/pipelineStore";
+import { FILENAME_LABEL_FIELD, READ_IMAGE_BLOCK_TYPE } from "../blocks/constants";
 import Navbar from "./Navbar";
 import Toolbar from "./Toolbar";
 import Sidebar from "./Sidebar/Sidebar";
@@ -11,17 +12,17 @@ import StepPreviewList from "./Preview/StepPreviewList";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { getPipelineByToken } from "../api/savedPipelines";
 
-const READ_IMAGE_BLOCK_TYPE = "basic_readimage";
-const FILENAME_LABEL_FIELD = "filename_label";
-
 export default function Layout() {
   const { containerRef, workspace } = useBlocklyWorkspace();
   const { reset, showStepPreviews, intermediates } = usePipelineStore();
   const [resetKey, setResetKey] = useState(0);
+  const shareLoadAttempted = useRef(false);
 
   // Load a shared pipeline from ?share=<token> on first mount.
   useEffect(() => {
-    if (!workspace) return;
+    if (!workspace || shareLoadAttempted.current || typeof window === "undefined") return;
+    shareLoadAttempted.current = true;
+
     const token = new URLSearchParams(window.location.search).get("share");
     if (!token) return;
 
