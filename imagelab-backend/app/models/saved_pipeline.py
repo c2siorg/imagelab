@@ -3,6 +3,7 @@ import secrets
 from datetime import UTC, datetime
 
 from pydantic import ConfigDict, field_validator
+from sqlalchemy import func
 from sqlmodel import Field, SQLModel
 
 
@@ -22,7 +23,7 @@ class SavedPipeline(SQLModel, table=True):
         index=True,
     )
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC), sa_column_kwargs={"onupdate": func.now()})
 
 
 # ---------------------------------------------------------------------------
