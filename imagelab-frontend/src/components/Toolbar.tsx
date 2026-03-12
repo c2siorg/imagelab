@@ -5,7 +5,10 @@ import { usePipelineStore } from "../store/pipelineStore";
 import { executePipeline } from "../api/pipeline";
 import { extractPipeline } from "../hooks/usePipeline";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
+import { validatePipeline } from "../utils/pipelineValidation";
+import type { ValidationWarning } from "../utils/pipelineValidation";
 import SharePipelineModal from "./SharePipelineModal";
+import PipelineWarningsModal from "./PipelineWarningsModal";
 
 interface ToolbarProps {
   workspace: Blockly.WorkspaceSvg | null;
@@ -34,6 +37,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
   } = usePipelineStore();
 
   const [showShareModal, setShowShareModal] = useState(false);
+  const [pendingWarnings, setPendingWarnings] = useState<ValidationWarning[] | null>(null);
 
   const handleNew = () => {
     if (!window.confirm("This will clear all blocks and the uploaded image. Continue?")) {
@@ -54,7 +58,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
   const handleUndo = () => workspace?.undo(false);
   const handleRedo = () => workspace?.undo(true);
 
-  const handleRun = async () => {
+  const doExecute = async () => {
     if (!workspace || !originalImage) return;
 
     const pipeline = extractPipeline(workspace);
@@ -87,6 +91,37 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     } finally {
       setExecuting(false);
     }
+  };
+
+  const handleRun = async () => {
+    if (!workspace || !originalImage) return;
+
+    const pipeline = extractPipeline(workspace);
+    if (pipeline.length === 0) {
+      setError('No pipeline found. Add a "Read Image" block and connect operations.');
+      return;
+    }
+
+    // Filter out the missing Write Image warning — informational only, not a blocker
+    const warnings = validatePipeline(pipeline).filter(
+      (w) => w.operatorType !== "basic_writeimage",
+    );
+
+    if (warnings.length > 0) {
+      setPendingWarnings(warnings);
+      return;
+    }
+
+    await doExecute();
+  };
+
+  const handleRunAnyway = async () => {
+    setPendingWarnings(null);
+    await doExecute();
+  };
+
+  const handleCancelWarnings = () => {
+    setPendingWarnings(null);
   };
 
   // Register global keyboard shortcuts
@@ -204,6 +239,14 @@ export default function Toolbar({ workspace }: ToolbarProps) {
 
       {showShareModal && (
         <SharePipelineModal workspace={workspace} onClose={() => setShowShareModal(false)} />
+      )}
+
+      {pendingWarnings && (
+        <PipelineWarningsModal
+          warnings={pendingWarnings}
+          onRunAnyway={handleRunAnyway}
+          onCancel={handleCancelWarnings}
+        />
       )}
     </>
   );
