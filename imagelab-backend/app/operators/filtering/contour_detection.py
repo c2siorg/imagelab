@@ -51,14 +51,18 @@ class ContourDetection(BaseOperator):
         # Standard OpenCV behavior: non-zero pixels are treated as 1 (foreground).
         contours = cv2.findContours(gray, mode, method)[-2]
 
-        # Build result canvas before checking contours so output shape is always consistent
-        result = image.copy()
-        if len(result.shape) == 2 or (len(result.shape) == 3 and result.shape[2] == 1):
-            result = cv2.cvtColor(image if len(image.shape) == 2 else image[:, :, 0], cv2.COLOR_GRAY2BGR)
+        # Build result canvas based on input channels
+        if len(image.shape) == 2 or (len(image.shape) == 3 and image.shape[2] == 1):
+            # For 1-channel, calculate luminance for the drawing color
+            # Using standard ITU-R 601 Luma formula: 0.299*R + 0.587*G + 0.114*B
+            draw_color = int(0.114 * bgr_color[0] + 0.587 * bgr_color[1] + 0.299 * bgr_color[2])
+            result = image.copy()
+        elif len(image.shape) == 3 and image.shape[2] == 4:
+            # Convert BGRA to BGR as requested
+            result = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
             draw_color = bgr_color
-        elif len(result.shape) == 3 and result.shape[2] == 4:
-            draw_color = (*bgr_color, 255)
         else:
+            result = image.copy()
             draw_color = bgr_color
 
         if not contours:
@@ -66,3 +70,4 @@ class ContourDetection(BaseOperator):
 
         cv2.drawContours(result, contours, -1, draw_color, thickness)
         return result
+

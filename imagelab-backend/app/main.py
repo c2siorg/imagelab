@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.exceptions import register_exception_handlers
-from app.routers import pipeline
+from app.routers import batch, macros, pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +43,9 @@ app.add_middleware(
 register_exception_handlers(app)
 
 app.include_router(pipeline.router, prefix="/api")
+app.include_router(batch.router, prefix="/api")
+app.include_router(macros.router, prefix="/api")
+
 
 if __name__ == "__main__":
     import uvicorn

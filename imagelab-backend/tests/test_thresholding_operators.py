@@ -15,9 +15,6 @@ class TestApplyThreshold:
         result = ApplyThreshold({}).compute(color_image)
         assert result.dtype == np.uint8
 
-    @pytest.mark.xfail(
-        strict=True, reason="maxValue defaults to 0 — known bug, fix in fix/apply-threshold-default-max-value"
-    )
     def test_default_params_produces_non_empty_output(self, color_image):
         result = ApplyThreshold({}).compute(color_image)
         assert result.max() > 0

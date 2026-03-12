@@ -10,7 +10,7 @@ class GaussianBlur(BaseOperator):
         width_size = int(self.params.get("widthSize", 1))
         height_size = int(self.params.get("heightSize", 1))
 
-        validate_positive_odd_kernel_size(width_size, "widthSize")
-        validate_positive_odd_kernel_size(height_size, "heightSize")
+        width_size = validate_positive_odd_kernel_size(width_size, "widthSize")
+        height_size = validate_positive_odd_kernel_size(height_size, "heightSize")
 
         return cv2.GaussianBlur(image, (width_size, height_size), 0)

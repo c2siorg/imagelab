@@ -1,2 +1,3 @@
-# Models will be added here as the application grows.
-# Import this module in alembic/env.py to register models with SQLModel.metadata.
+# Import all table modules here so Alembic can detect them via SQLModel.metadata.
+# alembic/env.py does: from app import models  — this file is the entry-point.
+from app.models import batch, macro  # noqa: F401

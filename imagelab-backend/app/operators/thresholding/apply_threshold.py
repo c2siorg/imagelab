@@ -5,6 +5,9 @@ from app.operators.base import BaseOperator
 
 
 class ApplyThreshold(BaseOperator):
+    """
+    Applies a fixed-level threshold to each array element.
+    """
     def compute(self, image: np.ndarray) -> np.ndarray:
         max_value = float(self.params.get("maxValue", 255))
         threshold_value = float(self.params.get("thresholdValue", 0))

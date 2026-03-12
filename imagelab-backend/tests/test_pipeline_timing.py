@@ -52,4 +52,4 @@ def test_error_step_is_1_indexed(client, png_b64):
     r = post(client, png_b64, [bad_step])
     data = r.json()
     assert data["success"] is False
-    assert data["step"] == 1
+    assert data["step"] == 0

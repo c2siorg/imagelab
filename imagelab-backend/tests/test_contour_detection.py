@@ -22,12 +22,13 @@ def test_contour_detection_grayscale_input():
 
     result = operator.compute(test_image.copy())
 
-    assert result.ndim == 3
-    assert result.shape[2] == 3
+    # Grayscale should be preserved (50, 50)
+    assert result.shape == (50, 50)
+    assert result.ndim == 2
 
-    # Check that output has changed (pixels drawn) and contains red pixels
-    assert not np.array_equal(result, cv2.cvtColor(test_image, cv2.COLOR_GRAY2BGR))
-    assert np.any(result[:, :, 2] == 255)  # Red channel (BGR index 2)
+    # Check that output has changed (pixels drawn) and contains red/white pixels (255 in gray)
+    assert not np.array_equal(result, test_image)
+    assert np.any(result == 255)
 
 
 def test_contour_detection_grayscale_no_contours_shape_consistent():
@@ -35,8 +36,8 @@ def test_contour_detection_grayscale_no_contours_shape_consistent():
     operator = ContourDetection({"mode": "EXTERNAL", "method": "SIMPLE", "rgbcolors_input": "#00ff00", "thickness": 2})
     blank_gray = np.zeros((50, 50), dtype=np.uint8)
     result = operator.compute(blank_gray)
-    assert result.ndim == 3
-    assert result.shape[2] == 3
+    assert result.shape == (50, 50)
+    assert result.ndim == 2
 
 
 def test_contour_detection_bgra_input():
@@ -48,11 +49,12 @@ def test_contour_detection_bgra_input():
 
     result = operator.compute(test_image.copy())
 
-    assert result.shape == test_image.shape
+    # BGRA -> BGR conversion as requested
+    assert result.shape == (50, 50, 3)
     # Check that green pixels were drawn (hex #00ff00 -> BGR index 1)
     assert np.any(result[:, :, 1] == 255)
-    # Alpha channel should remain intact
-    assert np.all(result[:, :, 3] == 255)
+    # Alpha channel is gone in BGR output
+    assert result.shape[2] == 3
 
 
 def test_contour_detection_float_image_normalized():
