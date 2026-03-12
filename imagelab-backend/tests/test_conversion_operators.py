@@ -113,6 +113,19 @@ class TestColorToBinary:
         result = ColorToBinary({"thresholdValue": 127, "maxValue": 255}).compute(color_image)
         assert result.dtype == np.uint8
 
+    def test_grayscale_input_does_not_crash(self, grayscale_image):
+        result = ColorToBinary({"thresholdValue": 127, "maxValue": 255}).compute(grayscale_image)
+        assert result.shape == grayscale_image.shape
+        assert result.dtype == np.uint8
+        assert set(np.unique(result)).issubset({0, 255})
+
+    def test_bgra_input_supported(self, color_image):
+        alpha = np.full(color_image.shape[:2], 255, dtype=np.uint8)
+        bgra = np.dstack([color_image, alpha])
+        result = ColorToBinary({"thresholdValue": 127, "maxValue": 255}).compute(bgra)
+        assert result.shape == color_image.shape[:2]
+        assert result.dtype == np.uint8
+
 
 # ColorMaps
 
