@@ -117,6 +117,15 @@ class TestOtsuThreshold:
         assert len(result.shape) == 2
         assert set(np.unique(result)).issubset({0, 255})
 
+    def test_bgra_input_with_varying_alpha(self, color_image):
+        alpha = np.linspace(0, 255, color_image.shape[1], dtype=np.uint8)
+        alpha = np.tile(alpha, (color_image.shape[0], 1))
+        bgra = np.dstack([color_image, alpha])
+        result = OtsuThreshold({}).compute(bgra)
+        assert result.shape == color_image.shape[:2]
+        assert result.dtype == np.uint8
+        assert set(np.unique(result)).issubset({0, 255})
+
     def test_grayscale_input(self, grayscale_image):
         result = OtsuThreshold({}).compute(grayscale_image)
         assert result.shape == grayscale_image.shape
