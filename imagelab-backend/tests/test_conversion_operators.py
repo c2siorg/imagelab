@@ -58,6 +58,13 @@ class TestGrayToBinary:
         result = GrayToBinary({}).compute(grayscale_image)
         assert result.shape == grayscale_image.shape
 
+    def test_default_params_produce_non_black_output(self):
+        img = np.zeros((100, 100), dtype=np.uint8)
+        img[:50, :] = 50
+        img[50:, :] = 200
+        result = GrayToBinary({}).compute(img)
+        assert set(np.unique(result)) == {0, 255}
+
     def test_custom_threshold_output_shape(self, grayscale_image):
         result = GrayToBinary({"thresholdValue": 127, "maxValue": 255}).compute(grayscale_image)
         assert result.shape == grayscale_image.shape

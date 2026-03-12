@@ -46,7 +46,7 @@ export const conversionsBlocks = [
     args0: [
       { type: "input_dummy" },
       { type: "field_number", name: "thresholdValue", value: 0, min: 0 },
-      { type: "field_number", name: "maxValue", value: 0, min: 0 },
+      { type: "field_number", name: "maxValue", value: 255, min: 0 },
     ],
     previousStatement: null,
     nextStatement: null,
