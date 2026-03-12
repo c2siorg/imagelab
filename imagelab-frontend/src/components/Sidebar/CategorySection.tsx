@@ -66,23 +66,31 @@ export default function CategorySection({
   if (isSearching && filteredBlocks.length === 0) return null;
 
   return (
-    <div className="border-b border-gray-200">
+    <div className="border-b border-gray-200 dark:border-gray-700">
       <button
         type="button"
         onClick={() => {
           if (!isSearching) setIsOpen((prev) => !prev);
         }}
         aria-expanded={effectiveOpen}
-        className={`w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 transition-colors ${isSearching ? "cursor-default" : ""}`}
+        className={`w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${isSearching ? "cursor-default" : ""}`}
       >
         {effectiveOpen ? (
-          <ChevronDown size={14} className={isSearching ? "text-gray-200" : "text-gray-400"} />
+          <ChevronDown
+            size={14}
+            className={isSearching ? "text-gray-200 dark:text-gray-600" : "text-gray-400"}
+          />
         ) : (
-          <ChevronRight size={14} className={isSearching ? "text-gray-200" : "text-gray-400"} />
+          <ChevronRight
+            size={14}
+            className={isSearching ? "text-gray-200 dark:text-gray-600" : "text-gray-400"}
+          />
         )}
         {Icon && <Icon size={16} color={category.colour} />}
-        <span className="text-sm font-medium text-gray-700">{category.name}</span>
-        <span className="ml-auto text-xs text-gray-400 font-normal">
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+          {category.name}
+        </span>
+        <span className="ml-auto text-xs text-gray-400 dark:text-gray-500 font-normal">
           {isSearching
             ? `${filteredBlocks.length}/${category.blocks.length}`
             : category.blocks.length}

@@ -37,7 +37,6 @@ export default function SharePipelineModal({ workspace, onClose }: SharePipeline
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadSuccess, setLoadSuccess] = useState(false);
 
-  // Close on Escape key
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -74,7 +73,6 @@ export default function SharePipelineModal({ workspace, onClose }: SharePipeline
     setLoadError(null);
     setLoadSuccess(false);
 
-    // Confirm before overwriting existing workspace
     const existingBlocks = workspace.getAllBlocks(false);
     if (existingBlocks.length > 0) {
       if (!window.confirm("Loading a pipeline will replace your current workspace. Continue?"))
@@ -83,8 +81,6 @@ export default function SharePipelineModal({ workspace, onClose }: SharePipeline
 
     try {
       const state = decompressFromCode(inputCode.trim());
-
-      // Save snapshot before mutating so we can restore on failure
       const snapshot = Blockly.serialization.workspaces.save(workspace);
       workspace.clear();
 
@@ -94,12 +90,10 @@ export default function SharePipelineModal({ workspace, onClose }: SharePipeline
           workspace,
         );
       } catch (loadErr) {
-        // Restore original workspace on failure
         Blockly.serialization.workspaces.load(snapshot, workspace);
         throw loadErr;
       }
 
-      // Clear filename from any read image blocks
       workspace.getBlocksByType(READ_IMAGE_BLOCK_TYPE, false).forEach((block) => {
         block.getField(FILENAME_LABEL_FIELD)?.setValue("No image");
       });
@@ -121,19 +115,21 @@ export default function SharePipelineModal({ workspace, onClose }: SharePipeline
         role="dialog"
         aria-modal="true"
         aria-label="Share Pipeline"
-        className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2">
             <Share2 size={18} className="text-indigo-500" />
-            <h2 className="text-sm font-semibold text-gray-800">Share Pipeline</h2>
+            <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+              Share Pipeline
+            </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
             title="Close"
             aria-label="Close"
           >
@@ -145,10 +141,10 @@ export default function SharePipelineModal({ workspace, onClose }: SharePipeline
           {/* Generate section */}
           <div className="space-y-3">
             <div>
-              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+              <p className="text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
                 Generate Code
               </p>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                 Share your current pipeline with others using a code.
               </p>
             </div>
@@ -166,7 +162,7 @@ export default function SharePipelineModal({ workspace, onClose }: SharePipeline
             {generatedCode !== null && (
               <div className="space-y-2">
                 {generatedCode === "" ? (
-                  <p className="text-xs text-gray-500 italic">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 italic">
                     No blocks in workspace. Add some blocks first.
                   </p>
                 ) : (
@@ -177,12 +173,12 @@ export default function SharePipelineModal({ workspace, onClose }: SharePipeline
                         value={generatedCode}
                         aria-label="Generated pipeline code"
                         placeholder="Generated code will appear here"
-                        className="flex-1 text-xs font-mono bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-700 truncate"
+                        className="flex-1 text-xs font-mono bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-200 truncate"
                       />
                       <button
                         type="button"
                         onClick={handleCopy}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border border-gray-200 hover:bg-gray-50 transition-colors text-gray-600"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-300"
                         title="Copy code to clipboard"
                         aria-label="Copy code to clipboard"
                       >
@@ -195,7 +191,7 @@ export default function SharePipelineModal({ workspace, onClose }: SharePipeline
                       </button>
                     </div>
                     {copyError && <p className="text-xs text-red-500">{copyError}</p>}
-                    <p className="text-[11px] text-gray-400">
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500">
                       Anyone with this code can load your pipeline.
                     </p>
                   </>
@@ -204,15 +200,15 @@ export default function SharePipelineModal({ workspace, onClose }: SharePipeline
             )}
           </div>
 
-          <div className="border-t border-gray-100" />
+          <div className="border-t border-gray-100 dark:border-gray-700" />
 
           {/* Load section */}
           <div className="space-y-3">
             <div>
-              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+              <p className="text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
                 Load from Code
               </p>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                 Paste a pipeline code to load it into your workspace.
               </p>
             </div>
@@ -227,11 +223,15 @@ export default function SharePipelineModal({ workspace, onClose }: SharePipeline
               aria-label="Paste pipeline code here"
               placeholder="Paste pipeline code here..."
               rows={3}
-              className="w-full text-xs font-mono bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-transparent"
+              className="w-full text-xs font-mono bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-200 dark:placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-transparent"
             />
 
             {loadError && <p className="text-xs text-red-500">{loadError}</p>}
-            {loadSuccess && <p className="text-xs text-green-600">Pipeline loaded successfully!</p>}
+            {loadSuccess && (
+              <p className="text-xs text-green-600 dark:text-green-400">
+                Pipeline loaded successfully!
+              </p>
+            )}
 
             <button
               type="button"
