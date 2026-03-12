@@ -69,14 +69,21 @@ export const operatorDocs: Record<string, OperatorDoc> = {
   },
   geometric_affineimage: {
     name: "Affine Transform",
-    description: "Applies a 2x3 affine transformation matrix to warp the image.",
+    description: "Applies a 2x3 affine transformation matrix to translate the image.",
     parameters: [
       {
-        name: "Points",
-        description: "Three points in the original image mapped to three points in the output.",
+        name: "Translate X (tx)",
+        description: "Horizontal translation in pixels. Positive values shift the image right.",
+      },
+      {
+        name: "Translate Y (ty)",
+        description: "Vertical translation in pixels. Positive values shift the image down.",
       },
     ],
-    useCases: ["Perspective correction, scaling, and skewing."],
+    useCases: [
+      "Shifting an image to correct alignment or framing.",
+      "Demonstrating translation as a basic affine transformation.",
+    ],
   },
   geometric_scaleimage: {
     name: "Scale Image",

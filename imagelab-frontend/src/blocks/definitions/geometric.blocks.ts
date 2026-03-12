@@ -96,11 +96,15 @@ export const geometricBlocks = [
   },
   {
     type: "geometric_affineimage",
-    message0: "Apply affine transformation",
+    message0: "Apply affine transformation | translate x %1 y %2",
+    args0: [
+      { type: "field_number", name: "tx", value: 50 },
+      { type: "field_number", name: "ty", value: 100 },
+    ],
     previousStatement: null,
     nextStatement: null,
     style: "geometric_style",
     tooltip:
-      "Applies a fixed affine transformation (translate by 50, 100) - Transforms the image using a predefined affine transformation that translates the image by 50 pixels in the X direction and 100 pixels in the Y direction. This block is useful for demonstrating basic affine transformations, which can include translation, rotation, scaling, and shearing.",
+      "Applies an affine transformation to the image - Translates the image by the specified number of pixels along the X and Y axes. Positive tx shifts the image right; positive ty shifts it down. Pixels shifted outside the image boundary are filled with black.",
   },
 ];
