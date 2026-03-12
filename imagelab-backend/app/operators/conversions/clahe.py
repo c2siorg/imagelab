@@ -4,7 +4,7 @@ import numpy as np
 from app.operators.base import BaseOperator
 
 
-class claheImage(BaseOperator):
+class CLAHE(BaseOperator):
     """
     Applies CLAHE (Contrast Limited Adaptive Histogram Equalization) to an image.
 
@@ -41,17 +41,8 @@ class claheImage(BaseOperator):
         clahe = self._clahe_cache[1]
 
         if len(image.shape) == 3 and image.shape[2] == 3:
-            # Step 1: BGR -> LAB
-            lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
-            lightness, a, b = cv2.split(lab)
-
-            # Step 2: Apply to 'L' channel
-            l_enhanced = clahe.apply(lightness)
-
-            # Step 3: Merge and BGR back
-            enhanced_lab = cv2.merge((l_enhanced, a, b))
-            return cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
-        elif image.ndim == 3 and image.shape[2] == 4:
+            return self._apply_to_bgr(clahe, image)
+        elif len(image.shape) == 3 and image.shape[2] == 4:
             # BGRA — apply CLAHE to luminance, preserve alpha
             bgr = image[:, :, :3]
             alpha = image[:, :, 3]
@@ -62,3 +53,16 @@ class claheImage(BaseOperator):
             # Grayscale (H,W) or (H,W,1)
             gray = image[:, :, 0] if image.ndim == 3 else image
             return clahe.apply(gray)
+
+    def _apply_to_bgr(self, clahe: cv2.CLAHE, image: np.ndarray) -> np.ndarray:
+        # Step 1: BGR -> LAB
+        lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+        lightness, a, b = cv2.split(lab)
+
+        # Step 2: Apply to 'L' channel
+        l_enhanced = clahe.apply(lightness)
+
+        # Step 3: Merge and BGR back
+        enhanced_lab = cv2.merge((l_enhanced, a, b))
+        return cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
+
