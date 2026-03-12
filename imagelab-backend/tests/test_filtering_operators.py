@@ -4,6 +4,7 @@ import pytest
 
 from app.operators.filtering.bilateral_filter import BilateralFilter
 from app.operators.filtering.box_filter import BoxFilter
+from app.operators.filtering.canny_edge import CannyEdge
 from app.operators.filtering.dilation import Dilation
 from app.operators.filtering.erosion import Erosion
 from app.operators.filtering.morphological import Morphological
@@ -242,3 +243,35 @@ class TestPyramidDown:
     def test_output_is_uint8(self, color_image):
         result = PyramidDown({}).compute(color_image)
         assert result.dtype == np.uint8
+
+
+# CannyEdge
+
+
+class TestCannyEdge:
+    def test_default_params_output_shape(self, color_image):
+        result = CannyEdge({}).compute(color_image)
+        assert result.shape[:2] == color_image.shape[:2]
+
+    def test_custom_thresholds(self, color_image):
+        result = CannyEdge({"threshold1": 50, "threshold2": 150}).compute(color_image)
+        assert result.shape[:2] == color_image.shape[:2]
+
+    def test_grayscale_input(self, grayscale_image):
+        result = CannyEdge({}).compute(grayscale_image)
+        assert result.shape == grayscale_image.shape
+
+    def test_output_is_uint8(self, color_image):
+        result = CannyEdge({}).compute(color_image)
+        assert result.dtype == np.uint8
+
+    def test_output_is_binary(self, color_image):
+        result = CannyEdge({}).compute(color_image)
+        assert np.all((result == 0) | (result == 255))
+
+    def test_rgba_input(self, rgba_image):
+        """RGBA input should not crash."""
+        result = CannyEdge({}).compute(rgba_image)
+        assert result.shape[:2] == rgba_image.shape[:2]
+        assert result.dtype == np.uint8
+        assert np.all((result == 0) | (result == 255))

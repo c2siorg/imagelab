@@ -4,11 +4,13 @@ import pytest
 from app.operators.conversions.bgr_to_hsv import BgrToHsv
 from app.operators.conversions.bgr_to_lab import BgrToLab
 from app.operators.conversions.bgr_to_ycrcb import BgrToYcrcb
+from app.operators.conversions.brightness_contrast import BrightnessContrast
 from app.operators.conversions.channel_split import ChannelSplit
 from app.operators.conversions.color_maps import ColorMaps
 from app.operators.conversions.color_to_binary import ColorToBinary
 from app.operators.conversions.gray_image import GrayImage
 from app.operators.conversions.gray_to_binary import GrayToBinary
+from app.operators.conversions.histogram_equalization import HistogramEqualization
 from app.operators.conversions.hsv_to_bgr import HsvToBgr
 from app.operators.conversions.lab_to_bgr import LabToBgr
 from app.operators.conversions.ycrcb_to_bgr import YcrcbToBgr
@@ -352,3 +354,69 @@ class TestColorToBinaryFallback:
             {"thresholdType": "threshold_binary", "thresholdValue": 100, "maxValue": 255}
         ).compute(img)
         np.testing.assert_array_equal(result_unknown, result_default)
+
+
+# BrightnessContrast
+
+
+class TestBrightnessContrast:
+    def test_default_params_no_change(self, color_image):
+        result = BrightnessContrast({}).compute(color_image)
+        np.testing.assert_array_equal(result, color_image)
+
+    def test_brightness_increase(self, color_image):
+        result = BrightnessContrast({"brightness": 50}).compute(color_image)
+        assert result.shape == color_image.shape
+        assert result.dtype == np.uint8
+        # Pixels should be brighter (higher values)
+        assert np.mean(result) > np.mean(color_image)
+
+    def test_contrast_increase(self, color_image):
+        result = BrightnessContrast({"contrast": 1.5}).compute(color_image)
+        assert result.shape == color_image.shape
+        assert result.dtype == np.uint8
+
+    def test_grayscale_input(self, grayscale_image):
+        result = BrightnessContrast({"brightness": 30, "contrast": 1.2}).compute(grayscale_image)
+        assert result.shape == grayscale_image.shape
+        assert result.dtype == np.uint8
+
+    def test_output_clipped_to_uint8_range(self, color_image):
+        result = BrightnessContrast({"brightness": 500, "contrast": 5.0}).compute(color_image)
+        assert np.all(result >= 0)
+        assert np.all(result <= 255)
+
+
+# HistogramEqualization
+
+
+class TestHistogramEqualization:
+    def test_grayscale_input(self, grayscale_image):
+        result = HistogramEqualization({}).compute(grayscale_image)
+        assert result.shape == grayscale_image.shape
+        assert result.dtype == np.uint8
+
+    def test_color_image_input(self, color_image):
+        result = HistogramEqualization({}).compute(color_image)
+        assert result.shape == color_image.shape
+        assert result.dtype == np.uint8
+
+    def test_rgba_image_input(self, rgba_image):
+        result = HistogramEqualization({}).compute(rgba_image)
+        assert result.shape == rgba_image.shape
+        assert result.shape[2] == 4
+        assert result.dtype == np.uint8
+
+    def test_improves_contrast(self):
+        # Create a low-contrast image with narrow range
+        low_contrast = np.concatenate(
+            [np.full((50, 100), 120, dtype=np.uint8), np.full((50, 100), 135, dtype=np.uint8)]
+        )
+        result = HistogramEqualization({}).compute(low_contrast)
+        # Equalized image should have wider range of values
+        assert np.max(result) > np.max(low_contrast)
+        assert np.std(result) > np.std(low_contrast)
+
+    def test_output_is_uint8(self, color_image):
+        result = HistogramEqualization({}).compute(color_image)
+        assert result.dtype == np.uint8
