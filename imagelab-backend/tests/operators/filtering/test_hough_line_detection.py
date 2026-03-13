@@ -29,11 +29,11 @@ class TestHoughLineDetection:
         result = operator.compute(image_with_line)
         assert result.dtype == np.uint8
 
-    def test_bgra_input_returns_bgr(self):
+    def test_bgra_input_preserves_alpha(self):
         img_bgra = np.zeros((100, 100, 4), dtype=np.uint8)
         operator = HoughLineDetection({})
         result = operator.compute(img_bgra)
-        assert result.shape == (100, 100, 3)
+        assert result.shape == (100, 100, 4)
 
     def test_no_lines_returns_original_shape(self):
         # Empty black image

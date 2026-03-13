@@ -42,14 +42,14 @@ class ContourDetection(BaseOperator):
             if np.issubdtype(gray.dtype, np.floating):
                 gray = (gray * 255.0 if gray.max() <= 1.0 else gray).clip(0, 255).astype(np.uint8)
             elif gray.dtype == np.uint16:
-                gray = (gray >> 8).astype(np.uint8)
+                gray = (gray >> 8).astype(np.uint8)  # type: ignore
             else:
                 gray = gray.astype(np.uint8)
 
         # Do not bake in opinionated thresholding/blur here.
         # findContours expects a binary mask or single-channel image directly.
         # Standard OpenCV behavior: non-zero pixels are treated as 1 (foreground).
-        contours = cv2.findContours(gray, mode, method)[-2]
+        contours = cv2.findContours(gray, mode, method)[-2]  # type: ignore
 
         # Build result canvas based on input channels
         if len(image.shape) == 2 or (len(image.shape) == 3 and image.shape[2] == 1):
@@ -68,6 +68,6 @@ class ContourDetection(BaseOperator):
         if not contours:
             return result
 
-        cv2.drawContours(result, contours, -1, draw_color, thickness)
+        cv2.drawContours(result, contours, -1, draw_color, thickness)  # type: ignore
         return result
 

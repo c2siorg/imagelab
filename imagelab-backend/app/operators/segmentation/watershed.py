@@ -33,9 +33,9 @@ class Watershed(BaseOperator):
         _, sure_fg = cv2.threshold(dist_transform, foreground_threshold * dist_max, 255, 0)
         sure_fg = np.uint8(sure_fg)
 
-        unknown = cv2.subtract(sure_bg, sure_fg)
+        unknown = cv2.subtract(sure_bg, sure_fg)  # type: ignore
 
-        _, markers = cv2.connectedComponents(sure_fg)
+        _, markers = cv2.connectedComponents(sure_fg)  # type: ignore
         markers = markers + 1
         markers[unknown == 255] = 0
 

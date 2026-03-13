@@ -47,7 +47,7 @@ class GaborFilter(BaseOperator):
 
         gray = cv2.cvtColor(working, cv2.COLOR_BGR2GRAY) if len(working.shape) == 3 else working
         filtered = cv2.filter2D(gray.astype(np.float32), cv2.CV_32F, kernel)
-        result_gray = cv2.normalize(np.abs(filtered), None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+        result_gray = cv2.normalize(np.abs(filtered), None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)  # type: ignore
         result_small = cv2.cvtColor(result_gray, cv2.COLOR_GRAY2BGR)
 
         if scale < 1.0:

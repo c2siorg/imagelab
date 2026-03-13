@@ -7,6 +7,16 @@ from app.operators.base import BaseOperator
 class HoughLineDetection(BaseOperator):
     """
     Detects lines in an image using the Probabilistic Hough Line Transform.
+    
+    Parameters:
+      - ``canny_threshold1``, ``canny_threshold2`` (int): Canny edge detector thresholds.
+      - ``rho`` (float): Distance resolution of the accumulator in pixels.
+      - ``theta_degrees`` (float): Angular resolution of the accumulator in degrees.
+      - ``threshold`` (int): Accumulator threshold parameter.
+      - ``min_line_length`` (int): Minimum line length in pixels.
+      - ``max_line_gap`` (int): Maximum allowed gap between points on the same line to link them.
+      - ``line_color`` (list[int]): BGR color for drawn lines (default [0, 255, 0]).
+      - ``thickness`` (int): Thickness of the lines in pixels.
     """
 
     def compute(self, image: np.ndarray) -> np.ndarray:
@@ -17,7 +27,7 @@ class HoughLineDetection(BaseOperator):
             image: A uint8 NumPy array of shape (H, W), (H, W, 3) or (H, W, 4).
 
         Returns:
-            The image with detected lines drawn. If BGRA, returns BGR.
+            The image with detected lines drawn. Preserves alpha channel if present.
         """
         if image is None:
             raise ValueError("Input image cannot be None")
@@ -37,21 +47,23 @@ class HoughLineDetection(BaseOperator):
         if thickness <= 0:
             raise ValueError(f"thickness must be > 0, got {thickness}")
 
-        # Handle color and alpha
-        if len(image.shape) == 3:
-            if image.shape[2] == 4:
-                # Strip alpha
-                processing_img = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
-            else:
-                processing_img = image.copy()
-        else:
+        # Handle images
+        if len(image.shape) == 3 and image.shape[2] == 4:
+            # BGRA
+            bgr = image[:, :, :3].copy()
+            alpha = image[:, :, 3].copy()
+            processing_img = bgr
+        elif len(image.shape) == 3:
+            # BGR
             processing_img = image.copy()
+            alpha = None
+        else:
+            # Grayscale
+            processing_img = image.copy()
+            alpha = None
 
         # Convert to grayscale for Canny
-        if len(processing_img.shape) == 3:
-            gray = cv2.cvtColor(processing_img, cv2.COLOR_BGR2GRAY)
-        else:
-            gray = processing_img
+        gray = cv2.cvtColor(processing_img, cv2.COLOR_BGR2GRAY) if len(processing_img.shape) == 3 else processing_img
 
         # Canny edge detection
         edges = cv2.Canny(gray, canny_threshold1, canny_threshold2)
@@ -69,4 +81,7 @@ class HoughLineDetection(BaseOperator):
                 x1, y1, x2, y2 = line[0]
                 cv2.line(result, (x1, y1), (x2, y2), tuple(line_color), thickness)
 
+        if alpha is not None:
+            return np.dstack([result, alpha])
+        
         return result

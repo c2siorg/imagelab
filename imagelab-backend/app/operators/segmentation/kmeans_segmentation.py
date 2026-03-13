@@ -24,10 +24,10 @@ class KMeansSegmentation(BaseOperator):
         pixel_values = np.float32(pixel_values)
 
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, max_iter, epsilon)
-        _, labels, centers = cv2.kmeans(pixel_values, k, None, criteria, attempts, cv2.KMEANS_RANDOM_CENTERS)
+        _, labels, centers = cv2.kmeans(pixel_values, k, None, criteria, attempts, cv2.KMEANS_RANDOM_CENTERS)  # type: ignore
 
         centers = np.uint8(centers)
-        segmented = centers[labels.flatten()]
+        segmented = centers[labels.flatten()]  # type: ignore
         result = segmented.reshape(image.shape)
 
         return result
