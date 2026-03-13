@@ -11,4 +11,4 @@ class Laplacian(BaseOperator):
             ddepth = cv2.CV_64F
 
         laplacian = cv2.Laplacian(image, ddepth)
-        return np.uint8(np.absolute(laplacian))
+        return np.absolute(laplacian).astype(np.uint8)
