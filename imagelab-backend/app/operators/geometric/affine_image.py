@@ -32,9 +32,9 @@ class AffineImage(BaseOperator):
         output_height = int(self.params.get("output_height", rows))
 
         # Affine matrix M = [ [s_x, sh_x, t_x], [sh_y, s_y, t_y] ]
-        M = np.float32([
+        M = np.array([
             [scale_x, shear_x, translate_x],
             [shear_y, scale_y, translate_y]
-        ])
+        ], dtype=np.float32)
 
         return cv2.warpAffine(image, M, (output_width, output_height))

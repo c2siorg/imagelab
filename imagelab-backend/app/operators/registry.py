@@ -7,14 +7,12 @@ from app.operators.blurring.median_blur import MedianBlur
 from app.operators.conversions.bgr_to_hsv import BgrToHsv
 from app.operators.conversions.bgr_to_lab import BgrToLab
 from app.operators.conversions.bgr_to_ycrcb import BgrToYcrcb
-from app.operators.conversions.brightness_contrast import BrightnessContrast
 from app.operators.conversions.channel_split import ChannelSplit
 from app.operators.conversions.clahe import CLAHE
 from app.operators.conversions.color_maps import ColorMaps
 from app.operators.conversions.color_to_binary import ColorToBinary
 from app.operators.conversions.gray_image import GrayImage
 from app.operators.conversions.gray_to_binary import GrayToBinary
-from app.operators.conversions.histogram_equalization import HistogramEqualization
 from app.operators.conversions.hsv_to_bgr import HsvToBgr
 from app.operators.conversions.lab_to_bgr import LabToBgr
 from app.operators.conversions.ycrcb_to_bgr import YcrcbToBgr
@@ -26,11 +24,8 @@ from app.operators.drawing.draw_rectangle import DrawRectangle
 from app.operators.drawing.draw_text import DrawText
 from app.operators.filtering.bilateral_filter import BilateralFilter
 from app.operators.filtering.box_filter import BoxFilter
-from app.operators.filtering.contour_detection import ContourDetection
 from app.operators.filtering.dilation import Dilation
 from app.operators.filtering.erosion import Erosion
-from app.operators.filtering.gabor_filter import GaborFilter
-from app.operators.filtering.hough_line_detection import HoughLineDetection
 from app.operators.filtering.morphological import Morphological
 from app.operators.filtering.pyramid_down import PyramidDown
 from app.operators.filtering.pyramid_up import PyramidUp
@@ -41,9 +36,7 @@ from app.operators.geometric.reflect_image import ReflectImage
 from app.operators.geometric.resize_image import ResizeImage
 from app.operators.geometric.rotate_image import RotateImage
 from app.operators.geometric.scale_image import ScaleImage
-from app.operators.segmentation.kmeans_segmentation import KMeansSegmentation
 from app.operators.segmentation.mean_shift_segmentation import MeanShiftSegmentation
-from app.operators.segmentation.watershed import Watershed
 from app.operators.sobel_derivatives.scharr_derivative import ScharrDerivative
 from app.operators.sobel_derivatives.sobel_derivative import SobelDerivative
 from app.operators.thresholding.adaptive_threshold import AdaptiveThreshold
@@ -65,8 +58,6 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "geometric_affineimage": AffineImage,
     "geometric_cropimage": CropImage,
     # Conversions
-    "imageconvertions_brightnesscontrast": BrightnessContrast,
-    "imageconvertions_histogramequalization": HistogramEqualization,
     "imageconvertions_clahe": CLAHE,
     "imageconvertions_grayimage": GrayImage,
     "imageconvertions_channelsplit": ChannelSplit,
@@ -99,9 +90,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "filtering_erosion": Erosion,
     "filtering_dilation": Dilation,
     "filtering_morphological": Morphological,
-    "filtering_gaborfilter": GaborFilter,
-    "filtering_houghlinedetection": HoughLineDetection,
-    "filtering_contourdetection": ContourDetection,
+    "filtering_morphological": Morphological,
     # Thresholding
     "thresholding_applythreshold": ApplyThreshold,
     "thresholding_adaptivethreshold": AdaptiveThreshold,
@@ -114,8 +103,6 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "transformation_distance": DistanceTransform,
     "transformation_laplacian": Laplacian,
     # Segmentation
-    "segmentation_watershed": Watershed,
-    "segmentation_kmeans": KMeansSegmentation,
     "segmentation_meanshift": MeanShiftSegmentation,
 }
 
