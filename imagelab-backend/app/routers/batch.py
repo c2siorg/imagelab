@@ -28,7 +28,7 @@ from sqlalchemy import Engine
 from sqlmodel import Session, select
 
 from app.database import get_db, get_engine
-from app.models.batch import BatchJob, BatchItemResult, JobStatus
+from app.models.batch import BatchItemResult, BatchJob, JobStatus
 from app.models.pipeline import PipelineStep
 from app.services.batch_service import build_zip, run_batch_job
 

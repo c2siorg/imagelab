@@ -23,7 +23,7 @@ import io
 import uuid
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import Engine
@@ -97,7 +97,7 @@ async def run_batch_job(
         if job is None:
             return  # job was deleted before the task started
         job.status = JobStatus.running
-        job.updated_at = datetime.now(timezone.utc)
+        job.updated_at = datetime.now(UTC)
         db.add(job)
         db.commit()
 
@@ -150,7 +150,7 @@ async def run_batch_job(
             job.status = JobStatus.failed if completed_count == 0 else JobStatus.completed
             job.completed_count = completed_count
             job.failed_count = failed_count
-            job.updated_at = datetime.now(timezone.utc)
+            job.updated_at = datetime.now(UTC)
             db.add(job)
         db.commit()
 

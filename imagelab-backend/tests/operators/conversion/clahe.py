@@ -1,11 +1,12 @@
 import numpy as np
 import pytest
 
+
 from app.operators.conversions.clahe import CLAHE
 
 
 def make_op(params=None):
-    op = claheImage("clahe_operator")
+    op = CLAHE("clahe_operator")
     op.params = params or {}
     return op
 

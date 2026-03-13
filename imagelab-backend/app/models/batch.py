@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -40,8 +40,8 @@ class BatchJob(SQLModel, table=True):
     # Pipeline definition stored as JSON so it travels with the job record.
     pipeline_steps: list[Any] = Field(default_factory=list, sa_column=Column(JSON))
     error: str | None = Field(default=None)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class BatchItemResult(SQLModel, table=True):

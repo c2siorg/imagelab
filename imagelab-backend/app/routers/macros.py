@@ -18,7 +18,7 @@ synchronous DB I/O, consistent with the existing pipeline router pattern.
 
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -162,7 +162,7 @@ def update_macro(macro_id: uuid.UUID, body: MacroUpdate, db: Session = Depends(g
     if body.steps is not None:
         macro.steps = [s.model_dump() for s in body.steps]
 
-    macro.updated_at = datetime.now(timezone.utc)
+    macro.updated_at = datetime.now(UTC)
     db.add(macro)
     db.commit()
     db.refresh(macro)
