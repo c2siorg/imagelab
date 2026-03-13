@@ -27,6 +27,7 @@ def test_single_operator(make_request):
     res = execute_pipeline(make_request(steps))
     assert res.success is True
     # grayscale output should be 2-D or single-channel 3-D
+    assert res.image is not None
     output = decode_base64_image(res.image)
     assert output.ndim == 2 or (output.ndim == 3 and output.shape[2] == 1), "expected grayscale output"
 
@@ -46,6 +47,7 @@ def test_unknown_operator_gives_clear_error(make_request):
     res = execute_pipeline(make_request([PipelineStep(type="not_a_real_op")]))
     assert res.success is False
     assert res.step == 0
+    assert res.error is not None
     assert "not_a_real_op" in res.error
     assert "Unknown operator" in res.error
 
@@ -58,6 +60,7 @@ def test_error_includes_correct_step_index(make_request):
     res = execute_pipeline(make_request(steps))
     assert res.success is False
     assert res.step == 1  # first step succeeds, second should fail
+    assert res.error is not None
     assert "bad_operator_step_one" in res.error
 
 
@@ -66,6 +69,7 @@ def test_bad_image_data_fails_at_decode():
     res = execute_pipeline(req)
     assert res.success is False
     assert res.step == 0  # 0 = decode phase, before any pipeline step runs
+    assert res.error is not None
     assert "decode" in res.error.lower() or "base64" in res.error.lower()
 
 

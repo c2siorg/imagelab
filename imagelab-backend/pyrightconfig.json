@@ -6,5 +6,10 @@
     "app",
     "tests"
   ],
-  "typeCheckingMode": "basic"
+  "extraPaths": [
+    "./"
+  ],
+  "typeCheckingMode": "basic",
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false
 }

@@ -15,10 +15,14 @@ class AppException(Exception):
         super().__init__(message)
 
 
-async def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:
+async def app_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    # We expect AppException here, but broadened signature for pyright/FastAPI matching.
+    # We can cast or just access attributes if we are sure it's AppException.
+    message = getattr(exc, "message", "Internal Error")
+    status_code = getattr(exc, "status_code", 400)
     return JSONResponse(
-        status_code=exc.status_code,
-        content={"success": False, "message": exc.message, "data": None},
+        status_code=status_code,
+        content={"success": False, "message": message, "data": None},
     )
 
 

@@ -7,12 +7,14 @@ from app.operators.blurring.median_blur import MedianBlur
 from app.operators.conversions.bgr_to_hsv import BgrToHsv
 from app.operators.conversions.bgr_to_lab import BgrToLab
 from app.operators.conversions.bgr_to_ycrcb import BgrToYcrcb
+from app.operators.conversions.brightness_contrast import BrightnessContrast
 from app.operators.conversions.channel_split import ChannelSplit
 from app.operators.conversions.clahe import CLAHE
 from app.operators.conversions.color_maps import ColorMaps
 from app.operators.conversions.color_to_binary import ColorToBinary
 from app.operators.conversions.gray_image import GrayImage
 from app.operators.conversions.gray_to_binary import GrayToBinary
+from app.operators.conversions.histogram_equalization import HistogramEqualization
 from app.operators.conversions.hsv_to_bgr import HsvToBgr
 from app.operators.conversions.lab_to_bgr import LabToBgr
 from app.operators.conversions.ycrcb_to_bgr import YcrcbToBgr
@@ -28,6 +30,7 @@ from app.operators.filtering.contour_detection import ContourDetection
 from app.operators.filtering.dilation import Dilation
 from app.operators.filtering.erosion import Erosion
 from app.operators.filtering.gabor_filter import GaborFilter
+from app.operators.filtering.hough_line_detection import HoughLineDetection
 from app.operators.filtering.morphological import Morphological
 from app.operators.filtering.pyramid_down import PyramidDown
 from app.operators.filtering.pyramid_up import PyramidUp
@@ -47,9 +50,6 @@ from app.operators.thresholding.adaptive_threshold import AdaptiveThreshold
 from app.operators.thresholding.apply_borders import ApplyBorders
 from app.operators.thresholding.apply_threshold import ApplyThreshold
 from app.operators.thresholding.otsu_threshold import OtsuThreshold
-from app.operators.conversions.brightness_contrast import BrightnessContrast
-from app.operators.conversions.histogram_equalization import HistogramEqualization
-from app.operators.filtering.hough_line_detection import HoughLineDetection
 from app.operators.transformation.distance_transform import DistanceTransform
 from app.operators.transformation.laplacian import Laplacian
 

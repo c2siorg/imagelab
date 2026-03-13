@@ -23,7 +23,7 @@ def _require_int(value: object, name: str) -> None:
         raise TypeError(f"'{name}' must be an integer, got {type(value).__name__}: {value!r}")
 
 
-def _validate_odd_kernel(value: int, name: str, min_value: int, examples: str) -> None:
+def _validate_odd_kernel(value: int, name: str, min_value: int, examples: str) -> int:
     """Shared logic for odd-kernel validators.
 
     Raises ValueError when value is below min_value or even. The lower-neighbour
