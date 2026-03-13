@@ -23,11 +23,11 @@ import io
 import uuid
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import Engine
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.models.batch import BatchItemResult, BatchJob, ItemStatus, JobStatus
 from app.models.pipeline import PipelineRequest, PipelineStep
@@ -97,7 +97,7 @@ async def run_batch_job(
         if job is None:
             return  # job was deleted before the task started
         job.status = JobStatus.running
-        job.updated_at = datetime.now(timezone.utc)
+        job.updated_at = datetime.now(UTC)
         db.add(job)
         db.commit()
 
@@ -130,7 +130,7 @@ async def run_batch_job(
                 item.status = ItemStatus.failed
                 item.error = str(raw)
                 failed_count += 1
-            else:
+            elif isinstance(raw, tuple):
                 success, result_b64, error, duration_ms = raw
                 if success:
                     item.status = ItemStatus.success
@@ -142,6 +142,11 @@ async def run_batch_job(
                     item.error = error
                     item.duration_ms = duration_ms
                     failed_count += 1
+            else:
+                # Should not happen given asyncio.gather behavior with _run_single
+                item.status = ItemStatus.failed
+                item.error = "Unknown execution error"
+                failed_count += 1
             db.add(item)
 
         # --- Phase 5: mark job completed / failed ---
@@ -150,7 +155,7 @@ async def run_batch_job(
             job.status = JobStatus.failed if completed_count == 0 else JobStatus.completed
             job.completed_count = completed_count
             job.failed_count = failed_count
-            job.updated_at = datetime.now(timezone.utc)
+            job.updated_at = datetime.now(UTC)
             db.add(job)
         db.commit()
 
@@ -173,7 +178,7 @@ def build_zip(job_id: uuid.UUID, image_format: str, db: Session) -> bytes:
             BatchItemResult.job_id == job_id,
             BatchItemResult.status == ItemStatus.success,
         )
-        .order_by(BatchItemResult.image_index)
+        .order_by(col(BatchItemResult.image_index))
     ).all()
 
     buf = io.BytesIO()

@@ -25,10 +25,10 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import Engine
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.database import get_db, get_engine
-from app.models.batch import BatchJob, BatchItemResult, JobStatus
+from app.models.batch import BatchItemResult, BatchJob, JobStatus
 from app.models.pipeline import PipelineStep
 from app.services.batch_service import build_zip, run_batch_job
 
@@ -47,7 +47,9 @@ _MAX_BATCH_SIZE = 100
 class BatchExecuteRequest(BaseModel):
     images: list[str] = Field(..., description="List of Base64-encoded input images.")
     image_format: str = Field("png", description="Output format: 'png', 'jpg', etc.")
-    pipeline: list[PipelineStep] = Field(..., description="Ordered list of pipeline steps (same format as /pipeline/execute).")
+    pipeline: list[PipelineStep] = Field(
+        ..., description="Ordered list of pipeline steps (same format as /pipeline/execute)."
+    )
 
     @field_validator("images")
     @classmethod
@@ -60,25 +62,25 @@ class BatchExecuteRequest(BaseModel):
 
 
 class BatchExecuteResponse(BaseModel):
-    job_id: uuid.UUID
-    total_images: int
-    message: str
+    job_id: uuid.UUID = Field(..., description="Unique ID for tracking the batch job.")
+    total_images: int = Field(..., description="Number of images submitted.")
+    message: str = Field(..., description="Status message and instructions.")
 
 
 class ItemStatusResponse(BaseModel):
-    index: int
-    status: str
-    error: str | None = None
-    duration_ms: float | None = None
+    index: int = Field(..., description="0-based index of the image in the batch.")
+    status: str = Field(..., description="Processing status: 'pending', 'success', or 'failed'.")
+    error: str | None = Field(None, description="Error message if status is 'failed'.")
+    duration_ms: float | None = Field(None, description="Execution time in milliseconds.")
 
 
 class BatchStatusResponse(BaseModel):
-    job_id: uuid.UUID
-    status: str
-    total_images: int
-    completed_count: int
-    failed_count: int
-    items: list[ItemStatusResponse]
+    job_id: uuid.UUID = Field(..., description="Unique job ID.")
+    status: str = Field(..., description="Overall job status: 'pending', 'running', 'completed', or 'failed'.")
+    total_images: int = Field(..., description="Total images in the batch.")
+    completed_count: int = Field(..., description="Number of images processed successfully.")
+    failed_count: int = Field(..., description="Number of images that failed.")
+    items: list[ItemStatusResponse] = Field(..., description="Detail list for each image.")
 
 
 # ---------------------------------------------------------------------------
@@ -90,8 +92,8 @@ class BatchStatusResponse(BaseModel):
 async def execute_batch(
     request: BatchExecuteRequest,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-    engine: Engine = Depends(get_engine),
+    db: Session = Depends(get_db),  # noqa: B008
+    engine: Engine = Depends(get_engine),  # noqa: B008
 ) -> BatchExecuteResponse:
     """Submit a batch job and return immediately with a ``job_id``.
 
@@ -136,7 +138,7 @@ async def execute_batch(
 @router.get("/batch/{job_id}/status", response_model=BatchStatusResponse)
 def get_batch_status(
     job_id: uuid.UUID,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db),  # noqa: B008
 ) -> BatchStatusResponse:
     """Return the current status and per-image progress for a batch job.
 
@@ -150,7 +152,7 @@ def get_batch_status(
     items = db.exec(
         select(BatchItemResult)
         .where(BatchItemResult.job_id == job_id)
-        .order_by(BatchItemResult.image_index)
+        .order_by(col(BatchItemResult.image_index))
     ).all()
 
     return BatchStatusResponse(
@@ -174,7 +176,7 @@ def get_batch_status(
 @router.get("/batch/{job_id}/download")
 def download_batch_results(
     job_id: uuid.UUID,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db),  # noqa: B008
 ) -> Response:
     """Stream a ZIP archive of all successfully processed images.
 

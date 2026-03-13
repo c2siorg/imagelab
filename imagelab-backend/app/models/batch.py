@@ -1,20 +1,20 @@
 import uuid
-from datetime import datetime, timezone
-from enum import Enum
+from datetime import UTC, datetime
+from enum import StrEnum
 from typing import Any
 
 from sqlalchemy import JSON, Column
 from sqlmodel import Field, SQLModel
 
 
-class JobStatus(str, Enum):
+class JobStatus(StrEnum):
     pending = "pending"
     running = "running"
     completed = "completed"
     failed = "failed"
 
 
-class ItemStatus(str, Enum):
+class ItemStatus(StrEnum):
     pending = "pending"
     processing = "processing"
     success = "success"
@@ -29,7 +29,7 @@ class BatchJob(SQLModel, table=True):
     rows as each image finishes so the client can poll progress in real time.
     """
 
-    __tablename__ = "batchjob"
+    __tablename__ = "batchjob"  # type: ignore
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     status: JobStatus = Field(default=JobStatus.pending)
@@ -40,8 +40,8 @@ class BatchJob(SQLModel, table=True):
     # Pipeline definition stored as JSON so it travels with the job record.
     pipeline_steps: list[Any] = Field(default_factory=list, sa_column=Column(JSON))
     error: str | None = Field(default=None)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class BatchItemResult(SQLModel, table=True):
@@ -55,7 +55,7 @@ class BatchItemResult(SQLModel, table=True):
     this column with an object-storage key.
     """
 
-    __tablename__ = "batchitemresult"
+    __tablename__ = "batchitemresult"  # type: ignore
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     job_id: uuid.UUID = Field(foreign_key="batchjob.id", index=True)

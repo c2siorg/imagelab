@@ -8,6 +8,7 @@ so that the SQLModel metadata registry knows about all table classes.
 """
 
 import uuid
+from collections.abc import Generator
 
 import pytest
 from fastapi.testclient import TestClient
@@ -17,7 +18,6 @@ from sqlmodel import Session, SQLModel, create_engine
 # --- Force table registration before create_all ---
 import app.models.batch  # noqa: F401
 import app.models.macro  # noqa: F401
-
 from app.database import get_db
 from app.main import app
 
@@ -30,7 +30,7 @@ SQLITE_URL = "sqlite://"
 
 
 @pytest.fixture(scope="function")
-def db_engine() -> Engine:
+def db_engine() -> Generator[Engine, None, None]:
     engine = create_engine(
         SQLITE_URL,
         connect_args={"check_same_thread": False},
@@ -42,7 +42,7 @@ def db_engine() -> Engine:
 
 
 @pytest.fixture(scope="function")
-def client(db_engine: Engine) -> TestClient:
+def client(db_engine: Engine) -> Generator[TestClient, None, None]:
     def _get_test_db():
         with Session(db_engine) as session:
             yield session

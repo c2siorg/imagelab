@@ -15,6 +15,7 @@ so that the SQLModel metadata registry knows about all table classes.
 import base64
 import io
 import zipfile
+from collections.abc import Generator
 
 import cv2
 import numpy as np
@@ -26,7 +27,6 @@ from sqlmodel import Session, SQLModel, create_engine
 # --- Force table registration before create_all ---
 import app.models.batch  # noqa: F401
 import app.models.macro  # noqa: F401
-
 from app.database import get_db, get_engine
 from app.main import app
 
@@ -40,7 +40,7 @@ SQLITE_URL = "sqlite://"
 
 
 @pytest.fixture(scope="function")
-def db_engine() -> Engine:
+def db_engine() -> Generator[Engine, None, None]:
     """Fresh in-memory SQLite engine with a shared connection pool."""
     engine = create_engine(
         SQLITE_URL,
@@ -53,7 +53,7 @@ def db_engine() -> Engine:
 
 
 @pytest.fixture(scope="function")
-def client(db_engine: Engine) -> TestClient:
+def client(db_engine: Engine) -> Generator[TestClient, None, None]:
     """TestClient with DB dependencies overridden to use in-memory SQLite."""
 
     def _get_test_db():

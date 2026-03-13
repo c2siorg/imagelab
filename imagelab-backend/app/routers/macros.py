@@ -18,11 +18,11 @@ synchronous DB I/O, consistent with the existing pipeline router pattern.
 
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.database import get_db
 from app.models.macro import Macro
@@ -49,18 +49,18 @@ class MacroCreate(BaseModel):
 
 
 class MacroUpdate(BaseModel):
-    name: str | None = Field(None, min_length=1, max_length=255)
-    description: str | None = None
-    steps: list[MacroStepSchema] | None = None
+    name: str | None = Field(None, min_length=1, max_length=255, description="Updated name.")
+    description: str | None = Field(None, description="Updated description.")
+    steps: list[MacroStepSchema] | None = Field(None, description="Updated list of steps.")
 
 
 class MacroSummary(BaseModel):
-    id: uuid.UUID
-    name: str
-    description: str | None
-    step_count: int
-    created_at: datetime
-    updated_at: datetime
+    id: uuid.UUID = Field(..., description="Unique ID of the macro.")
+    name: str = Field(..., description="Human-readable name.")
+    description: str | None = Field(None, description="Optional description.")
+    step_count: int = Field(..., description="Number of operators in the macro.")
+    created_at: datetime = Field(..., description="ISO creation timestamp.")
+    updated_at: datetime = Field(..., description="ISO last-update timestamp.")
 
 
 class MacroDetail(MacroSummary):
@@ -109,7 +109,7 @@ def _assert_name_available(name: str, db: Session, exclude_id: uuid.UUID | None 
 
 
 @router.post("/macros", response_model=MacroDetail, status_code=201)
-def create_macro(body: MacroCreate, db: Session = Depends(get_db)) -> MacroDetail:
+def create_macro(body: MacroCreate, db: Session = Depends(get_db)) -> MacroDetail:  # noqa: B008
     """Persist a new macro and return it with its generated ``id``."""
     _assert_name_available(body.name, db)
 
@@ -126,18 +126,18 @@ def create_macro(body: MacroCreate, db: Session = Depends(get_db)) -> MacroDetai
 
 
 @router.get("/macros", response_model=list[MacroSummary])
-def list_macros(db: Session = Depends(get_db)) -> list[MacroSummary]:
+def list_macros(db: Session = Depends(get_db)) -> list[MacroSummary]:  # noqa: B008
     """Return all macros ordered by creation date (newest first).
 
     Steps are **not** included in the list response to keep payloads small;
     fetch a single macro via ``GET /api/macros/{id}`` to get the full definition.
     """
-    macros = db.exec(select(Macro).order_by(Macro.created_at.desc())).all()
+    macros = db.exec(select(Macro).order_by(col(Macro.created_at).desc())).all()
     return [_to_summary(m) for m in macros]
 
 
 @router.get("/macros/{macro_id}", response_model=MacroDetail)
-def get_macro(macro_id: uuid.UUID, db: Session = Depends(get_db)) -> MacroDetail:
+def get_macro(macro_id: uuid.UUID, db: Session = Depends(get_db)) -> MacroDetail:  # noqa: B008
     """Return a single macro including its full ``steps`` list."""
     macro = db.get(Macro, macro_id)
     if macro is None:
@@ -146,7 +146,7 @@ def get_macro(macro_id: uuid.UUID, db: Session = Depends(get_db)) -> MacroDetail
 
 
 @router.put("/macros/{macro_id}", response_model=MacroDetail)
-def update_macro(macro_id: uuid.UUID, body: MacroUpdate, db: Session = Depends(get_db)) -> MacroDetail:
+def update_macro(macro_id: uuid.UUID, body: MacroUpdate, db: Session = Depends(get_db)) -> MacroDetail:  # noqa: B008
     """Partially update a macro.  Only supplied fields are changed."""
     macro = db.get(Macro, macro_id)
     if macro is None:
@@ -162,7 +162,7 @@ def update_macro(macro_id: uuid.UUID, body: MacroUpdate, db: Session = Depends(g
     if body.steps is not None:
         macro.steps = [s.model_dump() for s in body.steps]
 
-    macro.updated_at = datetime.now(timezone.utc)
+    macro.updated_at = datetime.now(UTC)
     db.add(macro)
     db.commit()
     db.refresh(macro)
@@ -171,7 +171,7 @@ def update_macro(macro_id: uuid.UUID, body: MacroUpdate, db: Session = Depends(g
 
 
 @router.delete("/macros/{macro_id}", status_code=204)
-def delete_macro(macro_id: uuid.UUID, db: Session = Depends(get_db)) -> None:
+def delete_macro(macro_id: uuid.UUID, db: Session = Depends(get_db)) -> None:  # noqa: B008
     """Permanently delete a macro.  Returns 204 No Content on success."""
     macro = db.get(Macro, macro_id)
     if macro is None:
