@@ -16,7 +16,6 @@ from fastapi.testclient import TestClient
 from app.routers import pipeline as pipeline_router
 from app.routers import validate as validate_router
 
-
 # ---------------------------------------------------------------------------
 # Minimal test app — no database needed for validation
 # ---------------------------------------------------------------------------

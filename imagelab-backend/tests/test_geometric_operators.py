@@ -15,10 +15,8 @@ import pytest
 from app.operators.geometric.affine_image import AffineImage
 from app.operators.geometric.crop_image import CropImage
 from app.operators.geometric.reflect_image import ReflectImage
-from app.operators.geometric.resize_image import ResizeImage
 from app.operators.geometric.rotate_image import RotateImage
 from app.operators.geometric.scale_image import ScaleImage
-
 
 # ---------------------------------------------------------------------------
 # Shared fixtures
