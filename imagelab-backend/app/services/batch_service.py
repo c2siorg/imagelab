@@ -130,7 +130,7 @@ async def run_batch_job(
                 item.status = ItemStatus.failed
                 item.error = str(raw)
                 failed_count += 1
-            elif isinstance(raw, tuple):
+            elif isinstance(raw, tuple) and len(raw) == 4:
                 success, result_b64, error, duration_ms = raw
                 if success:
                     item.status = ItemStatus.success
@@ -178,7 +178,7 @@ def build_zip(job_id: uuid.UUID, image_format: str, db: Session) -> bytes:
             BatchItemResult.job_id == job_id,
             BatchItemResult.status == ItemStatus.success,
         )
-        .order_by(col(BatchItemResult.image_index))
+        .order_by(BatchItemResult.image_index)
     ).all()
 
     buf = io.BytesIO()

@@ -152,7 +152,7 @@ def get_batch_status(
     items = db.exec(
         select(BatchItemResult)
         .where(BatchItemResult.job_id == job_id)
-        .order_by(col(BatchItemResult.image_index))
+        .order_by(BatchItemResult.image_index)
     ).all()
 
     return BatchStatusResponse(

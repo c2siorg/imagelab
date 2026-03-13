@@ -132,7 +132,7 @@ def list_macros(db: Session = Depends(get_db)) -> list[MacroSummary]:  # noqa: B
     Steps are **not** included in the list response to keep payloads small;
     fetch a single macro via ``GET /api/macros/{id}`` to get the full definition.
     """
-    macros = db.exec(select(Macro).order_by(col(Macro.created_at).desc())).all()
+    macros = db.exec(select(Macro).order_by(Macro.created_at.desc())).all()
     return [_to_summary(m) for m in macros]
 
 
