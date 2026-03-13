@@ -26,7 +26,6 @@ from sqlmodel import Session, SQLModel, create_engine
 # --- Force table registration before create_all ---
 import app.models.batch  # noqa: F401
 import app.models.macro  # noqa: F401
-
 from app.database import get_db, get_engine
 from app.main import app
 

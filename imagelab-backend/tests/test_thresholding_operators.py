@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from app.operators.thresholding.adaptive_threshold import AdaptiveThreshold
 from app.operators.thresholding.apply_threshold import ApplyThreshold
