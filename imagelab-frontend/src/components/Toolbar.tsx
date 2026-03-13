@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import * as Blockly from "blockly";
-import { FilePlus, Download, Undo2, Redo2, Play, Loader2, Share2 } from "lucide-react";
+import { FilePlus, Download, Undo2, Redo2, Play, Loader2, Share2, Keyboard } from "lucide-react";
 import { usePipelineStore } from "../store/pipelineStore";
 import { executePipeline } from "../api/pipeline";
 import { extractPipeline } from "../hooks/usePipeline";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import SharePipelineModal from "./SharePipelineModal";
+import KeyboardShortcutsModal from "./KeyboardShortcutsModal";
 
 interface ToolbarProps {
   workspace: Blockly.WorkspaceSvg | null;
@@ -34,6 +35,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
   } = usePipelineStore();
 
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
   const handleNew = () => {
     if (!window.confirm("This will clear all blocks and the uploaded image. Continue?")) {
@@ -89,6 +91,18 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     }
   };
 
+  // Shift+? opens the shortcuts modal
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "?" && e.shiftKey && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        setShowShortcutsModal((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   // Register global keyboard shortcuts
   useKeyboardShortcuts({
     onRun: handleRun,
@@ -137,13 +151,21 @@ export default function Toolbar({ workspace }: ToolbarProps) {
           <Share2 size={18} />
         </button>
 
+        <button
+          onClick={() => setShowShortcutsModal(true)}
+          className={iconBtn}
+          title="Keyboard Shortcuts (⇧?)"
+        >
+          <Keyboard size={18} />
+        </button>
+
         <div className={separator} />
 
         <button
           onClick={handleRun}
           disabled={isExecuting || !originalImage}
           className="flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          title="Run Pipeline"
+          title={`Run Pipeline (${mod}Enter)`}
         >
           {isExecuting ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
           {isExecuting ? "Running..." : "Run"}
@@ -204,6 +226,10 @@ export default function Toolbar({ workspace }: ToolbarProps) {
 
       {showShareModal && (
         <SharePipelineModal workspace={workspace} onClose={() => setShowShareModal(false)} />
+      )}
+
+      {showShortcutsModal && (
+        <KeyboardShortcutsModal onClose={() => setShowShortcutsModal(false)} />
       )}
     </>
   );
