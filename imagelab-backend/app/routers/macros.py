@@ -22,7 +22,7 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlmodel import Session, col, select
+from sqlmodel import Session, select
 
 from app.database import get_db
 from app.models.macro import Macro

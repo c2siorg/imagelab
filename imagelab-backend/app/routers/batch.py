@@ -25,7 +25,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import Engine
-from sqlmodel import Session, col, select
+from sqlmodel import Session, select
 
 from app.database import get_db, get_engine
 from app.models.batch import BatchItemResult, BatchJob, JobStatus

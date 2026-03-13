@@ -27,7 +27,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import Engine
-from sqlmodel import Session, col, select
+from sqlmodel import Session, select
 
 from app.models.batch import BatchItemResult, BatchJob, ItemStatus, JobStatus
 from app.models.pipeline import PipelineRequest, PipelineStep
