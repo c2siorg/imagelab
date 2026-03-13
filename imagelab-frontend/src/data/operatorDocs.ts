@@ -418,6 +418,18 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       "Fine-grained edge detection on medical or scientific images requiring higher rotational symmetry than Sobel.",
     ],
   },
+  sobelderivatives_prewittoperator: {
+    name: "Prewitt Operator",
+    description:
+      "Applies the Prewitt operator to detect edges using two 3x3 gradient kernels. Similar to Sobel but uses equal weights, making it a simpler approximation of the image gradient.",
+    parameters: [],
+    formula: "G = √(Gx² + Gy²), Gx = [[-1,0,1],[-1,0,1],[-1,0,1]], Gy = Gx^T",
+    useCases: [
+      "Teaching the difference between equally-weighted (Prewitt) and distance-weighted (Sobel) gradient operators.",
+      "Fast edge detection where equal directional sensitivity is preferred.",
+      "Comparing classical edge detectors side-by-side in an educational pipeline.",
+    ],
+  },
 
   // --- Transformation ---
   transformation_distance: {

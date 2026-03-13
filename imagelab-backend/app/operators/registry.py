@@ -47,6 +47,7 @@ from app.operators.geometric.scale_image import ScaleImage
 from app.operators.segmentation.kmeans_segmentation import KMeansSegmentation
 from app.operators.segmentation.mean_shift_segmentation import MeanShiftSegmentation
 from app.operators.segmentation.watershed import Watershed
+from app.operators.sobel_derivatives.prewitt_operator import PrewittOperator
 from app.operators.sobel_derivatives.scharr_derivative import ScharrDerivative
 from app.operators.sobel_derivatives.sobel_derivative import SobelDerivative
 from app.operators.thresholding.adaptive_threshold import AdaptiveThreshold
@@ -117,6 +118,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     # Sobel Derivatives
     "sobelderivatives_soblederivate": SobelDerivative,
     "sobelderivatives_scharrderivate": ScharrDerivative,
+    "sobelderivatives_prewittoperator": PrewittOperator,
     # Transformation
     "transformation_distance": DistanceTransform,
     "transformation_laplacian": Laplacian,
