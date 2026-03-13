@@ -28,7 +28,10 @@ class ApplyBorders(BaseOperator):
             right = int(self.params.get("borderRight", 0))
 
         if any(v < 0 for v in (top, bottom, left, right)):
-            raise ValueError(f"Border widths must be non-negative. Got: top={top}, bottom={bottom}, left={left}, right={right}")
+            raise ValueError(
+                f"Border widths must be non-negative. Got: "
+                f"top={top}, bottom={bottom}, left={left}, right={right}"
+            )
 
         border_type_str = str(self.params.get("borderType", "CONSTANT")).upper()
         border_type = _BORDER_TYPES.get(border_type_str, cv2.BORDER_CONSTANT)
