@@ -43,9 +43,9 @@ class AffineImage(BaseOperator):
             raise ValueError("Output dimensions must be between 1 and 5000")
 
         # Affine matrix M = [ [s_x, sh_x, t_x], [sh_y, s_y, t_y] ]
-        M = np.float32([  # type: ignore
+        M = np.array([
             [scale_x, shear_x, translate_x],
             [shear_y, scale_y, translate_y]
-        ])
+        ], dtype=np.float32)
 
-        return cv2.warpAffine(image, M, (output_width, output_height))  # type: ignore
+        return cv2.warpAffine(image, M, (output_width, output_height))
