@@ -90,7 +90,6 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "filtering_erosion": Erosion,
     "filtering_dilation": Dilation,
     "filtering_morphological": Morphological,
-    "filtering_morphological": Morphological,
     # Thresholding
     "thresholding_applythreshold": ApplyThreshold,
     "thresholding_adaptivethreshold": AdaptiveThreshold,
