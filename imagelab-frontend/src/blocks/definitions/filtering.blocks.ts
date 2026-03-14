@@ -23,7 +23,7 @@ export const filteringBlocks = [
       { type: "field_number", name: "width", value: 50, min: 0 },
       { type: "input_dummy" },
       { type: "field_number", name: "height", value: 50, min: 0 },
-      { type: "field_number", name: "depth", value: 5, min: 0 },
+      { type: "field_number", name: "depth", value: -1, min: -1 },
       { type: "field_number", name: "point_x", value: -1 },
       { type: "field_number", name: "point_y", value: -1 },
     ],
@@ -31,7 +31,7 @@ export const filteringBlocks = [
     nextStatement: null,
     style: "filtering_style",
     tooltip:
-      "Applies box filter - A simple linear filter that replaces each pixel with the average of its neighbors defined by the width and height. The 'depth' parameter controls the number of times the filter is applied, increasing the blurring effect. The anchor point (x, y) sets the filter center; use (-1, -1) to auto-center.",
+      "Applies box filter - A simple linear filter that replaces each pixel with the average of its neighbors defined by the width and height. The 'depth' parameter sets the output image depth (-1 keeps the same depth as the input). The anchor point (x, y) sets the filter center; use (-1, -1) to auto-center.",
   },
   {
     type: "filtering_pyramidup",
