@@ -75,6 +75,13 @@ class TestBoxFilter:
         result = BoxFilter({"depth": -1}).compute(color_image)
         assert result.dtype == np.uint8
 
+    def test_default_depth_preserves_uint8_dtype(self, color_image):
+        # No depth param — should default to -1 (same as input), not cv2.CV_32F.
+        # cv2.CV_32F == 5 was the previous default; it produces float32 output
+        # that cv2.imencode refuses to encode.
+        result = BoxFilter({}).compute(color_image)
+        assert result.dtype == np.uint8
+
 
 # Sharpen
 
