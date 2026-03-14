@@ -51,17 +51,8 @@ export const categories: CategoryInfo[] = [
       { type: "imageconvertions_bgrtoycrcb", label: "BGR to YCrCb" },
       { type: "imageconvertions_ycrcbtobgr", label: "YCrCb to BGR" },
       { type: "imageconvertions_invertimage", label: "Invert Image" },
-      { type: "imageconvertions_brightnessandcontrast", label: "Brightness and Contrast" },
-    ],
-  },
-  {
-    name: "Augmentation",
-    icon: "Zap",
-    colour: "#F48FB1",
-    blocks: [
-      { type: "augmentation_gaussiannoise", label: "Gaussian Noise" },
-      { type: "augmentation_saltpeppernoise", label: "Salt & Pepper Noise" },
-      { type: "augmentation_sepiafilter", label: "Sepia Filter" },
+      { type: "imageconvertions_histogrameq", label: "Histogram Equalization" },
+      { type: "imageconvertions_brightnesscontrast", label: "Brightness & Contrast" },
     ],
   },
   {

@@ -177,4 +177,27 @@ export const conversionsBlocks = [
     style: "conversions_style",
     tooltip: "Converts YCrCb back to BGR color space.",
   },
+  {
+    type: "imageconvertions_histogrameq",
+    message0: "Histogram equalization",
+    previousStatement: null,
+    nextStatement: null,
+    style: "conversions_style",
+    tooltip:
+      "Applies global histogram equalization to improve image contrast — Spreads pixel intensity values evenly across the full range. For colour images, only the lightness channel is equalized (via LAB colour space) to preserve hue and saturation. Particularly effective on low-contrast or poorly lit images.",
+  },
+  {
+    type: "imageconvertions_brightnesscontrast",
+    message0: "Adjust brightness %1 %2 contrast %3",
+    args0: [
+      { type: "field_number", name: "brightness", value: 0, min: -100, max: 100, precision: 1 },
+      { type: "input_dummy" },
+      { type: "field_number", name: "contrast", value: 1.0, min: 0, max: 3.0, precision: 0.1 },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "conversions_style",
+    tooltip:
+      "Adjusts brightness and contrast of the image — Applies a linear transformation: output = contrast × image + brightness. A brightness of 0 and contrast of 1.0 leaves the image unchanged. Increase brightness to make the image lighter, decrease to make it darker. Contrast values above 1.0 increase contrast, below 1.0 reduce it. Values are clamped to [0, 255].",
+  },
 ];

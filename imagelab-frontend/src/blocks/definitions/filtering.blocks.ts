@@ -167,4 +167,19 @@ export const filteringBlocks = [
     style: "filtering_style",
     tooltip: "Detects contours on an image and renders them over the original graphic.",
   },
+  {
+    type: "filtering_cannyedge",
+    message0: "Canny edge detection %1 threshold1 %2 %3 threshold2 %4",
+    args0: [
+      { type: "input_dummy" },
+      { type: "field_number", name: "threshold1", value: 100, min: 0, max: 500, precision: 1 },
+      { type: "input_dummy" },
+      { type: "field_number", name: "threshold2", value: 200, min: 0, max: 500, precision: 1 },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "filtering_style",
+    tooltip:
+      "Applies the Canny multi-stage edge detection algorithm — Detects edges by finding intensity gradients in the image. 'Threshold1' is the lower hysteresis threshold and 'Threshold2' is the upper. Edges with gradient magnitude above Threshold2 are strong edges; those between Threshold1 and Threshold2 are kept only if connected to strong edges. The output is a binary edge map. Colour images are automatically converted to grayscale before detection.",
+  },
 ];

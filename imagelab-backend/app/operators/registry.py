@@ -10,13 +10,14 @@ from app.operators.blurring.median_blur import MedianBlur
 from app.operators.conversions.bgr_to_hsv import BgrToHsv
 from app.operators.conversions.bgr_to_lab import BgrToLab
 from app.operators.conversions.bgr_to_ycrcb import BgrToYcrcb
-from app.operators.conversions.brightness_and_contrast import BrightnessAndContrast
+from app.operators.conversions.brightness_contrast import BrightnessContrast
 from app.operators.conversions.channel_split import ChannelSplit
 from app.operators.conversions.clahe import claheImage
 from app.operators.conversions.color_maps import ColorMaps
 from app.operators.conversions.color_to_binary import ColorToBinary
 from app.operators.conversions.gray_image import GrayImage
 from app.operators.conversions.gray_to_binary import GrayToBinary
+from app.operators.conversions.histogram_equalization import HistogramEqualization
 from app.operators.conversions.hsv_to_bgr import HsvToBgr
 from app.operators.conversions.invert_image import InvertImage
 from app.operators.conversions.lab_to_bgr import LabToBgr
@@ -29,6 +30,7 @@ from app.operators.drawing.draw_rectangle import DrawRectangle
 from app.operators.drawing.draw_text import DrawText
 from app.operators.filtering.bilateral_filter import BilateralFilter
 from app.operators.filtering.box_filter import BoxFilter
+from app.operators.filtering.canny_edge import CannyEdge
 from app.operators.filtering.contour_detection import ContourDetection
 from app.operators.filtering.dilation import Dilation
 from app.operators.filtering.erosion import Erosion
@@ -73,6 +75,8 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "imageconvertions_graytobinary": GrayToBinary,
     "imageconvertions_colormaps": ColorMaps,
     "imageconvertions_colortobinary": ColorToBinary,
+    "imageconvertions_histogrameq": HistogramEqualization,
+    "imageconvertions_brightnesscontrast": BrightnessContrast,
     "imageconvertions_bgrtohsv": BgrToHsv,
     "imageconvertions_hsvtobgr": HsvToBgr,
     "imageconvertions_bgrtolab": BgrToLab,
@@ -80,7 +84,8 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "imageconvertions_bgrtoycrcb": BgrToYcrcb,
     "imageconvertions_ycrcbtobgr": YcrcbToBgr,
     "imageconvertions_invertimage": InvertImage,
-    "imageconvertions_brightnessandcontrast": BrightnessAndContrast,
+    "imageconvertions_histogrameq": HistogramEqualization,
+    "imageconvertions_brightnesscontrast": BrightnessContrast,
     # Drawing
     "drawingoperations_drawline": DrawLine,
     "drawingoperations_drawcircle": DrawCircle,
@@ -107,6 +112,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "augmentation_sepiafilter": SepiaFilter,
     "filtering_gaborfilter": GaborFilter,
     "filtering_contourdetection": ContourDetection,
+    "filtering_cannyedge": CannyEdge,
     # Thresholding
     "thresholding_applythreshold": ApplyThreshold,
     "thresholding_adaptivethreshold": AdaptiveThreshold,

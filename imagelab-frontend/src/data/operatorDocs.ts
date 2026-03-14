@@ -149,6 +149,38 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     ],
     useCases: ["Feature extraction where color is irrelevant."],
   },
+  imageconvertions_histogrameq: {
+    name: "Histogram Equalization",
+    description:
+      "Applies global histogram equalization to improve image contrast. For colour images, only the lightness channel (L in LAB) is equalized to preserve hue and saturation.",
+    parameters: [],
+    useCases: [
+      "Enhancing low-contrast or poorly lit images before further processing.",
+      "Preprocessing step before thresholding or edge detection.",
+    ],
+  },
+  imageconvertions_brightnesscontrast: {
+    name: "Brightness & Contrast",
+    description:
+      "Applies a linear brightness and contrast transformation to the image. Output values are clipped to [0, 255].",
+    parameters: [
+      {
+        name: "Brightness",
+        description:
+          "Additive offset applied to every pixel. Range: -100 to 100. Positive values lighten the image.",
+      },
+      {
+        name: "Contrast",
+        description:
+          "Multiplicative scale factor. Range: 0.0 to 3.0. A value of 1.0 means no change; values above 1.0 increase contrast.",
+      },
+    ],
+    formula: "output = contrast × image + brightness",
+    useCases: [
+      "Normalizing image intensity before feeding into a detection pipeline.",
+      "Quick manual enhancement of over- or under-exposed photographs.",
+    ],
+  },
 
   // --- Drawing ---
   drawingoperations_drawline: {
@@ -302,6 +334,28 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       { name: "Operation Type", description: "Morp API enum (e.g., OPEN, CLOSE, GRADIENT)." },
     ],
     useCases: ["Removing inner object noise, finding outlines."],
+  },
+  filtering_cannyedge: {
+    name: "Canny Edge Detection",
+    description:
+      "Applies the Canny multi-stage edge detection algorithm to produce a clean binary edge map. Automatically converts colour images to grayscale before processing.",
+    parameters: [
+      {
+        name: "Threshold1",
+        description: "Lower hysteresis threshold. Edges below this are discarded.",
+      },
+      {
+        name: "Threshold2",
+        description:
+          "Upper hysteresis threshold. Edges above this are strong edges; those between Threshold1 and Threshold2 are kept only if connected to strong edges.",
+      },
+    ],
+    formula: "Non-maximum suppression + double thresholding + edge tracking by hysteresis",
+    useCases: [
+      "Feature extraction for object detection pipelines.",
+      "Preprocessing for Hough transforms (line/circle detection).",
+      "Producing clean edge maps compared to Sobel or Laplacian alone.",
+    ],
   },
 
   // --- Thresholding ---
