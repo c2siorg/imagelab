@@ -10,6 +10,7 @@ class PipelineRequest(BaseModel):
     image: str
     image_format: str = "png"
     pipeline: list[PipelineStep]
+    debug: bool = False
 
 
 class StepTiming(BaseModel):
@@ -30,3 +31,4 @@ class PipelineResponse(BaseModel):
     error: str | None = None
     step: int | None = None
     timings: PipelineTimings | None = None
+    debug_frames: list[str] | None = None

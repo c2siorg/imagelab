@@ -19,6 +19,12 @@ interface PipelineState {
   uniqueBlockTypes: number;
   categoryCounts: Record<string, number>;
   complexity: "Low" | "Medium" | "High";
+
+  // Debug mode
+  isDebugMode: boolean;
+  debugFrames: string[] | null;
+  debugStep: number;
+
   setOriginalImage: (image: string, format: string) => void;
   setProcessedImage: (image: string | null) => void;
   setExecuting: (executing: boolean) => void;
@@ -30,6 +36,10 @@ interface PipelineState {
   clearImage: () => void;
   _imageResetFn: (() => void) | null;
   registerImageReset: (fn: () => void) => void;
+
+  setDebugMode: (on: boolean) => void;
+  setDebugFrames: (frames: string[] | null) => void;
+  setDebugStep: (step: number) => void;
 }
 
 function calculateComplexity(blocks: number, unique: number): "Low" | "Medium" | "High" {
@@ -53,6 +63,10 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   uniqueBlockTypes: 0,
   categoryCounts: {},
   complexity: "Low",
+  isDebugMode: false,
+  debugFrames: null,
+  debugStep: 0,
+
   setOriginalImage: (image, format) =>
     set({
       originalImage: image,
@@ -60,6 +74,8 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       processedImage: null,
       error: null,
       timings: null,
+      debugFrames: null,
+      debugStep: 0,
     }),
   setProcessedImage: (image) => set({ processedImage: image, error: null, errorStep: null }),
   setExecuting: (executing) => set({ isExecuting: executing }),
@@ -78,27 +94,29 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       error: null,
       errorStep: null,
       timings: null,
+      debugFrames: null,
+      debugStep: 0,
     });
   },
+  setDebugMode: (on) => set({ isDebugMode: on, debugFrames: null, debugStep: 0 }),
+  setDebugFrames: (frames) => set({ debugFrames: frames, debugStep: 0 }),
+  setDebugStep: (step) => set({ debugStep: step }),
+
   updateBlockStats: (workspace) => {
     const blocks = workspace.getAllBlocks(false);
-
     const typeToCategory: Record<string, string> = {};
     categories.forEach((cat) => {
       cat.blocks.forEach((b) => {
         typeToCategory[b.type] = cat.name;
       });
     });
-
     const uniqueTypes = new Set<string>();
     const counts: Record<string, number> = {};
-
     blocks.forEach((block) => {
       uniqueTypes.add(block.type);
       const cat = typeToCategory[block.type] || "Unknown";
       counts[cat] = (counts[cat] || 0) + 1;
     });
-
     set({
       blockCount: blocks.length,
       uniqueBlockTypes: uniqueTypes.size,
@@ -106,6 +124,7 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       complexity: calculateComplexity(blocks.length, uniqueTypes.size),
     });
   },
+
   reset: () =>
     set({
       originalImage: null,
@@ -121,5 +140,8 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       categoryCounts: {},
       complexity: "Low",
       timings: null,
+      isDebugMode: false,
+      debugFrames: null,
+      debugStep: 0,
     }),
 }));

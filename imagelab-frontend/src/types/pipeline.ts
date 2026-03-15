@@ -7,6 +7,7 @@ export interface PipelineRequest {
   image: string;
   image_format: string;
   pipeline: PipelineStep[];
+  debug?: boolean;
 }
 
 export interface StepTiming {
@@ -27,4 +28,5 @@ export interface PipelineResponse {
   error?: string;
   step?: number;
   timings?: PipelineTimings;
+  debug_frames?: string[];
 }

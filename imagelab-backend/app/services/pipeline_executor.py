@@ -7,10 +7,6 @@ from app.utils.image import decode_base64_image, encode_image_base64
 NOOP_TYPES = {"basic_readimage", "basic_writeimage", "border_for_all", "border_each_side"}
 
 
-# Thread-safety: this function is safe to call concurrently from FastAPI's
-# threadpool. All processing state (image array, operator instances, encoded
-# output) is local to each invocation. The module-level NOOP_TYPES set and
-# OPERATOR_REGISTRY dict are read-only after import and never mutated.
 def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
     """
     Execute the image-processing pipeline described by *request*.
@@ -19,9 +15,15 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
     populated with every step that completed before the function returned,
     even when the response indicates failure.  This allows callers to
     inspect partial execution progress on error.
+
+    When ``request.debug`` is True, a ``debug_frames`` list is included in
+    the response containing one base64-encoded image per non-NOOP step,
+    in execution order.  This allows callers to step through the effect of
+    each operator on the image.
     """
     t_start_total = time.perf_counter()
     step_timings: list[StepTiming] = []
+    debug_frames: list[str] = []
 
     try:
         image = decode_base64_image(request.image)
@@ -56,6 +58,8 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
             step_timings.append(
                 StepTiming(step=i + 1, operator_type=step.type, duration_ms=(t_step_end - t_step_start) * 1000)
             )
+            if request.debug:
+                debug_frames.append(encode_image_base64(image, request.image_format))
         except Exception as e:
             t_fail = time.perf_counter()
             return PipelineResponse(
@@ -69,10 +73,9 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
         encoded = encode_image_base64(image, request.image_format)
     except Exception as e:
         t_fail = time.perf_counter()
-        error_msg = f"Failed to encode result: {type(e).__name__}: {e}"
         return PipelineResponse(
             success=False,
-            error=error_msg,
+            error=f"Failed to encode result: {type(e).__name__}: {e}",
             step=len(request.pipeline),
             timings=PipelineTimings(total_ms=(t_fail - t_start_total) * 1000, steps=step_timings),
         )
@@ -84,4 +87,5 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
         image=encoded,
         image_format=request.image_format,
         timings=PipelineTimings(total_ms=(t_end_total - t_start_total) * 1000, steps=step_timings),
+        debug_frames=debug_frames if request.debug else None,
     )

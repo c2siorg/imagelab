@@ -1,5 +1,14 @@
 import { useState } from "react";
-import { ZoomIn, ZoomOut, Image, ImageDown, Trash2, Timer } from "lucide-react";
+import {
+  ZoomIn,
+  ZoomOut,
+  Image,
+  ImageDown,
+  Trash2,
+  Timer,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { usePipelineStore } from "../../store/pipelineStore";
 import ImageDisplay from "./ImageDisplay";
 
@@ -34,15 +43,25 @@ function ZoomControls({
   );
 }
 
-// Operator types follow 'category_operationName' convention; strip the category prefix for display.
 function getStepLabel(operatorType: string): string {
   const underscoreIndex = operatorType.indexOf("_");
   return underscoreIndex !== -1 ? operatorType.slice(underscoreIndex + 1) : operatorType;
 }
 
 export default function PreviewPane() {
-  const { originalImage, imageFormat, processedImage, error, errorStep, clearImage, timings } =
-    usePipelineStore();
+  const {
+    originalImage,
+    imageFormat,
+    processedImage,
+    error,
+    errorStep,
+    clearImage,
+    timings,
+    debugFrames,
+    debugStep,
+    setDebugStep,
+  } = usePipelineStore();
+
   const [originalZoom, setOriginalZoom] = useState<number | null>(null);
   const [processedZoom, setProcessedZoom] = useState<number | null>(null);
 
@@ -50,6 +69,15 @@ export default function PreviewPane() {
     setter((prev) => Math.min((prev ?? 300) + 100, 2500));
   const zoomOut = (setter: React.Dispatch<React.SetStateAction<number | null>>) => () =>
     setter((prev) => Math.max((prev ?? 300) - 100, 100));
+
+  const totalFrames = debugFrames?.length ?? 0;
+  const currentFrame = debugFrames?.[debugStep] ?? null;
+  const currentStepMeta = timings?.steps[debugStep] ?? null;
+
+  const handlePrev = () => setDebugStep(Math.max(0, debugStep - 1));
+  const handleNext = () => setDebugStep(Math.min(totalFrames - 1, debugStep + 1));
+
+  const activeImage = debugFrames ? currentFrame : processedImage;
 
   return (
     <div className="w-80 h-full bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0">
@@ -86,15 +114,15 @@ export default function PreviewPane() {
         />
       </div>
 
-      {/* Processed image — bottom half */}
+      {/* Processed / debug panel — bottom half */}
       <div className="flex-1 flex flex-col min-h-0">
         <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-1.5">
             <ImageDown size={14} className="text-gray-400" />
             <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Processed
+              {debugFrames ? "Debug" : "Processed"}
             </h2>
-            {timings && !error && (
+            {timings && !error && !debugFrames && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-[11px] font-medium text-green-700 dark:text-green-400 ml-1 mt-[-1px]">
                 <Timer size={10} className="text-green-600 dark:text-green-400" />
                 {timings.total_ms.toFixed(1)} ms
@@ -108,15 +136,82 @@ export default function PreviewPane() {
             )}
           </div>
         </div>
+
         <div className="flex-1 flex items-center justify-center p-3 bg-gray-50 dark:bg-gray-900 overflow-auto">
-          {processedImage ? (
-            <ImageDisplay image={processedImage} format={imageFormat} zoomWidth={processedZoom} />
+          {activeImage ? (
+            <ImageDisplay image={activeImage} format={imageFormat} zoomWidth={processedZoom} />
           ) : (
             <p className="text-sm text-gray-400 dark:text-gray-500">
               {originalImage ? "Run the pipeline to see results" : "No image loaded"}
             </p>
           )}
         </div>
+
+        {/* Step scrubber — only shown in debug mode with frames */}
+        {debugFrames && totalFrames > 0 && (
+          <div className="px-3 py-2 bg-indigo-50 border-t border-indigo-100">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-semibold text-indigo-700 uppercase tracking-wide">
+                Step {debugStep + 1} of {totalFrames}
+              </span>
+              {currentStepMeta && (
+                <span
+                  className="text-[11px] text-indigo-500 truncate max-w-[120px]"
+                  title={currentStepMeta.operator_type}
+                >
+                  {getStepLabel(currentStepMeta.operator_type)}
+                </span>
+              )}
+            </div>
+
+            {/* Progress bar */}
+            <div className="w-full h-1 bg-indigo-100 rounded-full mb-2">
+              <div
+                className="h-full bg-indigo-400 rounded-full transition-all duration-150"
+                style={{ width: `${((debugStep + 1) / totalFrames) * 100}%` }}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handlePrev}
+                disabled={debugStep === 0}
+                className="flex items-center justify-center p-1 rounded border border-indigo-200 bg-white text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                title="Previous step"
+              >
+                <ChevronLeft size={14} />
+              </button>
+
+              {/* Step dots */}
+              <div className="flex items-center gap-1 flex-1 justify-center flex-wrap">
+                {Array.from({ length: totalFrames }, (_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setDebugStep(i)}
+                    className={`w-2 h-2 rounded-full transition-colors ${
+                      i === debugStep ? "bg-indigo-500" : "bg-indigo-200 hover:bg-indigo-300"
+                    }`}
+                    title={
+                      timings?.steps[i]
+                        ? getStepLabel(timings.steps[i].operator_type)
+                        : `Step ${i + 1}`
+                    }
+                  />
+                ))}
+              </div>
+
+              <button
+                onClick={handleNext}
+                disabled={debugStep === totalFrames - 1}
+                className="flex items-center justify-center p-1 rounded border border-indigo-200 bg-white text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                title="Next step"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+
         {error && (
           <div className="px-3 py-2 bg-red-50 dark:bg-red-900/30 border-t border-red-200 dark:border-red-800">
             <p className="text-xs text-red-600 dark:text-red-400 font-semibold mb-0.5">
@@ -125,7 +220,8 @@ export default function PreviewPane() {
             <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
           </div>
         )}
-        {timings && timings.steps.length > 0 && (
+
+        {timings && timings.steps.length > 0 && !debugFrames && (
           <div className="px-3 py-2 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
             <details className="group">
               <summary className="text-[10px] uppercase font-semibold text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer select-none">
@@ -165,8 +261,9 @@ export default function PreviewPane() {
             </details>
           </div>
         )}
+
         <ZoomControls
-          disabled={!processedImage}
+          disabled={!activeImage}
           onZoomIn={zoomIn(setProcessedZoom)}
           onZoomOut={zoomOut(setProcessedZoom)}
         />
