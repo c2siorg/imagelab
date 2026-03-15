@@ -34,16 +34,27 @@ export const geometricBlocks = [
   },
   {
     type: "geometric_scaleimage",
-    message0: "Scale Image by %1 in X axis and by %2 in Y axis",
+    message0: "Scale Image by %1 in X axis and by %2 in Y axis | Interpolation %3",
     args0: [
       { type: "field_number", name: "fx", value: 1, min: 0 },
       { type: "field_number", name: "fy", value: 1, min: 0 },
+      {
+        type: "field_dropdown",
+        name: "interpolation",
+        options: [
+          ["Linear – general use (default)", "LINEAR"],
+          ["Area – best for shrinking", "AREA"],
+          ["Cubic – high-quality enlarge", "CUBIC"],
+          ["Nearest – fastest", "NEAREST"],
+          ["Lanczos4 – highest quality", "LANCZOS4"],
+        ],
+      },
     ],
     previousStatement: null,
     nextStatement: null,
     style: "geometric_style",
     tooltip:
-      "Scales the image by the given factors - Resizes the image by scaling factors along the X and Y axes. A factor greater than 1 enlarges the image, while a factor between 0 and 1 reduces its size. This transformation is useful for resizing images for display, analysis, or to fit specific dimensions.",
+      "Scales the image by the given factors - Resizes the image by scaling factors along the X and Y axes. A factor greater than 1 enlarges the image, while a factor between 0 and 1 reduces its size. Interpolation controls quality: LINEAR for general use, AREA for shrinking, CUBIC or LANCZOS4 for high-quality enlarging, NEAREST for fastest processing.",
   },
   {
     type: "geometric_resizeimage",

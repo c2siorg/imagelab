@@ -50,6 +50,7 @@ export const categories: CategoryInfo[] = [
       { type: "imageconvertions_labtobgr", label: "LAB to BGR" },
       { type: "imageconvertions_bgrtoycrcb", label: "BGR to YCrCb" },
       { type: "imageconvertions_ycrcbtobgr", label: "YCrCb to BGR" },
+      { type: "imageconvertions_invertimage", label: "Invert Image" },
     ],
   },
   {

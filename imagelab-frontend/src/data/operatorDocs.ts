@@ -84,10 +84,20 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     parameters: [
       {
         name: "Scale X, Scale Y",
-        description: "Scaling factors along the horizontal and vertical axes.",
+        description:
+          "Scaling factors along the horizontal and vertical axes. Values greater than 1 enlarge the image; values between 0 and 1 shrink it.",
+      },
+      {
+        name: "Interpolation",
+        description:
+          "Resampling method used when resizing. Default: LINEAR (good general-purpose choice). Use AREA when shrinking, CUBIC or LANCZOS4 for highest quality when enlarging, or NEAREST for maximum speed.",
       },
     ],
-    useCases: ["Making images uniform for neural networks, creating thumbnails."],
+    useCases: [
+      "Making images uniform for neural networks (AREA for downscaling).",
+      "Creating thumbnails from large images (AREA).",
+      "Upscaling for display or printing (CUBIC or LANCZOS4).",
+    ],
   },
 
   // --- Conversions ---
@@ -429,8 +439,14 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       "Calculates the Laplacian of an image, highlighting regions of rapid intensity change.",
     parameters: [
       {
-        name: "KSize",
-        description: "Aperture size used to compute the second-derivative filters.",
+        name: "Kernel Size",
+        description:
+          "Aperture size for the Laplacian kernel. Must be a positive odd integer: 1, 3, 5, or 7. Larger values detect broader, smoother edges.",
+      },
+      {
+        name: "Output Depth",
+        description:
+          "Desired depth of the output image. Use -1 to match the source image depth (note: for 8-bit images, negative responses are clipped — use CV_64F to retain full signed output). Other values correspond to OpenCV depth constants.",
       },
     ],
     formula: "Δf = ∂²f/∂x² + ∂²f/∂y²",

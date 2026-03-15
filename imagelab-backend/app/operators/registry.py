@@ -14,6 +14,7 @@ from app.operators.conversions.color_to_binary import ColorToBinary
 from app.operators.conversions.gray_image import GrayImage
 from app.operators.conversions.gray_to_binary import GrayToBinary
 from app.operators.conversions.hsv_to_bgr import HsvToBgr
+from app.operators.conversions.invert_image import InvertImage
 from app.operators.conversions.lab_to_bgr import LabToBgr
 from app.operators.conversions.ycrcb_to_bgr import YcrcbToBgr
 from app.operators.drawing.draw_arrow_line import DrawArrowLine
@@ -74,6 +75,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "imageconvertions_labtobgr": LabToBgr,
     "imageconvertions_bgrtoycrcb": BgrToYcrcb,
     "imageconvertions_ycrcbtobgr": YcrcbToBgr,
+    "imageconvertions_invertimage": InvertImage,
     # Drawing
     "drawingoperations_drawline": DrawLine,
     "drawingoperations_drawcircle": DrawCircle,

@@ -55,6 +55,15 @@ export const conversionsBlocks = [
       "Converts grayscale to binary using threshold - Applies a binary threshold to a grayscale image, converting it to black and white. Pixels with intensity above the threshold value will be set to the max value (white), while those below will be set to 0 (black). This is useful for segmenting objects from the background.",
   },
   {
+    type: "imageconvertions_invertimage",
+    message0: "Invert image",
+    previousStatement: null,
+    nextStatement: null,
+    style: "conversions_style",
+    tooltip:
+      "Inverts all pixel values in the image - Applies a bitwise NOT to every pixel, replacing each value with 255 minus itself. Bright regions become dark, dark regions become bright, and colours shift to their complementary opposites. Useful for creating negative-style images or improving visibility of certain features before thresholding.",
+  },
+  {
     type: "imageconvertions_colormaps",
     message0: "Color map image with %1 filter",
     args0: [
