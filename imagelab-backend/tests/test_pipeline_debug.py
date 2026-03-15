@@ -62,6 +62,7 @@ def test_debug_frames_are_valid_base64_strings(client, png_b64):
 
 def test_debug_frames_differ_between_steps(client, png_b64):
     import base64
+
     import cv2
     import numpy as np
 
