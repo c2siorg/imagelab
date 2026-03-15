@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 import pytest
 
@@ -128,6 +129,24 @@ class TestColorMaps:
     def test_output_is_uint8(self, grayscale_image):
         result = ColorMaps({}).compute(grayscale_image)
         assert result.dtype == np.uint8
+
+    def test_bgr_input_is_converted_to_grayscale_before_colormap(self, color_image):
+        result = ColorMaps({"type": "HOT"}).compute(color_image)
+        expected = cv2.applyColorMap(
+            cv2.cvtColor(color_image, cv2.COLOR_BGR2GRAY),
+            cv2.COLORMAP_HOT,
+        )
+
+        np.testing.assert_array_equal(result, expected)
+
+    def test_bgra_input_is_converted_to_grayscale_before_colormap(self, rgba_image):
+        result = ColorMaps({"type": "HOT"}).compute(rgba_image)
+        expected = cv2.applyColorMap(
+            cv2.cvtColor(rgba_image, cv2.COLOR_BGRA2GRAY),
+            cv2.COLORMAP_HOT,
+        )
+
+        np.testing.assert_array_equal(result, expected)
 
 
 # ChannelSplit
