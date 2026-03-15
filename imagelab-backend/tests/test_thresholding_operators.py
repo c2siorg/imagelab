@@ -2,8 +2,26 @@ import numpy as np
 import pytest
 
 from app.operators.thresholding.adaptive_threshold import AdaptiveThreshold
+from app.operators.thresholding.apply_borders import ApplyBorders
 from app.operators.thresholding.apply_threshold import ApplyThreshold
 from app.operators.thresholding.otsu_threshold import OtsuThreshold
+
+
+class TestApplyBorders:
+    def test_negative_border_all_sides_is_clamped_to_zero(self, color_image):
+        result = ApplyBorders({"border_all_sides": -5}).compute(color_image)
+        np.testing.assert_array_equal(result, color_image)
+
+    def test_negative_individual_borders_are_clamped_to_zero(self, color_image):
+        result = ApplyBorders(
+            {
+                "borderTop": -4,
+                "borderBottom": -3,
+                "borderLeft": -2,
+                "borderRight": -1,
+            }
+        ).compute(color_image)
+        np.testing.assert_array_equal(result, color_image)
 
 
 class TestApplyThreshold:

@@ -5,9 +5,10 @@ from app.operators.base import BaseOperator
 
 
 class ApplyBorders(BaseOperator):
-    _BORDER_TYPE_MAP: dict[str, int] = {
+    _BORDER_TYPE_MAP = {
         "CONSTANT": cv2.BORDER_CONSTANT,
-        "REFLECT": cv2.BORDER_REFLECT_101,
+        "REFLECT": cv2.BORDER_REFLECT,
+        "REFLECT_101": cv2.BORDER_REFLECT_101,
         "REPLICATE": cv2.BORDER_REPLICATE,
         "WRAP": cv2.BORDER_WRAP,
     }
@@ -34,6 +35,5 @@ class ApplyBorders(BaseOperator):
                 f"Unknown border type '{border_type_str}'. Valid options: {list(self._BORDER_TYPE_MAP.keys())}"
             )
         border_type = self._BORDER_TYPE_MAP[border_type_str]
-
         kwargs = {"value": [0, 0, 0]} if border_type == cv2.BORDER_CONSTANT else {}
         return cv2.copyMakeBorder(image, top, bottom, left, right, border_type, **kwargs)
