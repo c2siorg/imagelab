@@ -96,15 +96,17 @@ export const geometricBlocks = [
   },
   {
     type: "geometric_affineimage",
-    message0: "Apply affine transformation | translate x %1 y %2",
-    args0: [
-      { type: "field_number", name: "tx", value: 50 },
-      { type: "field_number", name: "ty", value: 100 },
+    message0: "Apply affine transformation %1",
+    args0: [{ type: "input_dummy" }],
+    message1: "translate x %1 y %2",
+    args1: [
+      { type: "field_number", name: "tx", value: 50, min: -10000, max: 10000, precision: 1 },
+      { type: "field_number", name: "ty", value: 100, min: -10000, max: 10000, precision: 1 },
     ],
     previousStatement: null,
     nextStatement: null,
     style: "geometric_style",
     tooltip:
-      "Applies an affine transformation to the image - Translates the image by the specified number of pixels along the X and Y axes. Positive tx shifts the image right; positive ty shifts it down. Pixels shifted outside the image boundary are filled with black.",
+      "Applies a 2×3 affine transformation matrix to warp the image. Currently exposes translation (tx, ty); the underlying transform supports rotation, scaling, and shearing. Positive tx shifts the image right; positive ty shifts it down. Pixels shifted outside the image boundary are filled with black.",
   },
 ];
