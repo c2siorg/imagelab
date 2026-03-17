@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 import pytest
 
@@ -5,6 +6,7 @@ from app.operators.filtering.bilateral_filter import BilateralFilter
 from app.operators.filtering.box_filter import BoxFilter
 from app.operators.filtering.dilation import Dilation
 from app.operators.filtering.erosion import Erosion
+from app.operators.filtering.gabor_filter import GaborFilter
 from app.operators.filtering.morphological import Morphological
 from app.operators.filtering.pyramid_down import PyramidDown
 from app.operators.filtering.pyramid_up import PyramidUp
@@ -225,3 +227,48 @@ class TestPyramidDown:
     def test_output_is_uint8(self, color_image):
         result = PyramidDown({}).compute(color_image)
         assert result.dtype == np.uint8
+
+
+# GaborFilter
+
+
+class TestGaborFilter:
+    def test_uses_lambda_underscore_key(self, color_image, monkeypatch):
+        captured = {}
+
+        def fake_get_gabor_kernel(ksize, sigma, theta, lambd, gamma, psi=0, ktype=cv2.CV_32F):
+            captured["lambda"] = lambd
+            return np.ones(ksize, dtype=np.float32)
+
+        monkeypatch.setattr(cv2, "getGaborKernel", fake_get_gabor_kernel)
+
+        result = GaborFilter({"lambda_": 2.0}).compute(color_image)
+
+        assert result.shape == color_image.shape
+        assert captured["lambda"] == 2.0
+
+    def test_legacy_lambda_key_still_supported(self, color_image, monkeypatch):
+        captured = {}
+
+        def fake_get_gabor_kernel(ksize, sigma, theta, lambd, gamma, psi=0, ktype=cv2.CV_32F):
+            captured["lambda"] = lambd
+            return np.ones(ksize, dtype=np.float32)
+
+        monkeypatch.setattr(cv2, "getGaborKernel", fake_get_gabor_kernel)
+
+        GaborFilter({"lambda": 7.5}).compute(color_image)
+
+        assert captured["lambda"] == 7.5
+
+    def test_default_lambda_when_missing(self, color_image, monkeypatch):
+        captured = {}
+
+        def fake_get_gabor_kernel(ksize, sigma, theta, lambd, gamma, psi=0, ktype=cv2.CV_32F):
+            captured["lambda"] = lambd
+            return np.ones(ksize, dtype=np.float32)
+
+        monkeypatch.setattr(cv2, "getGaborKernel", fake_get_gabor_kernel)
+
+        GaborFilter({}).compute(color_image)
+
+        assert captured["lambda"] == 10.0
