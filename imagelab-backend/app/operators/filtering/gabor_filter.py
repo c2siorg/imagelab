@@ -12,7 +12,7 @@ class GaborFilter(BaseOperator):
         kernel_size = int(self.params.get("kernelSize", 21))
         sigma = max(0.1, float(self.params.get("sigma", 5.0)))
         theta = float(self.params.get("theta", 0.0))
-        lambda_ = max(1.0, float(self.params.get("lambda", 10.0)))
+        lambda_ = max(1.0, float(self.params.get("lambda_", 10.0)))
         gamma = max(0.01, float(self.params.get("gamma", 0.5)))
 
         kernel_size = max(1, min(kernel_size, MAX_KERNEL_SIZE))
