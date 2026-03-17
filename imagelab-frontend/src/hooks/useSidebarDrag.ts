@@ -20,11 +20,7 @@ interface UseSidebarDragOptions {
   previewDataUrl?: string;
 }
 
-export function isOverWorkspace(
-  rect: DOMRect,
-  clientX: number,
-  clientY: number,
-): boolean {
+export function isOverWorkspace(rect: DOMRect, clientX: number, clientY: number): boolean {
   return (
     clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom
   );
@@ -57,7 +53,7 @@ export function useSidebarDrag({ type, label, workspace, previewDataUrl }: UseSi
       block.moveTo(wsCoords);
       return block;
     },
-    [type]
+    [type],
   );
 
   const abortBlocklyDrag = useCallback((isSuccess = false) => {
@@ -199,7 +195,11 @@ export function useSidebarDrag({ type, label, workspace, previewDataUrl }: UseSi
             console.error("[useSidebarDrag] endDrag failure:", err);
             // Fallback: if endDrag fails, ensure block is cleaned if not committed
             if (blocklyBlockRef.current) {
-              try { blocklyBlockRef.current.dispose(false); } catch { /* ignore */ }
+              try {
+                blocklyBlockRef.current.dispose(false);
+              } catch {
+                /* ignore */
+              }
             }
           } finally {
             // Success flag for abortBlocklyDrag to clear remaining refs
