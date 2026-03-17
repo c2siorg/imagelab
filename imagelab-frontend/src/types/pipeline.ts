@@ -9,6 +9,12 @@ export interface PipelineRequest {
   pipeline: PipelineStep[];
 }
 
+export interface PipelineExportRequest {
+  pipeline: PipelineStep[];
+  input_path?: string;
+  output_path?: string;
+}
+
 export interface StepTiming {
   step: number;
   operator_type: string;
