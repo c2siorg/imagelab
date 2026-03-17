@@ -16,6 +16,7 @@ export default function Navbar({ isDark, onToggleDark }: NavbarProps) {
         <button
           type="button"
           onClick={onToggleDark}
+          aria-pressed={isDark}
           title={isDark ? "Switch to light mode" : "Switch to dark mode"}
           aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
           className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors"
