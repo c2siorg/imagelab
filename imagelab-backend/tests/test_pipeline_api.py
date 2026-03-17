@@ -1,4 +1,5 @@
 EXECUTE_URL = "/api/pipeline/execute"
+EXPORT_PYTHON_URL = "/api/pipeline/export/python"
 
 GRAY_STEP = {"type": "imageconvertions_grayimage", "params": {}}
 BINARY_STEP = {"type": "imageconvertions_graytobinary", "params": {"thresholdValue": 127, "maxValue": 255}}
@@ -82,3 +83,37 @@ def test_error_response_has_step(client, png_b64):
     data = r.json()
     assert data["success"] is False
     assert isinstance(data["step"], int)
+
+
+def test_export_python_script(client):
+    r = client.post(
+        EXPORT_PYTHON_URL,
+        json={
+            "pipeline": [
+                {"type": "basic_readimage", "params": {}},
+                {"type": "imageconvertions_grayimage", "params": {}},
+                {"type": "basic_writeimage", "params": {}},
+            ],
+            "input_path": "examples/input.png",
+            "output_path": "examples/output.png",
+        },
+    )
+
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("text/plain")
+    assert "import cv2" in r.text
+    assert "DEFAULT_INPUT_PATH = 'examples/input.png'" in r.text
+    assert "DEFAULT_OUTPUT_PATH = 'examples/output.png'" in r.text
+    assert "# 2. GrayImage" in r.text
+
+
+def test_export_python_rejects_unknown_operator(client):
+    r = client.post(
+        EXPORT_PYTHON_URL,
+        json={
+            "pipeline": [{"type": "not_a_real_operator", "params": {}}],
+        },
+    )
+
+    assert r.status_code == 400
+    assert r.json()["detail"] == "Unknown operator 'not_a_real_operator' at step 1"

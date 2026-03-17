@@ -1,15 +1,21 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class PipelineStep(BaseModel):
     type: str
-    params: dict = {}
+    params: dict = Field(default_factory=dict)
 
 
 class PipelineRequest(BaseModel):
     image: str
     image_format: str = "png"
     pipeline: list[PipelineStep]
+
+
+class PipelineExportRequest(BaseModel):
+    pipeline: list[PipelineStep]
+    input_path: str = "input.png"
+    output_path: str = "output.png"
 
 
 class StepTiming(BaseModel):
