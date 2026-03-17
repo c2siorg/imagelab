@@ -1,3 +1,5 @@
+import logging
+
 import cv2
 import numpy as np
 
@@ -6,13 +8,22 @@ from app.operators.base import BaseOperator
 MAX_KERNEL_SIZE = 31
 MAX_PROCESSING_DIM = 800
 
+logger = logging.getLogger(__name__)
+
 
 class GaborFilter(BaseOperator):
     def compute(self, image: np.ndarray) -> np.ndarray:
         kernel_size = int(self.params.get("kernelSize", 21))
         sigma = max(0.1, float(self.params.get("sigma", 5.0)))
         theta = float(self.params.get("theta", 0.0))
-        lambda_ = max(1.0, float(self.params.get("lambda_", 10.0)))
+        # Canonical key is "lambda_" from Blockly; keep "lambda" for legacy payloads.
+        raw_lambda = self.params.get("lambda_")
+        if raw_lambda is None and "lambda" in self.params:
+            logger.warning("Deprecated Gabor parameter key 'lambda' received; use 'lambda_' instead.")
+            raw_lambda = self.params.get("lambda")
+        if raw_lambda is None:
+            raw_lambda = 10.0
+        lambda_ = max(1.0, float(raw_lambda))
         gamma = max(0.01, float(self.params.get("gamma", 0.5)))
 
         kernel_size = max(1, min(kernel_size, MAX_KERNEL_SIZE))
