@@ -8,10 +8,10 @@ import { useSidebarDrag } from "../../src/hooks/useSidebarDrag";
 import { isSingletonBlockPresent } from "../../src/utils/blockLimits";
 
 if (typeof PointerEvent === "undefined") {
-  (global as any).PointerEvent = class PointerEvent extends MouseEvent {
+  (globalThis as unknown as { PointerEvent: typeof PointerEvent }).PointerEvent = class PointerEvent extends MouseEvent {
     pointerId: number;
     pointerType: string;
-    constructor(type: string, params: any = {}) {
+    constructor(type: string, params: PointerEventInit & { pointerId?: number; pointerType?: string } = {}) {
       super(type, params);
       this.pointerId = params.pointerId || 0;
       this.pointerType = params.pointerType || "mouse";
@@ -22,7 +22,7 @@ if (typeof PointerEvent === "undefined") {
 vi.mock("blockly", () => {
   return {
     utils: {
-      Coordinate: function (this: any, x: number, y: number) {
+      Coordinate: function (this: { x: number; y: number }, x: number, y: number) {
         this.x = x;
         this.y = y;
       },
@@ -43,8 +43,21 @@ vi.mock("../../src/utils/blockLimits", () => ({
 }));
 
 describe("useSidebarDrag", () => {
-  let mockBlock: any;
-  let mockWorkspace: any;
+  let mockBlock: {
+    initSvg: ReturnType<typeof vi.fn>;
+    render: ReturnType<typeof vi.fn>;
+    moveTo: ReturnType<typeof vi.fn>;
+    startDrag: ReturnType<typeof vi.fn>;
+    drag: ReturnType<typeof vi.fn>;
+    endDrag: ReturnType<typeof vi.fn>;
+    revertDrag: ReturnType<typeof vi.fn>;
+    dispose: ReturnType<typeof vi.fn>;
+  };
+  let mockWorkspace: {
+    getParentSvg: ReturnType<typeof vi.fn>;
+    newBlock: ReturnType<typeof vi.fn>;
+    getBlocksByType: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -88,13 +101,9 @@ describe("useSidebarDrag", () => {
     vi.useRealTimers();
   });
 
-  const triggerMouseDown = (onMouseDown: any, clientX = 10, clientY = 10) => {
+  const triggerMouseDown = (onMouseDown: (event: MouseEvent) => void, clientX = 10, clientY = 10) => {
     act(() => {
-      onMouseDown({
-        button: 0,
-        clientX,
-        clientY,
-      } as any);
+      onMouseDown(new MouseEvent("mousedown", { button: 0, clientX, clientY }));
     });
   };
 
