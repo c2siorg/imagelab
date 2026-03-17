@@ -14,6 +14,14 @@ import {
 } from "./workspacePersistence";
 
 const SAVE_DEBOUNCE_MS = 500;
+
+const SNAP_RADIUS = 48;
+const CONNECTING_SNAP_RADIUS = 68;
+
+// Apply global Blockly configuration once at module load
+Blockly.config.snapRadius = SNAP_RADIUS;
+Blockly.config.connectingSnapRadius = CONNECTING_SNAP_RADIUS;
+
 const MUTATING_EVENTS = new Set<string>([
   Blockly.Events.BLOCK_CREATE,
   Blockly.Events.BLOCK_DELETE,
@@ -33,6 +41,9 @@ export function useBlocklyWorkspace() {
 
   const initWorkspace = useCallback(() => {
     if (!containerRef.current || workspaceRef.current) return;
+
+    Blockly.config.snapRadius = 48;
+    Blockly.config.connectingSnapRadius = 68;
 
     const ws = Blockly.inject(containerRef.current, {
       readOnly: false,

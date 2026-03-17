@@ -9,6 +9,7 @@ import { filteringBlocks } from "./filtering.blocks";
 import { thresholdingBlocks } from "./thresholding.blocks";
 import { sobelDerivativesBlocks } from "./sobel-derivatives.blocks";
 import { transformationBlocks } from "./transformation.blocks";
+import { augmentationBlocks } from "./augmentation.blocks";
 import { segmentationBlocks } from "./segmentation.blocks";
 
 function registerOddKernelValidator() {
@@ -46,6 +47,7 @@ export function registerAllBlocks() {
     ...thresholdingBlocks,
     ...sobelDerivativesBlocks,
     ...transformationBlocks,
+    ...augmentationBlocks,
     ...segmentationBlocks,
   ]);
 }

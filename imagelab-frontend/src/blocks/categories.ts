@@ -54,6 +54,15 @@ export const categories: CategoryInfo[] = [
     ],
   },
   {
+    name: "Augmentation",
+    icon: "Zap",
+    colour: "#F48FB1",
+    blocks: [
+      { type: "augmentation_gaussiannoise", label: "Gaussian Noise" },
+      { type: "augmentation_saltpeppernoise", label: "Salt & Pepper Noise" },
+    ],
+  },
+  {
     name: "Drawing",
     icon: "Pencil",
     colour: "#BA68C8",
