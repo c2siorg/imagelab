@@ -151,4 +151,20 @@ describe("extractPipeline", () => {
     expect(pipeline).toHaveLength(2);
     expect(pipeline[1].params).toEqual({});
   });
+
+  it("preserves lambda_ key for gabor filter params", () => {
+    const gabor = block("filtering_gaborfilter", [
+      input([field("lambda_", 2.0), field("sigma", 5.0), field("gamma", 0.5)]),
+    ]);
+    const read = block("basic_readimage", [input([field("filename_label", "x.png")])], gabor);
+
+    const pipeline = extractPipeline(ws(workspace([read])));
+
+    expect(pipeline[1].type).toBe("filtering_gaborfilter");
+    expect(pipeline[1].params).toMatchObject({
+      lambda_: 2.0,
+      sigma: 5.0,
+      gamma: 0.5,
+    });
+  });
 });
