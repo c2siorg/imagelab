@@ -2,9 +2,10 @@ import { useState } from "react";
 import * as Blockly from "blockly";
 import { FilePlus, Download, Undo2, Redo2, Play, Loader2, Share2 } from "lucide-react";
 import { usePipelineStore } from "../store/pipelineStore";
-import { executePipeline } from "../api/pipeline";
+import { executePipeline, exportPipelineAsPython } from "../api/pipeline";
 import { extractPipeline } from "../hooks/usePipeline";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
+import { downloadTextFile } from "../utils/downloadTextFile";
 import SharePipelineModal from "./SharePipelineModal";
 
 interface ToolbarProps {
@@ -53,6 +54,24 @@ export default function Toolbar({ workspace }: ToolbarProps) {
 
   const handleUndo = () => workspace?.undo(false);
   const handleRedo = () => workspace?.undo(true);
+
+  const handleExportPython = async () => {
+    if (!workspace) return;
+
+    const pipeline = extractPipeline(workspace);
+    if (pipeline.length === 0) {
+      setError('No pipeline found. Add a "Read Image" block and connect operations.');
+      return;
+    }
+
+    try {
+      setError(null);
+      const script = await exportPipelineAsPython({ pipeline });
+      downloadTextFile("imagelab_pipeline.py", script, "text/x-python;charset=utf-8");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to export Python script");
+    }
+  };
 
   const handleRun = async () => {
     if (!workspace || !originalImage) return;
@@ -115,6 +134,14 @@ export default function Toolbar({ workspace }: ToolbarProps) {
           title={`Download (${mod}S)`}
         >
           <Download size={18} />
+        </button>
+        <button
+          onClick={handleExportPython}
+          disabled={!workspace}
+          className="px-2.5 py-1.5 rounded text-xs font-medium hover:bg-gray-100 text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          title="Export Python Script"
+        >
+          Export .py
         </button>
 
         <div className={separator} />
