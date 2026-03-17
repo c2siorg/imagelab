@@ -43,8 +43,8 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
             t_fail = time.perf_counter()
             return PipelineResponse(
                 success=False,
-                error=f"Unknown operator '{step.type}' at step {i + 1}",
-                step=i + 1,
+                error=f"Unknown operator '{step.type}' at step {i}",
+                step=i,
                 timings=PipelineTimings(total_ms=(t_fail - t_start_total) * 1000, steps=step_timings),
             )
 
@@ -60,8 +60,8 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
             t_fail = time.perf_counter()
             return PipelineResponse(
                 success=False,
-                error=f"Error in step {i + 1} ({step.type}): {type(e).__name__}: {e}",
-                step=i + 1,
+                error=f"Error in step {i} ({step.type}): {type(e).__name__}: {e}",
+                step=i,
                 timings=PipelineTimings(total_ms=(t_fail - t_start_total) * 1000, steps=step_timings),
             )
 
