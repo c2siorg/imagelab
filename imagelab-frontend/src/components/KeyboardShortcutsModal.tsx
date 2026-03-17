@@ -1,4 +1,5 @@
 import { X, Keyboard } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 interface KeyboardShortcutsModalProps {
   onClose: () => void;
@@ -33,24 +34,49 @@ const SHORTCUTS = [
 ];
 
 export default function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    dialogRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
       onClick={onClose}
-      role="presentation"
+      role="none"
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Keyboard Shortcuts"
-        className="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden"
+        aria-labelledby="shortcuts-modal-title"
+        tabIndex={-1}
+        className="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
           <div className="flex items-center gap-2">
             <Keyboard size={16} className="text-gray-500" />
-            <h2 className="text-sm font-semibold text-gray-800">Keyboard Shortcuts</h2>
+            <h2 id="shortcuts-modal-title" className="text-sm font-semibold text-gray-800">
+              Keyboard Shortcuts
+            </h2>
           </div>
           <button
             type="button"
@@ -63,7 +89,6 @@ export default function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsMod
           </button>
         </div>
 
-        {/* Shortcuts list */}
         <div className="p-5 space-y-5">
           {SHORTCUTS.map((group) => (
             <div key={group.category}>

@@ -95,8 +95,15 @@ export default function Toolbar({ workspace }: ToolbarProps) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "?" && e.shiftKey && !e.ctrlKey && !e.metaKey) {
+        const target = e.target as HTMLElement;
+        const isEditable =
+          target instanceof HTMLInputElement ||
+          target instanceof HTMLTextAreaElement ||
+          target instanceof HTMLSelectElement ||
+          target.isContentEditable;
+        if (isEditable) return;
         e.preventDefault();
-        setShowShortcutsModal((prev) => !prev);
+        setShowShortcutsModal(true);
       }
     };
     window.addEventListener("keydown", handler);
