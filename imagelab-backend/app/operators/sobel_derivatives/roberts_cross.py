@@ -12,12 +12,36 @@ class RobertsCross(BaseOperator):
     """Applies the Roberts Cross operator to detect edges using diagonal gradients."""
 
     def compute(self, image: np.ndarray) -> np.ndarray:
-        if image.dtype != np.uint8:
-            raise ValueError(f"RobertsCross expects a uint8 image, got dtype={image.dtype}.")
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
+        """Apply the Roberts Cross edge-detection operator.
 
-        grad_x = cv2.filter2D(gray, cv2.CV_64F, _KERNEL_X)
-        grad_y = cv2.filter2D(gray, cv2.CV_64F, _KERNEL_Y)
+        Args:
+            image: uint8 ndarray of shape (H, W), (H, W, 1), (H, W, 3), or (H, W, 4).
+                   Colour images are converted to grayscale before processing.
+                   Non-uint8 images are normalised to uint8 before processing.
+
+        Returns:
+            uint8 ndarray of shape (H, W) containing gradient magnitudes
+            clipped to [0, 255].
+        """
+        if image.dtype != np.uint8:
+            norm = cv2.normalize(image, None, 0, 255, cv2.NORM_MINMAX)
+            image = norm.astype(np.uint8)
+
+        if image.ndim == 3:
+            c = image.shape[2]
+            if c == 1:
+                gray = image[:, :, 0]
+            elif c == 3:
+                gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            elif c == 4:
+                gray = cv2.cvtColor(image, cv2.COLOR_BGRA2GRAY)
+            else:
+                raise ValueError(f"RobertsCross: unsupported channel count {c}.")
+        else:
+            gray = image
+
+        grad_x = cv2.filter2D(gray, cv2.CV_64F, _KERNEL_X, anchor=(0, 0))
+        grad_y = cv2.filter2D(gray, cv2.CV_64F, _KERNEL_Y, anchor=(0, 0))
 
         magnitude = np.sqrt(grad_x**2 + grad_y**2)
         return np.clip(magnitude, 0, 255).astype(np.uint8)
