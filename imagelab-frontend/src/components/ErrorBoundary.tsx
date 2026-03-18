@@ -58,7 +58,7 @@ export class ErrorBoundary extends Component<Props, State> {
               className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors focus:ring-4 focus:ring-blue-500/20"
             >
               <RefreshCw className="w-4 h-4" />
-              Reload Application
+              Reset Editor
             </button>
           </div>
         </div>

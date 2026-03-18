@@ -1,5 +1,19 @@
 export const conversionsBlocks = [
   {
+    type: "imageconvertions_clahe",
+    message0: "Apply CLAHE with clip limit %1 and tile grid size x: %2 y: %3",
+    args0: [
+      { type: "field_number", name: "clipLimit", value: 2.0, min: 0, max: 40 },
+      { type: "field_number", name: "tileGridSizeX", value: 8, min: 1, max: 64, precision: 1 },
+      { type: "field_number", name: "tileGridSizeY", value: 8, min: 1, max: 64, precision: 1 },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "conversions_style",
+    tooltip:
+      "Applies CLAHE (Contrast Limited Adaptive Histogram Equalization) to enhance local contrast in an image. The 'clipLimit' controls the amount of contrast enhancement, and 'tileGridSizeX' and 'tileGridSizeY' define the grid size for local histogram equalization.",
+  },
+  {
     type: "imageconvertions_grayimage",
     message0: "Gray the image",
     previousStatement: null,
@@ -39,6 +53,15 @@ export const conversionsBlocks = [
     style: "conversions_style",
     tooltip:
       "Converts grayscale to binary using threshold - Applies a binary threshold to a grayscale image, converting it to black and white. Pixels with intensity above the threshold value will be set to the max value (white), while those below will be set to 0 (black). This is useful for segmenting objects from the background.",
+  },
+  {
+    type: "imageconvertions_invertimage",
+    message0: "Invert image",
+    previousStatement: null,
+    nextStatement: null,
+    style: "conversions_style",
+    tooltip:
+      "Inverts all pixel values in the image - Applies a bitwise NOT to every pixel, replacing each value with 255 minus itself. Bright regions become dark, dark regions become bright, and colours shift to their complementary opposites. Useful for creating negative-style images or improving visibility of certain features before thresholding.",
   },
   {
     type: "imageconvertions_colormaps",

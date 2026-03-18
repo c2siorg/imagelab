@@ -1,11 +1,13 @@
 import { useState } from "react";
 import * as Blockly from "blockly";
 import { FilePlus, Download, Undo2, Redo2, Play, Loader2, Layout } from "lucide-react";
+import { FilePlus, Download, Undo2, Redo2, Play, Loader2, Share2 } from "lucide-react";
 import { usePipelineStore } from "../store/pipelineStore";
 import { executePipeline } from "../api/pipeline";
 import { extractPipeline } from "../hooks/usePipeline";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import WorkspaceModal from "./WorkspaceModal";
+import SharePipelineModal from "./SharePipelineModal";
 
 interface ToolbarProps {
   workspace: Blockly.WorkspaceSvg | null;
@@ -34,6 +36,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
   } = usePipelineStore();
 
   const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const handleNew = () => {
     if (!window.confirm("This will clear all blocks and the uploaded image. Continue?")) {
@@ -74,6 +77,8 @@ export default function Toolbar({ workspace }: ToolbarProps) {
         pipeline,
       });
 
+      setTiming(response.timings ?? null);
+
       if (response.success && response.image) {
         setProcessedImage(response.image);
         setTiming(response.timings ?? null);
@@ -82,6 +87,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network error");
+      setTiming(null);
     } finally {
       setExecuting(false);
     }
@@ -134,6 +140,12 @@ export default function Toolbar({ workspace }: ToolbarProps) {
         >
           <Layout size={18} />
           <span className="text-sm font-medium">Workspace</span>
+          onClick={() => setShowShareModal(true)}
+          disabled={!workspace}
+          className={iconBtn}
+          title="Share Pipeline"
+        >
+          <Share2 size={18} />
         </button>
 
         <div className={separator} />
@@ -157,6 +169,17 @@ export default function Toolbar({ workspace }: ToolbarProps) {
             <div className="flex flex-col items-end leading-tight">
               <span className="font-semibold text-xs text-gray-700">
                 {blockCount} {blockCount === 1 ? "block" : "blocks"}
+              </span>
+              <span
+                className={`text-[10px] uppercase font-bold tracking-wide ${
+                  complexity === "High"
+                    ? "text-red-500"
+                    : complexity === "Medium"
+                      ? "text-orange-500"
+                      : "text-green-500"
+                }`}
+              >
+                {complexity} Complexity
               </span>
               <span
                 className={`text-[10px] uppercase font-bold tracking-wide ${
@@ -197,12 +220,41 @@ export default function Toolbar({ workspace }: ToolbarProps) {
                 </span>
               </div>
             </div>
+
+            <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-xl p-3 z-50 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200">
+              <div className="font-semibold text-xs text-gray-800 mb-2 border-b border-gray-100 pb-1.5 uppercase tracking-wider">
+                Block Breakdown
+              </div>
+              <div className="space-y-1.5">
+                {Object.entries(categoryCounts)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([cat, count]) => (
+                    <div
+                      key={cat}
+                      className="flex justify-between items-center text-xs text-gray-600"
+                    >
+                      <span className="truncate pr-2">{cat}</span>
+                      <span className="font-medium bg-gray-100 px-1.5 py-0.5 rounded text-[10px]">
+                        {count}
+                      </span>
+                    </div>
+                  ))}
+              </div>
+              <div className="mt-2.5 pt-2 border-t border-gray-100 flex justify-between items-center text-gray-500 text-[10px] uppercase">
+                <span>Unique Types</span>
+                <span className="font-bold text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded">
+                  {uniqueBlockTypes}
+                </span>
+              </div>
+            </div>
           </div>
         )}
       </div>
 
       {showWorkspaceModal && (
         <WorkspaceModal workspace={workspace} onClose={() => setShowWorkspaceModal(false)} />
+      {showShareModal && (
+        <SharePipelineModal workspace={workspace} onClose={() => setShowShareModal(false)} />
       )}
     </>
   );

@@ -83,7 +83,7 @@ export const filteringBlocks = [
   },
   {
     type: "filtering_morphological",
-    message0: "Apply morphological with %1 filter",
+    message0: "Apply morphological with %1 filter kernel size %2",
     args0: [
       {
         type: "field_dropdown",
@@ -96,12 +96,14 @@ export const filteringBlocks = [
           ["Open", "OPEN"],
         ],
       },
+      { type: "field_number", name: "kernelSize", value: 5, min: 1, max: 99, precision: 1 },
     ],
     previousStatement: null,
     nextStatement: null,
     style: "filtering_style",
+    extensions: ["odd_kernel_validator"],
     tooltip:
-      "Applies morphological operation - Performs various morphological transformations based on the selected filter type. 'Open' removes small objects from the foreground, 'Close' fills small holes in the foreground, 'Gradient' highlights the edges of objects, 'Tophat' extracts small elements and details from the image, and 'Black hat' extracts small dark regions on a light background. These operations are useful for enhancing or suppressing specific features in an image.",
+      "Applies morphological operation - Performs various morphological transformations based on the selected filter type. 'Open' removes small objects from the foreground, 'Close' fills small holes in the foreground, 'Gradient' highlights the edges of objects, 'Tophat' extracts small elements and details from the image, and 'Black hat' extracts small dark regions on a light background. Kernel size must be a positive odd integer and controls how strongly structures are affected. Even values are automatically rounded up to the nearest odd number.",
   },
   {
     type: "filtering_sharpen",
@@ -111,5 +113,58 @@ export const filteringBlocks = [
     nextStatement: null,
     style: "filtering_style",
     tooltip: "Applies image sharpening to enhance edges and details",
+  },
+  {
+    type: "filtering_gaborfilter",
+    message0:
+      "Apply Gabor filter %1 kernel size %2 %3 sigma %4 %5 theta (deg) %6 %7 lambda %8 %9 gamma %10",
+    args0: [
+      { type: "input_dummy" },
+      { type: "field_number", name: "kernelSize", value: 21, min: 1, precision: 1 },
+      { type: "input_dummy" },
+      { type: "field_number", name: "sigma", value: 5.0, min: 0.1, precision: 0.1 },
+      { type: "input_dummy" },
+      { type: "field_number", name: "theta", value: 0, min: 0, max: 180, precision: 1 },
+      { type: "input_dummy" },
+      { type: "field_number", name: "lambda_", value: 10.0, min: 1.0, precision: 0.5 },
+      { type: "input_dummy" },
+      { type: "field_number", name: "gamma", value: 0.5, min: 0.1, max: 1.0, precision: 0.1 },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "filtering_style",
+    tooltip:
+      "Apply Gabor filter for texture detection - A Gabor filter is a Gaussian kernel modulated by a sinusoidal wave, making it highly sensitive to edges and textures at a specific orientation and frequency. 'Kernel size' controls the filter window (odd numbers only). 'Sigma' sets the width of the Gaussian envelope. 'Theta' (0–180°) selects the orientation — 0° targets horizontal edges, 90° targets vertical. 'Lambda' controls the texture frequency scale (higher = coarser textures). 'Gamma' adjusts the filter's aspect ratio. Useful for wood grain, fabric, fingerprint, and surface texture analysis.",
+  },
+  {
+    type: "filtering_contourdetection",
+    message0: "Draw Contours with mode %1 %2 method %3 %4 color %5 %6 thickness %7",
+    args0: [
+      {
+        type: "field_dropdown",
+        name: "mode",
+        options: [
+          ["External", "EXTERNAL"],
+          ["Tree", "TREE"],
+        ],
+      },
+      { type: "input_dummy" },
+      {
+        type: "field_dropdown",
+        name: "method",
+        options: [
+          ["Simple", "SIMPLE"],
+          ["None", "NONE"],
+        ],
+      },
+      { type: "input_dummy" },
+      { type: "field_colour", name: "rgbcolors_input", colour: "#00ff00" },
+      { type: "input_dummy" },
+      { type: "field_number", name: "thickness", value: 2, min: 1, max: 50 },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "filtering_style",
+    tooltip: "Detects contours on an image and renders them over the original graphic.",
   },
 ];
