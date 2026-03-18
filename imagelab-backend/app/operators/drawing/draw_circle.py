@@ -1,10 +1,10 @@
-import cv2
+﻿import cv2
 import numpy as np
-
+                          ← blank line here
 from app.operators.base import BaseOperator
 from app.utils.color import hex_to_bgr
-
-
+                          ← blank line here
+                          ← blank line here
 class DrawCircle(BaseOperator):
     def compute(self, image: np.ndarray) -> np.ndarray:
         result = image.copy()
@@ -15,3 +15,4 @@ class DrawCircle(BaseOperator):
         cy = int(self.params.get("center_point_y", 0))
         cv2.circle(result, (cx, cy), radius, color, thickness)
         return result
+                          ← blank line here (at end of file)
