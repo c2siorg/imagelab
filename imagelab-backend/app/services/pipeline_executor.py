@@ -33,9 +33,7 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
             operator = operator_cls(step.params)
             image = operator.compute(image)
             t1 = time.perf_counter()
-            step_timings.append(
-                StepTiming(step=i, type=step.type, duration_ms=(t1 - t0) * 1000)
-            )
+            step_timings.append(StepTiming(step=i, type=step.type, duration_ms=(t1 - t0) * 1000))
         except Exception as e:
             return PipelineResponse(
                 success=False,
