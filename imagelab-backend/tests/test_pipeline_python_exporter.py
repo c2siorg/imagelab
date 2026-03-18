@@ -33,6 +33,6 @@ def test_export_pipeline_to_python_rejects_unknown_operator():
     try:
         export_pipeline_to_python(request)
     except ValueError as exc:
-        assert "Unknown operator 'not_a_real_operator' at step 1" == str(exc)
+        assert str(exc) == "Unknown operator 'not_a_real_operator' at step 1"
     else:
         raise AssertionError("Expected exporter to reject unknown operators")
