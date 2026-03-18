@@ -1,5 +1,6 @@
 from app.operators.augmentation.gaussian_noise import GaussianNoise
 from app.operators.augmentation.salt_pepper_noise import SaltPepperNoise
+from app.operators.augmentation.sepia_filter import SepiaFilter
 from app.operators.base import BaseOperator
 from app.operators.basic.read_image import ReadImage
 from app.operators.basic.write_image import WriteImage
@@ -101,6 +102,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     # Augmentation
     "augmentation_gaussiannoise": GaussianNoise,
     "augmentation_saltpeppernoise": SaltPepperNoise,
+    "augmentation_sepiafilter": SepiaFilter,
     "filtering_gaborfilter": GaborFilter,
     "filtering_contourdetection": ContourDetection,
     # Thresholding

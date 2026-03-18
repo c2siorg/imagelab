@@ -34,4 +34,24 @@ export const augmentationBlocks = [
     tooltip:
       "Adds salt and pepper noise to the image - Randomly sets a proportion of pixels to either white (salt) or black (pepper), simulating corrupted pixels from transmission errors or faulty sensors. The density parameter (0–1) controls the fraction of affected pixels — for example, 0.05 means 5% of pixels are corrupted. Useful for teaching median blur as a denoising technique.",
   },
+  {
+    type: "augmentation_sepiafilter",
+    message0: "Apply Sepia Filter %1 Intensity %2",
+    args0: [
+      { type: "input_dummy" },
+      {
+        type: "field_number",
+        name: "intensity",
+        value: 1.0,
+        min: 0,
+        max: 1,
+        precision: 0.1,
+      },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "augmentation_style",
+    tooltip:
+      "Applies a sepia filter to the image - Transforms the image using a sepia color matrix to produce a warm, brownish vintage tone. The intensity parameter (0–1) controls the strength of the effect — 0 leaves the image unchanged and 1 applies the full sepia transformation. Useful for teaching color matrix transforms and blending operations.",
+  },
 ];
