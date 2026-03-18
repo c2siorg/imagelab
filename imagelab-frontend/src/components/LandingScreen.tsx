@@ -19,8 +19,7 @@ const ORBS = [
     left: "15%",
     width: "400px",
     height: "400px",
-    background:
-      "radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)",
+    background: "radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)",
     animation: "float1 8s ease-in-out infinite",
   },
   {
@@ -28,8 +27,7 @@ const ORBS = [
     right: "10%",
     width: "500px",
     height: "500px",
-    background:
-      "radial-gradient(circle, rgba(16,185,129,0.1) 0%, transparent 70%)",
+    background: "radial-gradient(circle, rgba(16,185,129,0.1) 0%, transparent 70%)",
     animation: "float2 10s ease-in-out infinite",
   },
   {
@@ -37,8 +35,7 @@ const ORBS = [
     right: "20%",
     width: "300px",
     height: "300px",
-    background:
-      "radial-gradient(circle, rgba(245,158,11,0.08) 0%, transparent 70%)",
+    background: "radial-gradient(circle, rgba(245,158,11,0.08) 0%, transparent 70%)",
     animation: "float1 12s ease-in-out infinite reverse",
   },
 ];
@@ -82,7 +79,6 @@ export function LandingScreen({ onStart }: LandingScreenProps) {
     return () => cancelAnimationFrame(raf1);
   }, []);
 
-
   useEffect(() => {
     const id = setTimeout(() => {
       buttonRef.current?.focus();
@@ -116,7 +112,6 @@ export function LandingScreen({ onStart }: LandingScreenProps) {
         position: "relative",
       }}
     >
-    
       <div role="status" aria-live="polite" className={styles.srOnly}>
         {transitioning ? "Loading workspace" : ""}
       </div>
@@ -161,7 +156,6 @@ export function LandingScreen({ onStart }: LandingScreenProps) {
             "opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
         }}
       >
-       
         <div
           style={{
             display: "flex",
@@ -188,7 +182,6 @@ export function LandingScreen({ onStart }: LandingScreenProps) {
           </span>
         </div>
 
-       
         <div
           style={{
             textAlign: "center",
@@ -237,15 +230,13 @@ export function LandingScreen({ onStart }: LandingScreenProps) {
           aria-hidden="true"
           style={{
             height: "1px",
-            background:
-              "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)",
+            background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)",
             margin: "1rem 0",
             animation: visible ? "fadeUp 0.6s 0.3s ease forwards" : "none",
             opacity: 0,
           }}
         />
 
-     
         <div
           style={{
             display: "flex",
