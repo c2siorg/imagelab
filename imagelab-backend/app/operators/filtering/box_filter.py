@@ -14,7 +14,7 @@ class BoxFilter(BaseOperator):
         return cv2.boxFilter(
             image,
             depth,
-            (height, width),
+            (width, height),  # OpenCV ksize convention: (width, height)
             anchor=(point_x, point_y),
             normalize=True,
             borderType=cv2.BORDER_DEFAULT,

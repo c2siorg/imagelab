@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 import pytest
 
@@ -74,6 +75,24 @@ class TestBoxFilter:
     def test_output_is_uint8(self, color_image):
         result = BoxFilter({"depth": -1}).compute(color_image)
         assert result.dtype == np.uint8
+
+    def test_asymmetric_kernel_uses_width_height_convention(self):
+        image = np.arange(75, dtype=np.uint8).reshape(5, 5, 3)
+        width, height = 1, 5
+
+        result = BoxFilter({"width": width, "height": height, "depth": -1}).compute(
+            image
+        )
+        expected = cv2.boxFilter(
+            image,
+            -1,
+            (width, height),
+            anchor=(-1, -1),
+            normalize=True,
+            borderType=cv2.BORDER_DEFAULT,
+        )
+
+        np.testing.assert_array_equal(result, expected)
 
 
 # Sharpen

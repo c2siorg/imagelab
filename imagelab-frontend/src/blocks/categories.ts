@@ -60,6 +60,7 @@ export const categories: CategoryInfo[] = [
     blocks: [
       { type: "augmentation_gaussiannoise", label: "Gaussian Noise" },
       { type: "augmentation_saltpeppernoise", label: "Salt & Pepper Noise" },
+      { type: "augmentation_sepiafilter", label: "Sepia Filter" },
     ],
   },
   {
