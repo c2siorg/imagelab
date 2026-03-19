@@ -75,7 +75,7 @@ export default function PreviewPane() {
             <ImageDisplay image={originalImage} format={imageFormat} zoomWidth={originalZoom} />
           ) : (
             <p className="text-sm text-gray-400 dark:text-gray-500">
-              Use the Read Image block to upload
+              Use the Read Image block to upload or capture
             </p>
           )}
         </div>

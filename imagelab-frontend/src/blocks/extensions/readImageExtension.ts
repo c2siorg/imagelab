@@ -1,6 +1,11 @@
 import * as Blockly from "blockly";
 import { usePipelineStore } from "../../store/pipelineStore";
 
+function setFilenameLabel(block: Blockly.Block, value: string) {
+  const label = block.getField("filename_label");
+  if (label) label.setValue(value);
+}
+
 function initReadImageBlock(block: Blockly.Block) {
   // Skip interactive setup in readOnly workspaces (e.g. sidebar previews)
   if (block.workspace.options?.readOnly) return;
@@ -21,9 +26,7 @@ function initReadImageBlock(block: Blockly.Block) {
       const dataUrl = reader.result as string;
       const base64 = dataUrl.split(",")[1];
       usePipelineStore.getState().setOriginalImage(base64, format);
-
-      const label = block.getField("filename_label");
-      if (label) label.setValue(file.name);
+      setFilenameLabel(block, file.name);
     };
     reader.readAsDataURL(file);
 
@@ -39,10 +42,23 @@ function initReadImageBlock(block: Blockly.Block) {
     });
   }
 
+  const cameraField = block.getField("camera_button");
+  if (cameraField) {
+    (cameraField as Blockly.FieldImage).setOnClickHandler(() => {
+      usePipelineStore.getState().openCameraModal(({ image, format, label }) => {
+        if (!block.workspace) {
+          return;
+        }
+
+        usePipelineStore.getState().setOriginalImage(image, format);
+        setFilenameLabel(block, label);
+      });
+    });
+  }
+
   // Register a reset callback when the image is cleared
   usePipelineStore.getState().registerImageReset(() => {
-    const label = block.getField("filename_label");
-    if (label) label.setValue("No image");
+    setFilenameLabel(block, "No image");
   });
 
   // Clean up on block disposal (deletion or workspace clear)

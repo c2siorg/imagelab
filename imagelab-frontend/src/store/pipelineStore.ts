@@ -13,6 +13,10 @@ interface PipelineState {
   selectedBlockType: string | null;
   selectedBlockTooltip: string | null;
   timings: PipelineTimings | null;
+  isCameraModalOpen: boolean;
+  cameraCaptureHandler:
+    | ((payload: { image: string; format: string; label: string }) => void)
+    | null;
 
   // Statistics
   blockCount: number;
@@ -25,6 +29,10 @@ interface PipelineState {
   setError: (error: string | null, step?: number | null) => void;
   setSelectedBlock: (type: string | null, tooltip: string | null) => void;
   setTiming: (timings: PipelineTimings | null) => void;
+  openCameraModal: (
+    onCapture: (payload: { image: string; format: string; label: string }) => void,
+  ) => void;
+  closeCameraModal: () => void;
   updateBlockStats: (workspace: Blockly.WorkspaceSvg) => void;
   reset: () => void;
   clearImage: () => void;
@@ -49,6 +57,8 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   selectedBlockType: null,
   selectedBlockTooltip: null,
   timings: null,
+  isCameraModalOpen: false,
+  cameraCaptureHandler: null,
   blockCount: 0,
   uniqueBlockTypes: 0,
   categoryCounts: {},
@@ -67,6 +77,16 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   setSelectedBlock: (type, tooltip) =>
     set({ selectedBlockType: type, selectedBlockTooltip: tooltip }),
   setTiming: (timings) => set({ timings }),
+  openCameraModal: (onCapture) =>
+    set({
+      isCameraModalOpen: true,
+      cameraCaptureHandler: onCapture,
+    }),
+  closeCameraModal: () =>
+    set({
+      isCameraModalOpen: false,
+      cameraCaptureHandler: null,
+    }),
   _imageResetFn: null as (() => void) | null,
   registerImageReset: (fn) => set({ _imageResetFn: fn }),
   clearImage: () => {
@@ -78,6 +98,8 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       error: null,
       errorStep: null,
       timings: null,
+      isCameraModalOpen: false,
+      cameraCaptureHandler: null,
     });
   },
   updateBlockStats: (workspace) => {
@@ -121,5 +143,7 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       categoryCounts: {},
       complexity: "Low",
       timings: null,
+      isCameraModalOpen: false,
+      cameraCaptureHandler: null,
     }),
 }));

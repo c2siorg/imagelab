@@ -8,6 +8,7 @@ import Sidebar from "./Sidebar/Sidebar";
 import PreviewPane from "./Preview/PreviewPane";
 import InfoPane from "./InfoPane";
 import { ErrorBoundary } from "./ErrorBoundary";
+import CameraCaptureModal from "./CameraCaptureModal";
 
 export default function Layout() {
   const [isDark, toggleDark] = useDarkMode();
@@ -36,6 +37,7 @@ export default function Layout() {
           </div>
         </ErrorBoundary>
       </div>
+      <CameraCaptureModal />
     </div>
   );
 }
