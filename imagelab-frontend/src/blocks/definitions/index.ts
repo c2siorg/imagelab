@@ -9,31 +9,34 @@ import { filteringBlocks } from "./filtering.blocks";
 import { thresholdingBlocks } from "./thresholding.blocks";
 import { sobelDerivativesBlocks } from "./sobel-derivatives.blocks";
 import { transformationBlocks } from "./transformation.blocks";
+import { augmentationBlocks } from "./augmentation.blocks";
 import { segmentationBlocks } from "./segmentation.blocks";
+
+function registerOddKernelValidator() {
+  if (Blockly.Extensions.isRegistered("odd_kernel_validator")) return;
+
+  Blockly.Extensions.register("odd_kernel_validator", function (this: Blockly.Block) {
+    const field = this.getField("kernelSize");
+    if (!field) {
+      console.warn(
+        `[odd_kernel_validator] Field "kernelSize" not found on block type "${this.type}". Validator not applied.`,
+      );
+      return;
+    }
+
+    field.setValidator((newValue: number): number | null => {
+      if (!Number.isFinite(newValue)) return null;
+
+      let normalized = Math.max(1, Math.round(newValue));
+      if (normalized % 2 === 0) normalized += 1;
+      return normalized;
+    });
+  });
+}
 
 export function registerAllBlocks() {
   registerReadImageExtension();
-
-  // Registered odd kernel validator before defining blocks
-  Blockly.Extensions.register("odd_kernel_validator", function () {
-    const field = this.getField("kernelSize");
-
-    if (!field) return;
-
-    field.setValidator(function (newValue: string) {
-      let value = parseInt(newValue, 10);
-
-      if (isNaN(value) || value <= 0) return 5; // Default to 5 if invalid
-
-      // Force odd number
-      if (value % 2 === 0) {
-        value += 1;
-      }
-
-      return value;
-    });
-  });
-
+  registerOddKernelValidator();
   Blockly.defineBlocksWithJsonArray([
     ...basicBlocks,
     ...geometricBlocks,
@@ -44,6 +47,7 @@ export function registerAllBlocks() {
     ...thresholdingBlocks,
     ...sobelDerivativesBlocks,
     ...transformationBlocks,
+    ...augmentationBlocks,
     ...segmentationBlocks,
   ]);
 }

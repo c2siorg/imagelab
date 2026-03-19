@@ -12,6 +12,7 @@ import {
   SlidersHorizontal,
   Scan,
   Shuffle,
+  Zap,
   Layers,
 } from "lucide-react";
 import type { CategoryInfo } from "../../blocks/categories";
@@ -28,6 +29,7 @@ const iconMap: Record<string, React.ComponentType<{ size?: number; color?: strin
   SlidersHorizontal,
   Scan,
   Shuffle,
+  Zap,
   Layers,
 };
 
