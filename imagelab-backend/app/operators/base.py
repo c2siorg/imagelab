@@ -8,5 +8,4 @@ class BaseOperator(ABC):
         self.params = params
 
     @abstractmethod
-    def compute(self, image: np.ndarray) -> np.ndarray:
-        ...
+    def compute(self, image: np.ndarray) -> np.ndarray: ...

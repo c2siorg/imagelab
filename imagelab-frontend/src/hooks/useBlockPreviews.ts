@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import * as Blockly from 'blockly';
-import { categories } from '../blocks/categories';
-import { imagelabTheme } from '../blocks/theme';
+import { useEffect, useState } from "react";
+import * as Blockly from "blockly";
+import { categories } from "../blocks/categories";
+import { imagelabTheme } from "../blocks/theme";
 
 export interface BlockPreview {
   svgDataUrl: string;
@@ -17,17 +17,17 @@ export interface BlockPreview {
 const PREVIEW_SCALE = 0.75;
 
 function generatePreviews(): Map<string, BlockPreview> {
-  const container = document.createElement('div');
-  container.style.position = 'absolute';
-  container.style.left = '-9999px';
-  container.style.top = '-9999px';
-  container.style.width = '800px';
-  container.style.height = '600px';
+  const container = document.createElement("div");
+  container.style.position = "absolute";
+  container.style.left = "-9999px";
+  container.style.top = "-9999px";
+  container.style.width = "800px";
+  container.style.height = "600px";
   document.body.appendChild(container);
 
   const ws = Blockly.inject(container, {
     readOnly: true,
-    renderer: 'zelos',
+    renderer: "zelos",
     theme: imagelabTheme,
     scrollbars: false,
   });
@@ -53,17 +53,17 @@ function generatePreviews(): Map<string, BlockPreview> {
         const width = Math.ceil(naturalWidth * PREVIEW_SCALE);
         const height = Math.ceil(naturalHeight * PREVIEW_SCALE);
 
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-        svg.setAttribute('width', String(width));
-        svg.setAttribute('height', String(height));
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        svg.setAttribute("width", String(width));
+        svg.setAttribute("height", String(height));
         svg.setAttribute(
-          'viewBox',
+          "viewBox",
           `${bbox.x - padding} ${bbox.y - padding} ${naturalWidth} ${naturalHeight}`,
         );
 
         const workspaceSvg = ws.getParentSvg();
-        const defs = workspaceSvg.querySelector('defs');
+        const defs = workspaceSvg.querySelector("defs");
         if (defs) {
           svg.appendChild(defs.cloneNode(true));
         }

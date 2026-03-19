@@ -9,10 +9,22 @@ export interface PipelineRequest {
   pipeline: PipelineStep[];
 }
 
+export interface StepTiming {
+  step: number;
+  operator_type: string;
+  duration_ms: number;
+}
+
+export interface PipelineTimings {
+  total_ms: number;
+  steps: StepTiming[];
+}
+
 export interface PipelineResponse {
   success: boolean;
   image?: string;
   image_format?: string;
   error?: string;
   step?: number;
+  timings?: PipelineTimings;
 }
