@@ -36,7 +36,9 @@ class TestBilateralFilter:
         assert result.shape == color_image.shape
 
     def test_custom_params_output_shape(self, color_image):
-        result = BilateralFilter({"filterSize": 9, "sigmaColor": 50, "sigmaSpace": 50}).compute(color_image)
+        result = BilateralFilter({"filterSize": 9, "sigmaColor": 50, "sigmaSpace": 50}).compute(
+            color_image
+        )
         assert result.shape == color_image.shape
 
     def test_grayscale_input(self, grayscale_image):
@@ -61,7 +63,9 @@ class TestBoxFilter:
         assert result.shape == color_image.shape
 
     def test_custom_params_output_shape(self, color_image):
-        result = BoxFilter({"width": 10, "height": 10, "depth": -1}).compute(color_image)
+        result = BoxFilter({"width": 10, "height": 10, "depth": -1}).compute(
+            color_image
+        )
         assert result.shape == color_image.shape
 
     def test_grayscale_input(self, grayscale_image):
@@ -69,7 +73,9 @@ class TestBoxFilter:
         assert result.shape == grayscale_image.shape
 
     def test_custom_anchor_point(self, color_image):
-        result = BoxFilter({"width": 5, "height": 5, "depth": -1, "point_x": 0, "point_y": 0}).compute(color_image)
+        result = BoxFilter(
+            {"width": 5, "height": 5, "depth": -1, "point_x": 0, "point_y": 0}
+        ).compute(color_image)
         assert result.shape == color_image.shape
 
     def test_output_is_uint8(self, color_image):
@@ -186,7 +192,9 @@ class TestDilation:
 
 
 class TestMorphological:
-    @pytest.mark.parametrize("morph_type", ["OPEN", "CLOSE", "GRADIENT", "TOPHAT", "BLACKHAT"])
+    @pytest.mark.parametrize(
+        "morph_type", ["OPEN", "CLOSE", "GRADIENT", "TOPHAT", "BLACKHAT"]
+    )
     def test_all_types_output_shape(self, color_image, morph_type):
         result = Morphological({"type": morph_type}).compute(color_image)
         assert result.shape[:2] == color_image.shape[:2]
