@@ -6,11 +6,11 @@ from app.operators.filtering.bilateral_filter import BilateralFilter
 from app.operators.filtering.box_filter import BoxFilter
 from app.operators.filtering.dilation import Dilation
 from app.operators.filtering.erosion import Erosion
+from app.operators.filtering.laplacian import Laplacian
 from app.operators.filtering.morphological import Morphological
 from app.operators.filtering.pyramid_down import PyramidDown
 from app.operators.filtering.pyramid_up import PyramidUp
 from app.operators.filtering.sharpen import Sharpen
-from app.operators.filtering.laplacian import Laplacian
 
 
 @pytest.fixture
@@ -37,8 +37,7 @@ class TestBilateralFilter:
         assert result.shape == color_image.shape
 
     def test_custom_params_output_shape(self, color_image):
-        result = BilateralFilter(
-            {"filterSize": 9, "sigmaColor": 50, "sigmaSpace": 50}).compute(color_image)
+        result = BilateralFilter({"filterSize": 9, "sigmaColor": 50, "sigmaSpace": 50}).compute(color_image)
         assert result.shape == color_image.shape
 
     def test_grayscale_input(self, grayscale_image):
@@ -63,18 +62,15 @@ class TestBoxFilter:
         assert result.shape == color_image.shape
 
     def test_custom_params_output_shape(self, color_image):
-        result = BoxFilter(
-            {"width": 10, "height": 10, "depth": -1}).compute(color_image)
+        result = BoxFilter({"width": 10, "height": 10, "depth": -1}).compute(color_image)
         assert result.shape == color_image.shape
 
     def test_grayscale_input(self, grayscale_image):
-        result = BoxFilter(
-            {"width": 5, "height": 5, "depth": -1}).compute(grayscale_image)
+        result = BoxFilter({"width": 5, "height": 5, "depth": -1}).compute(grayscale_image)
         assert result.shape == grayscale_image.shape
 
     def test_custom_anchor_point(self, color_image):
-        result = BoxFilter({"width": 5, "height": 5, "depth": -1,
-                           "point_x": 0, "point_y": 0}).compute(color_image)
+        result = BoxFilter({"width": 5, "height": 5, "depth": -1, "point_x": 0, "point_y": 0}).compute(color_image)
         assert result.shape == color_image.shape
 
     def test_output_is_uint8(self, color_image):
@@ -85,9 +81,7 @@ class TestBoxFilter:
         image = np.arange(75, dtype=np.uint8).reshape(5, 5, 3)
         width, height = 1, 5
 
-        result = BoxFilter({"width": width, "height": height, "depth": -1}).compute(
-            image
-        )
+        result = BoxFilter({"width": width, "height": height, "depth": -1}).compute(image)
         expected = cv2.boxFilter(
             image,
             -1,
