@@ -34,6 +34,7 @@ type WorkspaceState = ReturnType<typeof Blockly.serialization.workspaces.save>;
 export function useBlocklyWorkspace() {
   const containerRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<Blockly.WorkspaceSvg | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const saveTimeoutRef = useRef<number | null>(null);
   const [workspace, setWorkspace] = useState<Blockly.WorkspaceSvg | null>(null);
   const setSelectedBlock = usePipelineStore((s) => s.setSelectedBlock);
@@ -131,6 +132,14 @@ export function useBlocklyWorkspace() {
 
     workspaceRef.current = ws;
     setWorkspace(ws);
+    Blockly.svgResize(ws);
+    if (containerRef.current && typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(() => {
+        Blockly.svgResize(ws);
+      });
+      observer.observe(containerRef.current);
+      resizeObserverRef.current = observer;
+    }
     updateBlockStats(ws); // Initial stats calculation if any blocks loaded
   }, [setSelectedBlock, updateBlockStats]);
 
@@ -138,6 +147,10 @@ export function useBlocklyWorkspace() {
     initWorkspace();
     return () => {
       // Cleanup on unmount: dispose workspace and clear any pending save timeout
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+        resizeObserverRef.current = null;
+      }
       if (saveTimeoutRef.current !== null) {
         window.clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = null;
