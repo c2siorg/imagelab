@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 import pytest
 
@@ -103,6 +104,21 @@ class TestDrawCircle:
         result = DrawCircle({}).compute(grayscale_image)
         assert result.shape == grayscale_image.shape
         assert result.dtype == np.uint8
+
+    def test_negative_radius_is_clamped_to_zero(self):
+        blank = np.zeros((100, 100, 3), dtype=np.uint8)
+        params = {
+            "center_point_x": 50,
+            "center_point_y": 50,
+            "radius": -10,
+            "rgbcolors_input": "#ff0000",
+            "thickness": 1,
+        }
+
+        result = DrawCircle(params).compute(blank)
+        expected = cv2.circle(blank.copy(), (50, 50), 0, (0, 0, 255), 1)
+
+        np.testing.assert_array_equal(result, expected)
 
 
 class TestDrawEllipse:
