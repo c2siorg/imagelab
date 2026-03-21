@@ -10,6 +10,7 @@ from app.operators.filtering.morphological import Morphological
 from app.operators.filtering.pyramid_down import PyramidDown
 from app.operators.filtering.pyramid_up import PyramidUp
 from app.operators.filtering.sharpen import Sharpen
+from app.operators.filtering.laplacian import Laplacian
 
 
 @pytest.fixture
@@ -36,7 +37,8 @@ class TestBilateralFilter:
         assert result.shape == color_image.shape
 
     def test_custom_params_output_shape(self, color_image):
-        result = BilateralFilter({"filterSize": 9, "sigmaColor": 50, "sigmaSpace": 50}).compute(color_image)
+        result = BilateralFilter(
+            {"filterSize": 9, "sigmaColor": 50, "sigmaSpace": 50}).compute(color_image)
         assert result.shape == color_image.shape
 
     def test_grayscale_input(self, grayscale_image):
@@ -61,15 +63,18 @@ class TestBoxFilter:
         assert result.shape == color_image.shape
 
     def test_custom_params_output_shape(self, color_image):
-        result = BoxFilter({"width": 10, "height": 10, "depth": -1}).compute(color_image)
+        result = BoxFilter(
+            {"width": 10, "height": 10, "depth": -1}).compute(color_image)
         assert result.shape == color_image.shape
 
     def test_grayscale_input(self, grayscale_image):
-        result = BoxFilter({"width": 5, "height": 5, "depth": -1}).compute(grayscale_image)
+        result = BoxFilter(
+            {"width": 5, "height": 5, "depth": -1}).compute(grayscale_image)
         assert result.shape == grayscale_image.shape
 
     def test_custom_anchor_point(self, color_image):
-        result = BoxFilter({"width": 5, "height": 5, "depth": -1, "point_x": 0, "point_y": 0}).compute(color_image)
+        result = BoxFilter({"width": 5, "height": 5, "depth": -1,
+                           "point_x": 0, "point_y": 0}).compute(color_image)
         assert result.shape == color_image.shape
 
     def test_output_is_uint8(self, color_image):
@@ -244,3 +249,41 @@ class TestPyramidDown:
     def test_output_is_uint8(self, color_image):
         result = PyramidDown({}).compute(color_image)
         assert result.dtype == np.uint8
+
+
+# Laplacian
+
+
+class TestLaplacian:
+    def test_default_params_output_shape(self, color_image):
+        result = Laplacian({}).compute(color_image)
+        assert result.shape[:2] == color_image.shape[:2]
+
+    def test_grayscale_input(self, grayscale_image):
+        result = Laplacian({}).compute(grayscale_image)
+        assert result.shape == grayscale_image.shape
+
+    def test_rgba_input_handled(self, rgba_image):
+        result = Laplacian({}).compute(rgba_image)
+        assert result.shape[:2] == rgba_image.shape[:2]
+
+    def test_output_is_uint8(self, color_image):
+        result = Laplacian({}).compute(color_image)
+        assert result.dtype == np.uint8
+
+    def test_custom_ksize(self, color_image):
+        result = Laplacian({"ksize": 3}).compute(color_image)
+        assert result.shape[:2] == color_image.shape[:2]
+
+    def test_detects_edges(self):
+        # Flat image should produce near-zero Laplacian response
+        flat = np.ones((50, 50, 3), dtype=np.uint8) * 128
+        result = Laplacian({}).compute(flat)
+        assert result.sum() == 0
+
+    def test_edge_image_produces_nonzero_response(self):
+        # Image with sharp edge should produce nonzero response
+        edge_image = np.zeros((50, 50, 3), dtype=np.uint8)
+        edge_image[:, 25:] = 255
+        result = Laplacian({}).compute(edge_image)
+        assert result.sum() > 0
