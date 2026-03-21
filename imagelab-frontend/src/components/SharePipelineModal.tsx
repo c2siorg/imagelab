@@ -133,7 +133,7 @@ export default function SharePipelineModal({ workspace, onClose }: SharePipeline
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+            className="p-1 rounded cursor-pointer hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
             title="Close"
             aria-label="Close"
           >
@@ -157,7 +157,7 @@ export default function SharePipelineModal({ workspace, onClose }: SharePipeline
               type="button"
               onClick={handleGenerate}
               disabled={!workspace}
-              className="w-full py-2 px-3 rounded-lg text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full py-2 px-3 rounded-lg cursor-pointer text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               title="Generate shareable pipeline code"
             >
               Generate Code
@@ -182,7 +182,7 @@ export default function SharePipelineModal({ workspace, onClose }: SharePipeline
                       <button
                         type="button"
                         onClick={handleCopy}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border border-gray-200 hover:bg-gray-50 transition-colors text-gray-600"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg cursor-pointer text-xs font-medium border border-gray-200 hover:bg-gray-50 transition-colors text-gray-600"
                         title="Copy code to clipboard"
                         aria-label="Copy code to clipboard"
                       >
@@ -237,7 +237,7 @@ export default function SharePipelineModal({ workspace, onClose }: SharePipeline
               type="button"
               onClick={handleLoad}
               disabled={!inputCode.trim() || !workspace}
-              className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg cursor-pointer text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               title="Load pipeline from code"
             >
               <Upload size={14} aria-hidden="true" />
