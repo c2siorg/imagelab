@@ -2,11 +2,14 @@ import { useEffect } from "react";
 import { Info, BookOpen, Hash, Lightbulb, FunctionSquare } from "lucide-react";
 import { usePipelineStore } from "../store/pipelineStore";
 import { operatorDocs } from "../data/operatorDocs";
+ 
 
+// (Added Detailed and expanded infopane with rich documentation about operators #57)
+ 
 export default function InfoPane() {
   const selectedBlockType = usePipelineStore((s) => s.selectedBlockType);
   const selectedBlockTooltip = usePipelineStore((s) => s.selectedBlockTooltip);
-
+ 
   // Dev-time check: warn about block types that have no documentation entry.
   // Uses a dynamic import so the categories module is excluded from the production bundle.
   useEffect(() => {
@@ -19,7 +22,7 @@ export default function InfoPane() {
         if (missingDocs.length > 0) {
           console.warn("[InfoPane] Missing documentation for block types:", missingDocs);
         }
-
+ 
         // Reverse check: doc keys that have no matching block type catch silent mismatches.
         const allBlockTypes = new Set(categories.flatMap((c) => c.blocks.map((b) => b.type)));
         Object.keys(operatorDocs).forEach((key) => {
@@ -30,7 +33,8 @@ export default function InfoPane() {
       });
     }
   }, []); // stable module-level ref — empty deps is intentional
-
+ 
+  // (Added Detailed and expanded infopane with rich documentation about operators #57)
   if (!selectedBlockType) {
     return (
       <div className="flex flex-col items-center justify-center p-6 text-gray-400 text-xs text-center border-t border-gray-200">
@@ -39,9 +43,9 @@ export default function InfoPane() {
       </div>
     );
   }
-
+ 
   const doc = operatorDocs[selectedBlockType];
-
+ 
   // Fallback to simple tooltip view if no rich documentation exists
   if (!doc) {
     return (
@@ -57,7 +61,7 @@ export default function InfoPane() {
       </div>
     );
   }
-
+ 
   // Rich documentation view
   return (
     <div className="flex flex-col max-h-[40vh] overflow-y-auto bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] text-sm">
@@ -68,13 +72,13 @@ export default function InfoPane() {
           {selectedBlockType}
         </span>
       </div>
-
+ 
       <div className="p-4 space-y-4">
         {/* Description */}
         <div>
           <p className="text-gray-600 leading-relaxed">{doc.description}</p>
         </div>
-
+ 
         {/* Formula */}
         {doc.formula && (
           <div className="bg-gray-50 rounded-md p-3 border border-gray-100 flex items-start gap-3">
@@ -82,10 +86,10 @@ export default function InfoPane() {
             <code className="text-gray-800 font-mono text-xs">{doc.formula}</code>
           </div>
         )}
-
+ 
         <div className="flex flex-col gap-6">
           {/* Parameters */}
-          {doc.parameters.length > 0 && (
+          {doc.parameters && doc.parameters.length > 0 && (
             <div>
               <h4 className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                 <Hash size={12} />
@@ -101,9 +105,8 @@ export default function InfoPane() {
               </ul>
             </div>
           )}
-
-          {/* Use Cases */}
-          {doc.useCases.length > 0 && (
+ 
+          {doc.useCases && doc.useCases.length > 0 && (
             <div>
               <h4 className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                 <Lightbulb size={12} />
@@ -121,3 +124,4 @@ export default function InfoPane() {
     </div>
   );
 }
+ 
