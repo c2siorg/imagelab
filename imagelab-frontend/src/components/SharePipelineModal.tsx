@@ -105,7 +105,7 @@ export default function SharePipelineModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+            className="p-1 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
             title="Close"
             aria-label="Close"
           >
@@ -132,7 +132,7 @@ export default function SharePipelineModal({
                     onClose();
                     onSaveFirst();
                   }}
-                  className="w-full py-2 px-3 rounded-lg text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 transition-colors"
+                  className="w-full py-2 px-3 rounded-lg cursor-pointer text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 transition-colors"
                 >
                   Save Pipeline First
                 </button>
@@ -229,7 +229,7 @@ export default function SharePipelineModal({
                 type="button"
                 onClick={handleGenerate}
                 disabled={!workspace || isGenerating || isReadOnly}
-                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg cursor-pointer text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isGenerating ? (
                   <>
@@ -256,7 +256,7 @@ export default function SharePipelineModal({
                     <button
                       type="button"
                       onClick={handleCopy}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-300"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg cursor-pointer text-xs font-medium border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-300"
                       title="Copy share link"
                       aria-label="Copy share link"
                     >

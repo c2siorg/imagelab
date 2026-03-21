@@ -302,7 +302,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
   });
 
   const iconBtn =
-    "p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors";
+    "p-1.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors";
   const separator = "w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1";
 
   // Determine which blocks feed the Create Macro modal
@@ -502,7 +502,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
         <button
           onClick={handleRun}
           disabled={isExecuting || !originalImage}
-          className="flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1 rounded-md cursor-pointer text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           title={`Run Pipeline (${mod}Enter)`}
         >
           {isExecuting ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
