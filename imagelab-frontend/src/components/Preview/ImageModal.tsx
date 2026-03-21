@@ -32,7 +32,7 @@ export default function ImageModal({ isOpen, onClose, imageSrc }: ImageModalProp
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 p-2 text-white/70 hover:text-white transition-colors bg-black/20 hover:bg-black/40 rounded-full"
+        className="absolute top-4 right-4 p-2 cursor-pointer text-white/70 hover:text-white transition-colors bg-black/20 hover:bg-black/40 rounded-full"
         aria-label="Close"
       >
         <X size={24} />
