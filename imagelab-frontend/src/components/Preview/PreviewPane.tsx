@@ -17,7 +17,7 @@ function ZoomControls({
       <button
         onClick={onZoomIn}
         disabled={disabled}
-        className="flex items-center justify-center p-1.5 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="flex items-center justify-center p-1.5 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         title="Zoom In"
       >
         <ZoomIn size={14} />
@@ -25,7 +25,7 @@ function ZoomControls({
       <button
         onClick={onZoomOut}
         disabled={disabled}
-        className="flex items-center justify-center p-1.5 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="flex items-center justify-center p-1.5 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         title="Zoom Out"
       >
         <ZoomOut size={14} />
@@ -61,7 +61,7 @@ export default function PreviewPane() {
           {originalImage && (
             <button
               onClick={clearImage}
-              className="ml-auto p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+              className="ml-auto p-1 rounded cursor-pointer hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
               title="Remove image"
             >
               <Trash2 size={14} />
