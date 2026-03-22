@@ -9,8 +9,8 @@ class DrawText(BaseOperator):
     def compute(self, image: np.ndarray) -> np.ndarray:
         result = image.copy()
         text = str(self.params.get("draw_text", "Image Lab"))
-        thickness = int(self.params.get("thickness", 2))
-        scale = float(self.params.get("scale", 1))
+        thickness = max(1, int(self.params.get("thickness", 2)))
+        scale = max(0.1, float(self.params.get("scale", 1)))
         color = hex_to_bgr(self.params.get("rgbcolors_input", "#2828cc"))
         x = int(self.params.get("starting_point_x", 0))
         y = int(self.params.get("starting_point_y", 0))
