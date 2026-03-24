@@ -36,6 +36,37 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     ],
   },
 
+  detection_facedetection: {
+    name: "Face Detection",
+    description:
+      "Detects frontal human faces using OpenCV's Haar cascade classifier and draws bounding boxes over the source image.",
+    parameters: [
+      {
+        name: "Scale Factor",
+        description:
+          "How much the image size is reduced at each scan scale. Values closer to 1 improve sensitivity but cost more runtime. Around 1.3 is a good faster starting point for Haar cascades.",
+      },
+      {
+        name: "Min Neighbors",
+        description:
+          "How many nearby detections are required before a face candidate is accepted. Higher values reduce false positives, but can miss weaker faces.",
+      },
+      {
+        name: "Min Size",
+        description:
+          "Minimum face width and height in pixels. Smaller detections than this are ignored. Increasing this can make detection much faster on large images and reduce tiny false positives.",
+      },
+      {
+        name: "Color / Thickness",
+        description: "Controls how the detected face rectangles are rendered on the output image.",
+      },
+    ],
+    useCases: [
+      "Finding faces before drawing annotations or masks.",
+      "Basic people-presence checks in camera or uploaded images.",
+    ],
+  },
+
   // --- Geometric ---
   geometric_reflectimage: {
     name: "Reflect Image",
