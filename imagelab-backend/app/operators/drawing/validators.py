@@ -1,5 +1,6 @@
 """Validators for drawing operators parameters."""
 
+
 class DrawingValidator:
     """Utility class for validating drawing operator parameters."""
 

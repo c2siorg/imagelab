@@ -5,6 +5,7 @@ from app.operators.base import BaseOperator
 from app.operators.drawing.validators import DrawingValidator
 from app.utils.color import hex_to_bgr
 
+
 class DrawArrowLine(BaseOperator):
     def compute(self, image: np.ndarray) -> np.ndarray:
         result = image.copy()

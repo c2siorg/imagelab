@@ -1,8 +1,7 @@
 """Tests for drawing operators parameter validators."""
 
-import pytest
-
 from app.operators.drawing.validators import DrawingValidator
+
 
 class TestDrawingValidator:
     """Test suite for DrawingValidator class."""
