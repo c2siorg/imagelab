@@ -6,6 +6,7 @@ import { executePipeline } from "../api/pipeline";
 import { extractPipeline } from "../hooks/usePipeline";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import SharePipelineModal from "./SharePipelineModal";
+import ConfirmDialog from "./ConfirmDialog";
 
 interface ToolbarProps {
   workspace: Blockly.WorkspaceSvg | null;
@@ -34,11 +35,14 @@ export default function Toolbar({ workspace }: ToolbarProps) {
   } = usePipelineStore();
 
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleNew = () => {
-    if (!window.confirm("This will clear all blocks and the uploaded image. Continue?")) {
-      return;
-    }
+    setShowConfirm(true);
+  };
+
+  const handleNewConfirmed = () => {
+    setShowConfirm(false);
     reset();
     if (workspace) workspace.clear();
   };
@@ -204,6 +208,14 @@ export default function Toolbar({ workspace }: ToolbarProps) {
 
       {showShareModal && (
         <SharePipelineModal workspace={workspace} onClose={() => setShowShareModal(false)} />
+      )}
+
+      {showConfirm && (
+        <ConfirmDialog
+          message="This will clear all blocks and the uploaded image. Continue?"
+          onConfirm={handleNewConfirmed}
+          onCancel={() => setShowConfirm(false)}
+        />
       )}
     </>
   );
