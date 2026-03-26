@@ -2,13 +2,13 @@ import cv2
 import numpy as np
 
 from app.operators.base import BaseOperator
+from app.operators.drawing.validators import DrawingValidator
 from app.utils.color import hex_to_bgr
-
 
 class DrawLine(BaseOperator):
     def compute(self, image: np.ndarray) -> np.ndarray:
         result = image.copy()
-        thickness = int(self.params.get("thickness", 2))
+        thickness = DrawingValidator.validate_thickness(self.params.get("thickness", 2))
         color = hex_to_bgr(self.params.get("rgbcolors_input", "#2828cc"))
         x1 = int(self.params.get("starting_point_x1", 0))
         y1 = int(self.params.get("starting_point_y1", 0))
