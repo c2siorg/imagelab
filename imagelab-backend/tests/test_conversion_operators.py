@@ -95,6 +95,14 @@ class TestColorToBinary:
         result = ColorToBinary({}).compute(color_image)
         assert len(result.shape) == 2
 
+    def test_default_maxvalue_produces_white_for_above_threshold_pixels(self):
+        """Regression test for #182: default maxValue=0 caused all-black output.
+        Explicitly sets thresholdValue=0 so only maxValue is the default under test."""
+        img = np.zeros((100, 100, 3), dtype=np.uint8)
+        img[50:, :] = 200  # bright lower half; top half already zero
+        result = ColorToBinary({"thresholdValue": 0}).compute(img)
+        assert set(np.unique(result)) == {0, 255}
+
     def test_output_is_binary_values(self):
         # Synthetic image that guarantees pixels on both sides of threshold
         img = np.zeros((100, 100, 3), dtype=np.uint8)
