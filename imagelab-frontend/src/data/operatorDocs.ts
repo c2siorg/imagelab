@@ -36,6 +36,37 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     ],
   },
 
+  detection_eyedetection: {
+    name: "Eye Detection",
+    description:
+      "Detects eyes using OpenCV's Haar cascade classifier and draws bounding boxes over the source image.",
+    parameters: [
+      {
+        name: "Scale Factor",
+        description:
+          "How much the image size is reduced at each scan scale. Values closer to 1 improve sensitivity but cost more runtime. Around 1.2 is a good starting point for eye detection.",
+      },
+      {
+        name: "Min Neighbors",
+        description:
+          "How many nearby detections are required before an eye candidate is accepted. Higher values reduce false positives, but can miss weaker detections.",
+      },
+      {
+        name: "Min Size",
+        description:
+          "Minimum eye width and height in pixels. Smaller detections than this are ignored. Increasing this can reduce tiny false positives and improve speed.",
+      },
+      {
+        name: "Color / Thickness",
+        description: "Controls how detected eye rectangles are rendered on the output image.",
+      },
+    ],
+    useCases: [
+      "Highlighting eye regions before further analysis.",
+      "Building simple face-and-eye feature detection workflows.",
+    ],
+  },
+
   // --- Geometric ---
   geometric_reflectimage: {
     name: "Reflect Image",
