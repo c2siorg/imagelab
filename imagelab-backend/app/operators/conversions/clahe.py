@@ -4,7 +4,7 @@ import numpy as np
 from app.operators.base import BaseOperator
 
 
-class claheImage(BaseOperator):
+class ClaheImage(BaseOperator):
     """
     Applies CLAHE (Contrast Limited Adaptive Histogram Equalization) to an image.
 
