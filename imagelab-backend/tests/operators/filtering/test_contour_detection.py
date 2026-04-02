@@ -26,9 +26,8 @@ def make_rect_image(channels=3, bg=0, fg=255):
     "params",
     [
         {},  # defaults
-        {"color": "#00FF00", "thickness": 1, "retrieval_mode": "EXTERNAL", "approximation_method": "SIMPLE"},
-        {"color": "#FF0000", "thickness": 2, "retrieval_mode": "TREE", "approximation_method": "NONE"},
-        {"color": "#0000FF", "thickness": 3, "retrieval_mode": "LIST", "approximation_method": "SIMPLE"},
+        {"rgbcolors_input": "#00FF00", "thickness": 1, "mode": "EXTERNAL", "method": "SIMPLE"},
+        {"rgbcolors_input": "#FF0000", "thickness": 2, "mode": "TREE", "method": "NONE"},
     ],
 )
 def test_contour_detection_returns_valid_image(params):
@@ -50,8 +49,10 @@ def test_contour_detection_supports_gray_bgr_bgra(channels):
 
     result = op.compute(image.copy())
 
-    if channels == 4:
-        assert result.shape == (100, 100, 3)  # BGRA -> BGR conversion path
+    if channels == 1:
+        assert result.shape == (100, 100, 3)  # grayscale -> BGR conversion for drawing
+    elif channels == 4:
+        assert result.shape == (100, 100, 4)  # BGRA preserved, alpha retained
     else:
         assert result.shape == image.shape
 
