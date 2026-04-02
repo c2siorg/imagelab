@@ -8,5 +8,18 @@ export async function executePipeline(request: PipelineRequest): Promise<Pipelin
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(request),
   });
+
+  if (!response.ok) {
+    let message = `HTTP ${response.status}`;
+    try {
+      const body = await response.json();
+      if (typeof body?.detail === "string") message = body.detail;
+      else if (typeof body?.message === "string") message = body.message;
+    } catch {
+      // response body is not JSON (e.g. an HTML error page)
+    }
+    return { success: false, error: message };
+  }
+
   return response.json();
 }
