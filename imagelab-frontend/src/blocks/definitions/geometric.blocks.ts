@@ -104,4 +104,3 @@ export const geometricBlocks = [
       "Applies a fixed affine transformation (translate by 50, 100) - Transforms the image using a predefined affine transformation that translates the image by 50 pixels in the X direction and 100 pixels in the Y direction. This block is useful for demonstrating basic affine transformations, which can include translation, rotation, scaling, and shearing.",
   },
 ];
-
