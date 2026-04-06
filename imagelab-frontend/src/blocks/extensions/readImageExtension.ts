@@ -39,8 +39,7 @@ function initReadImageBlock(block: Blockly.Block) {
     });
   }
 
-  // Register a reset callback when the image is cleared
-  usePipelineStore.getState().registerImageReset(() => {
+  const unregisterImageReset = usePipelineStore.getState().registerImageReset(() => {
     const label = block.getField("filename_label");
     if (label) label.setValue("No image");
   });
@@ -49,6 +48,7 @@ function initReadImageBlock(block: Blockly.Block) {
   block.dispose = new Proxy(block.dispose, {
     apply(target, thisArg, args) {
       fileInput.remove();
+      unregisterImageReset();
       return Reflect.apply(target, thisArg, args);
     },
   });

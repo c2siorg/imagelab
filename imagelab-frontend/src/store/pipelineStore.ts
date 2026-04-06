@@ -3,6 +3,8 @@ import * as Blockly from "blockly";
 import { categories } from "../blocks/categories";
 import type { PipelineTimings } from "../types/pipeline";
 
+const imageResetListeners = new Set<() => void>();
+
 interface PipelineState {
   originalImage: string | null;
   imageFormat: string;
@@ -28,8 +30,7 @@ interface PipelineState {
   updateBlockStats: (workspace: Blockly.WorkspaceSvg) => void;
   reset: () => void;
   clearImage: () => void;
-  _imageResetFn: (() => void) | null;
-  registerImageReset: (fn: () => void) => void;
+  registerImageReset: (fn: () => void) => () => void;
 }
 
 function calculateComplexity(blocks: number, unique: number): "Low" | "Medium" | "High" {
@@ -67,11 +68,14 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   setSelectedBlock: (type, tooltip) =>
     set({ selectedBlockType: type, selectedBlockTooltip: tooltip }),
   setTiming: (timings) => set({ timings }),
-  _imageResetFn: null as (() => void) | null,
-  registerImageReset: (fn) => set({ _imageResetFn: fn }),
+  registerImageReset: (fn) => {
+    imageResetListeners.add(fn);
+    return () => {
+      imageResetListeners.delete(fn);
+    };
+  },
   clearImage: () => {
-    const state = usePipelineStore.getState();
-    if (state._imageResetFn) state._imageResetFn();
+    imageResetListeners.forEach((fn) => fn());
     set({
       originalImage: null,
       processedImage: null,
@@ -106,7 +110,8 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       complexity: calculateComplexity(blocks.length, uniqueTypes.size),
     });
   },
-  reset: () =>
+  reset: () => {
+    imageResetListeners.clear();
     set({
       originalImage: null,
       imageFormat: "png",
@@ -121,5 +126,6 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       categoryCounts: {},
       complexity: "Low",
       timings: null,
-    }),
+    });
+  },
 }));
