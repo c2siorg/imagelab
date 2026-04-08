@@ -25,8 +25,7 @@ function initReadImageBlock(block: Blockly.Block) {
     reader.onload = () => {
       const dataUrl = reader.result as string;
       const base64 = dataUrl.split(",")[1];
-      usePipelineStore.getState().setOriginalImage(base64, format);
-      setFilenameLabel(block, file.name);
+      usePipelineStore.getState().setOriginalImage(base64, format, file.name);
     };
     reader.readAsDataURL(file);
 
@@ -50,14 +49,24 @@ function initReadImageBlock(block: Blockly.Block) {
           return;
         }
 
-        usePipelineStore.getState().setOriginalImage(image, format);
-        setFilenameLabel(block, label);
+        usePipelineStore.getState().setOriginalImage(image, format, label);
       });
     });
   }
 
+  const unregisterImageLabelSync = usePipelineStore
+    .getState()
+    .registerImageLabelSync((filename) => {
+      setFilenameLabel(block, filename ?? "No image");
+    });
+
+  const persistedFilename = usePipelineStore.getState().imageFilename;
+  if (persistedFilename) {
+    setFilenameLabel(block, persistedFilename);
+  }
+
   // Register a reset callback when the image is cleared
-  usePipelineStore.getState().registerImageReset(() => {
+  const unregisterImageReset = usePipelineStore.getState().registerImageReset(() => {
     setFilenameLabel(block, "No image");
   });
 
@@ -67,6 +76,8 @@ function initReadImageBlock(block: Blockly.Block) {
       fileInput.remove();
       // Clear image from store when read_image block is deleted
       usePipelineStore.getState().clearImage();
+      unregisterImageLabelSync();
+      unregisterImageReset();
       return Reflect.apply(target, thisArg, args);
     },
   });

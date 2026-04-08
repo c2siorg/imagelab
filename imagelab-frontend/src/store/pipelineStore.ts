@@ -2,10 +2,15 @@ import { create } from "zustand";
 import * as Blockly from "blockly";
 import { categories } from "../blocks/categories";
 import type { PipelineTimings } from "../types/pipeline";
+import { clearPersistedImage, saveImageState } from "../hooks/imagePersistence";
+
+const imageResetListeners = new Set<() => void>();
+const imageLabelSyncListeners = new Set<(filename: string | null) => void>();
 
 interface PipelineState {
   originalImage: string | null;
   imageFormat: string;
+  imageFilename: string | null;
   processedImage: string | null;
   isExecuting: boolean;
   error: string | null;
@@ -23,7 +28,7 @@ interface PipelineState {
   uniqueBlockTypes: number;
   categoryCounts: Record<string, number>;
   complexity: "Low" | "Medium" | "High";
-  setOriginalImage: (image: string, format: string) => void;
+  setOriginalImage: (image: string, format: string, filename?: string | null) => void;
   setProcessedImage: (image: string | null) => void;
   setExecuting: (executing: boolean) => void;
   setError: (error: string | null, step?: number | null) => void;
@@ -36,8 +41,8 @@ interface PipelineState {
   updateBlockStats: (workspace: Blockly.WorkspaceSvg) => void;
   reset: () => void;
   clearImage: () => void;
-  _imageResetFn: (() => void) | null;
-  registerImageReset: (fn: () => void) => void;
+  registerImageReset: (fn: () => void) => () => void;
+  registerImageLabelSync: (fn: (filename: string | null) => void) => () => void;
 }
 
 function calculateComplexity(blocks: number, unique: number): "Low" | "Medium" | "High" {
@@ -50,6 +55,7 @@ function calculateComplexity(blocks: number, unique: number): "Low" | "Medium" |
 export const usePipelineStore = create<PipelineState>((set) => ({
   originalImage: null,
   imageFormat: "png",
+  imageFilename: null,
   processedImage: null,
   isExecuting: false,
   error: null,
@@ -63,14 +69,18 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   uniqueBlockTypes: 0,
   categoryCounts: {},
   complexity: "Low",
-  setOriginalImage: (image, format) =>
+  setOriginalImage: (image, format, filename = null) => {
+    imageLabelSyncListeners.forEach((listener) => listener(filename));
+    saveImageState({ image, format, filename });
     set({
       originalImage: image,
       imageFormat: format,
+      imageFilename: filename,
       processedImage: null,
       error: null,
       timings: null,
-    }),
+    });
+  },
   setProcessedImage: (image) => set({ processedImage: image, error: null, errorStep: null }),
   setExecuting: (executing) => set({ isExecuting: executing }),
   setError: (error, step = null) => set({ error, errorStep: step }),
@@ -87,13 +97,26 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       isCameraModalOpen: false,
       cameraCaptureHandler: null,
     }),
-  _imageResetFn: null as (() => void) | null,
-  registerImageReset: (fn) => set({ _imageResetFn: fn }),
+  registerImageReset: (fn) => {
+    imageResetListeners.add(fn);
+    return () => {
+      imageResetListeners.delete(fn);
+    };
+  },
+  registerImageLabelSync: (fn) => {
+    imageLabelSyncListeners.add(fn);
+    return () => {
+      imageLabelSyncListeners.delete(fn);
+    };
+  },
   clearImage: () => {
-    const state = usePipelineStore.getState();
-    if (state._imageResetFn) state._imageResetFn();
+    imageResetListeners.forEach((listener) => listener());
+    imageLabelSyncListeners.forEach((listener) => listener(null));
+    clearPersistedImage();
     set({
       originalImage: null,
+      imageFormat: "png",
+      imageFilename: null,
       processedImage: null,
       error: null,
       errorStep: null,
@@ -128,10 +151,16 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       complexity: calculateComplexity(blocks.length, uniqueTypes.size),
     });
   },
-  reset: () =>
+  reset: () => {
+    imageResetListeners.forEach((listener) => listener());
+    imageLabelSyncListeners.forEach((listener) => listener(null));
+    imageResetListeners.clear();
+    imageLabelSyncListeners.clear();
+    clearPersistedImage();
     set({
       originalImage: null,
       imageFormat: "png",
+      imageFilename: null,
       processedImage: null,
       isExecuting: false,
       error: null,
@@ -145,5 +174,6 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       timings: null,
       isCameraModalOpen: false,
       cameraCaptureHandler: null,
-    }),
+    });
+  },
 }));

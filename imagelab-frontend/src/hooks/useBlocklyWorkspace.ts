@@ -7,6 +7,7 @@ import { WorkspaceSearch } from "@blockly/plugin-workspace-search";
 import { usePipelineStore } from "../store/pipelineStore";
 import { imagelabTheme, imagelabThemeDark } from "../blocks/theme";
 import { SINGLETON_BLOCK_TYPES } from "../utils/blockLimits";
+import { loadPersistedImageState } from "./imagePersistence";
 import {
   clearPersistedWorkspace,
   loadPersistedWorkspaceState,
@@ -91,6 +92,13 @@ export function useBlocklyWorkspace({ isDark = false }: UseBlocklyWorkspaceOptio
         console.warn("[ImageLab] Failed to restore workspace state; clearing persisted data.", err);
         clearPersistedWorkspace();
       }
+    }
+
+    const persistedImage = loadPersistedImageState();
+    if (persistedImage) {
+      usePipelineStore
+        .getState()
+        .setOriginalImage(persistedImage.image, persistedImage.format, persistedImage.filename);
     }
 
     ws.addChangeListener((event: Blockly.Events.Abstract) => {
