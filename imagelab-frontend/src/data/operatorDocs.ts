@@ -36,6 +36,37 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     ],
   },
 
+  detection_smiledetection: {
+    name: "Smile Detection",
+    description:
+      "Detects smiles using OpenCV Haar cascades. The operator first detects faces, then searches only in the lower face region for likely smiles and draws bounding boxes over the result image.",
+    parameters: [
+      {
+        name: "Scale Factor",
+        description:
+          "Controls the smile search pyramid step size. Higher values improve speed but may miss subtle smiles. Around 1.5 to 1.8 is usually a practical range.",
+      },
+      {
+        name: "Min Neighbors",
+        description:
+          "How many nearby detections are required before a smile candidate is accepted. Higher values reduce false positives, but can miss weaker smiles.",
+      },
+      {
+        name: "Min Size",
+        description:
+          "Minimum smile width and height in pixels inside the detected lower-face region. Larger values improve speed and reduce tiny false positives.",
+      },
+      {
+        name: "Color / Thickness",
+        description: "Controls how detected smile rectangles are rendered on the output image.",
+      },
+    ],
+    useCases: [
+      "Highlighting smiling faces in portraits or classroom demos.",
+      "Building simple face-feature detection workflows with classical OpenCV.",
+    ],
+  },
+
   // --- Geometric ---
   geometric_reflectimage: {
     name: "Reflect Image",

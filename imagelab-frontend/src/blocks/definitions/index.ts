@@ -11,6 +11,7 @@ import { sobelDerivativesBlocks } from "./sobel-derivatives.blocks";
 import { transformationBlocks } from "./transformation.blocks";
 import { augmentationBlocks } from "./augmentation.blocks";
 import { segmentationBlocks } from "./segmentation.blocks";
+import { detectionBlocks } from "./detection.blocks";
 
 function registerOddKernelValidator() {
   if (Blockly.Extensions.isRegistered("odd_kernel_validator")) return;
@@ -49,5 +50,6 @@ export function registerAllBlocks() {
     ...transformationBlocks,
     ...augmentationBlocks,
     ...segmentationBlocks,
+    ...detectionBlocks,
   ]);
 }
