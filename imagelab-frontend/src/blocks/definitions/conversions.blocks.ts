@@ -91,6 +91,20 @@ export const conversionsBlocks = [
       "Apply different color maps to an image - Transforms the colors of an image using various color maps. This can enhance visual contrast and highlight specific features. For example, the 'JET' colormap transitions from blue to red, while 'HSV' represents hue, saturation, and value. Choose a colormap that best suits your image analysis needs.",
   },
   {
+    type: "imageconvertions_brightnessandcontrast",
+    message0: "Adjust image brightness by %1 and contrast scale by %2",
+    args0: [
+      { type: "field_number", name: "brightnessValue", value: 0, min: -100, max: 100 },
+      { type: "field_number", name: "contrastValue", value: 1.0, min: 0.0, max: 3.0 },
+    ],
+    inputsInline: false,
+    previousStatement: null,
+    nextStatement: null,
+    style: "conversions_style",
+    tooltip:
+      "Adjusts the brightness and contrast of an image - Brightness controls the overall lightness or darkness of an image, while contrast controls the difference in intensity between different parts of the image. Increasing brightness makes the image lighter, and increasing contrast makes the differences between light and dark areas more pronounced.",
+  },
+  {
     type: "imageconvertions_colortobinary",
     message0:
       "Convert colored image to a binary one %1 by %2 type %3 with threshold value %4 and max value %5",
