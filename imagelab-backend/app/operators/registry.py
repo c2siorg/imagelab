@@ -10,11 +10,7 @@ from app.operators.blurring.median_blur import MedianBlur
 from app.operators.conversions.bgr_to_hsv import BgrToHsv
 from app.operators.conversions.bgr_to_lab import BgrToLab
 from app.operators.conversions.bgr_to_ycrcb import BgrToYcrcb
-<<<<<<< HEAD
 from app.operators.conversions.brightness_and_contrast import BrightnessAndContrast
-=======
-from app.operators.conversions.brightness_contrast import BrightnessContrast
->>>>>>> bc0eed6 (feat: add advanced image processing operators (Issue #134))
 from app.operators.conversions.channel_split import ChannelSplit
 from app.operators.conversions.clahe import claheImage
 from app.operators.conversions.color_maps import ColorMaps
@@ -73,7 +69,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "geometric_affineimage": AffineImage,
     "geometric_cropimage": CropImage,
     # Conversions
-    "imageconvertions_brightnesscontrast": BrightnessContrast,
+    "imageconvertions_brightnessandcontrast": BrightnessAndContrast,
     "imageconvertions_clahe": claheImage,
     "imageconvertions_grayimage": GrayImage,
     "imageconvertions_channelsplit": ChannelSplit,
@@ -87,11 +83,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "imageconvertions_bgrtoycrcb": BgrToYcrcb,
     "imageconvertions_ycrcbtobgr": YcrcbToBgr,
     "imageconvertions_invertimage": InvertImage,
-<<<<<<< HEAD
-    "imageconvertions_brightnessandcontrast": BrightnessAndContrast,
-=======
     "imageconvertions_histogramequalization": HistogramEqualization,
->>>>>>> bc0eed6 (feat: add advanced image processing operators (Issue #134))
     # Drawing
     "drawingoperations_drawline": DrawLine,
     "drawingoperations_drawcircle": DrawCircle,
@@ -113,12 +105,12 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "filtering_erosion": Erosion,
     "filtering_dilation": Dilation,
     "filtering_morphological": Morphological,
+    "filtering_gaborfilter": GaborFilter,
+    "filtering_contourdetection": ContourDetection,
     # Augmentation
     "augmentation_gaussiannoise": GaussianNoise,
     "augmentation_saltpeppernoise": SaltPepperNoise,
     "augmentation_sepiafilter": SepiaFilter,
-    "filtering_gaborfilter": GaborFilter,
-    "filtering_contourdetection": ContourDetection,
     # Thresholding
     "thresholding_applythreshold": ApplyThreshold,
     "thresholding_adaptivethreshold": AdaptiveThreshold,
