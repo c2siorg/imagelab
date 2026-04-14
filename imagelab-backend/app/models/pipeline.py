@@ -12,9 +12,21 @@ class PipelineRequest(BaseModel):
     pipeline: list[PipelineStep]
 
 
+class StepTiming(BaseModel):
+    step: int
+    operator_type: str
+    duration_ms: float
+
+
+class PipelineTimings(BaseModel):
+    total_ms: float
+    steps: list[StepTiming]
+
+
 class PipelineResponse(BaseModel):
     success: bool
     image: str | None = None
     image_format: str | None = None
     error: str | None = None
     step: int | None = None
+    timings: PipelineTimings | None = None

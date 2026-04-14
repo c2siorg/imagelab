@@ -32,6 +32,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
             "step": None,
             "image": None,
             "image_format": None,
+            "timings": None,
         },
     )
 

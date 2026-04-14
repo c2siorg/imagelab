@@ -1,5 +1,19 @@
 export const conversionsBlocks = [
   {
+    type: "imageconvertions_clahe",
+    message0: "Apply CLAHE with clip limit %1 and tile grid size x: %2 y: %3",
+    args0: [
+      { type: "field_number", name: "clipLimit", value: 2.0, min: 0, max: 40 },
+      { type: "field_number", name: "tileGridSizeX", value: 8, min: 1, max: 64, precision: 1 },
+      { type: "field_number", name: "tileGridSizeY", value: 8, min: 1, max: 64, precision: 1 },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "conversions_style",
+    tooltip:
+      "Applies CLAHE (Contrast Limited Adaptive Histogram Equalization) to enhance local contrast in an image. The 'clipLimit' controls the amount of contrast enhancement, and 'tileGridSizeX' and 'tileGridSizeY' define the grid size for local histogram equalization.",
+  },
+  {
     type: "imageconvertions_grayimage",
     message0: "Gray the image",
     previousStatement: null,
@@ -41,6 +55,15 @@ export const conversionsBlocks = [
       "Converts grayscale to binary using threshold - Applies a binary threshold to a grayscale image, converting it to black and white. Pixels with intensity above the threshold value will be set to the max value (white), while those below will be set to 0 (black). This is useful for segmenting objects from the background.",
   },
   {
+    type: "imageconvertions_invertimage",
+    message0: "Invert image",
+    previousStatement: null,
+    nextStatement: null,
+    style: "conversions_style",
+    tooltip:
+      "Inverts all pixel values in the image - Applies a bitwise NOT to every pixel, replacing each value with 255 minus itself. Bright regions become dark, dark regions become bright, and colours shift to their complementary opposites. Useful for creating negative-style images or improving visibility of certain features before thresholding.",
+  },
+  {
     type: "imageconvertions_colormaps",
     message0: "Color map image with %1 filter",
     args0: [
@@ -66,6 +89,20 @@ export const conversionsBlocks = [
     style: "conversions_style",
     tooltip:
       "Apply different color maps to an image - Transforms the colors of an image using various color maps. This can enhance visual contrast and highlight specific features. For example, the 'JET' colormap transitions from blue to red, while 'HSV' represents hue, saturation, and value. Choose a colormap that best suits your image analysis needs.",
+  },
+  {
+    type: "imageconvertions_brightnessandcontrast",
+    message0: "Adjust image brightness by %1 and contrast scale by %2",
+    args0: [
+      { type: "field_number", name: "brightnessValue", value: 0, min: -100, max: 100 },
+      { type: "field_number", name: "contrastValue", value: 1.0, min: 0.0, max: 3.0 },
+    ],
+    inputsInline: false,
+    previousStatement: null,
+    nextStatement: null,
+    style: "conversions_style",
+    tooltip:
+      "Adjusts the brightness and contrast of an image - Brightness controls the overall lightness or darkness of an image, while contrast controls the difference in intensity between different parts of the image. Increasing brightness makes the image lighter, and increasing contrast makes the differences between light and dark areas more pronounced.",
   },
   {
     type: "imageconvertions_colortobinary",
