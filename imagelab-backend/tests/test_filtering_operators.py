@@ -80,9 +80,7 @@ class TestBoxFilter:
         image = np.arange(75, dtype=np.uint8).reshape(5, 5, 3)
         width, height = 1, 5
 
-        result = BoxFilter({"width": width, "height": height, "depth": -1}).compute(
-            image
-        )
+        result = BoxFilter({"width": width, "height": height, "depth": -1}).compute(image)
         expected = cv2.boxFilter(
             image,
             -1,
