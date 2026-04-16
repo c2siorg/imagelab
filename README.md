@@ -16,17 +16,13 @@ A desktop application for visual, block-based image processing using Google Bloc
 
 - [Node.js](https://nodejs.org/) >= 18
 - Python 3.12+
-- PostgreSQL
+- [PostgreSQL](https://www.postgresql.org/download/)
+- [uv](https://github.com/astral-sh/uv) - Python package installer
+  ```bash
+  pip install uv
+  ```
 
 ## Getting Started
-
-### Electron App (Legacy)
-
-```bash
-cd electron-app-legacy
-npm install
-npm start
-```
 
 ### Backend
 
@@ -54,9 +50,6 @@ npm run dev
 ## Running Tests
 
 ```bash
-# Electron app
-cd electron-app-legacy && npm test
-
 # Backend
 cd imagelab-backend && uv run pytest
 
@@ -68,7 +61,6 @@ cd imagelab-frontend && npm run test
 
 ```
 imagelab/
-  electron-app-legacy/   # Original Electron + Blockly app
   imagelab-frontend/     # React + Vite frontend
   imagelab-backend/      # Python FastAPI backend
   docs/                  # Project documentation site
