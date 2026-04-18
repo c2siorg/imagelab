@@ -17,6 +17,11 @@ class ScaleImage(BaseOperator):
         fx = float(self.params.get("fx", 1))
         fy = float(self.params.get("fy", 1))
 
+        if fx <= 0:
+            raise ValueError(f"fx must be positive, got {fx}")
+        if fy <= 0:
+            raise ValueError(f"fy must be positive, got {fy}")
+
         interpolation_str = str(self.params.get("interpolation", "LINEAR")).upper()
         if interpolation_str not in _INTERPOLATION_MAP:
             raise ValueError(
