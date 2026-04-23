@@ -1,6 +1,5 @@
 import re
 
-
 HEX_COLOR_RE = re.compile(r"^[0-9a-fA-F]{6}$")
 
 
