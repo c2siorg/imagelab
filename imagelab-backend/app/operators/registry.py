@@ -34,6 +34,7 @@ from app.operators.filtering.contour_detection import ContourDetection
 from app.operators.filtering.dilation import Dilation
 from app.operators.filtering.erosion import Erosion
 from app.operators.filtering.gabor_filter import GaborFilter
+from app.operators.filtering.hough_lines import HoughLines
 from app.operators.filtering.laplacian import Laplacian
 from app.operators.filtering.laplacian import Laplacian as FilteringLaplacian
 from app.operators.filtering.morphological import Morphological
@@ -111,6 +112,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "augmentation_sepiafilter": SepiaFilter,
     "filtering_gaborfilter": GaborFilter,
     "filtering_contourdetection": ContourDetection,
+    "filtering_houghlines": HoughLines,
     # Thresholding
     "thresholding_applythreshold": ApplyThreshold,
     "thresholding_adaptivethreshold": AdaptiveThreshold,

@@ -189,4 +189,56 @@ export const filteringBlocks = [
     tooltip:
       "Detects edges in the image using the Canny algorithm. threshold1 and threshold2 are the lower and upper bounds for the hysteresis procedure. apertureSize is the Sobel kernel size.",
   },
+  {
+    type: "filtering_houghlines",
+    message0:
+      "Apply Hough Line Detection | rho %1 theta(deg) %2 | threshold %3 minLength %4 | maxGap %5 color %6 | thickness %7 | cannyLow %8 cannyHigh %9 | cannyAperture %10",
+    args0: [
+      { type: "field_number", name: "rho", value: 1.0, min: 0.1, max: 10 },
+      {
+        type: "field_number",
+        name: "thetaDegrees",
+        value: 1.0,
+        min: 0.1,
+        max: 180,
+      },
+      { type: "field_number", name: "threshold", value: 50, min: 1, max: 500 },
+      { type: "field_number", name: "minLineLength", value: 50, min: 1, max: 2000 },
+      { type: "field_number", name: "maxLineGap", value: 10, min: 0, max: 500 },
+      { type: "field_colour", name: "color", colour: "#00FF00" },
+      {
+        type: "field_number",
+        name: "thickness",
+        value: 2,
+        min: 1,
+        max: 50,
+      },
+      {
+        type: "field_number",
+        name: "cannyThreshold1",
+        value: 50,
+        min: 0,
+        max: 255,
+      },
+      {
+        type: "field_number",
+        name: "cannyThreshold2",
+        value: 150,
+        min: 0,
+        max: 255,
+      },
+      {
+        type: "field_number",
+        name: "cannyApertureSize",
+        value: 3,
+        min: 3,
+        max: 7,
+      },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "filtering_style",
+    tooltip:
+      "Applies Probabilistic Hough Line Transform to detect straight line segments. Internally converts to grayscale and uses Canny Edge Detection as a pre-step. 'rho' and 'theta(deg)' set the coordinate resolution. 'threshold' is the minimum votes to be considered a line. 'minLength' filters short segments, and 'maxGap' connects broken lines.",
+  },
 ];
