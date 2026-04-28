@@ -30,6 +30,21 @@ class TestSobelDerivative:
         assert result.shape == gray.shape
         assert result.dtype == np.uint8
 
+    def test_bgra_input_converted_to_bgr(self):
+        bgra = np.random.randint(0, 256, (48, 48, 4), dtype=np.uint8)
+        result = SobelDerivative({"type": "HORIZONTAL"}).compute(bgra)
+        assert result.dtype == np.uint8
+
+    def test_bgra_vertical(self):
+        bgra = np.random.randint(0, 256, (48, 48, 4), dtype=np.uint8)
+        result = SobelDerivative({"type": "VERTICAL"}).compute(bgra)
+        assert result.dtype == np.uint8
+
+    def test_bgra_both(self):
+        bgra = np.random.randint(0, 256, (48, 48, 4), dtype=np.uint8)
+        result = SobelDerivative({"type": "BOTH"}).compute(bgra)
+        assert result.dtype == np.uint8
+
 
 class TestScharrDerivative:
     def test_horizontal_dtype_and_range(self):
@@ -46,4 +61,14 @@ class TestScharrDerivative:
         gray = np.random.randint(0, 256, (48, 48), dtype=np.uint8)
         result = ScharrDerivative({"type": "HORIZONTAL"}).compute(gray)
         assert result.shape == gray.shape
+        assert result.dtype == np.uint8
+
+    def test_bgra_input_converted_to_bgr(self):
+        bgra = np.random.randint(0, 256, (48, 48, 4), dtype=np.uint8)
+        result = ScharrDerivative({"type": "HORIZONTAL"}).compute(bgra)
+        assert result.dtype == np.uint8
+
+    def test_bgra_vertical(self):
+        bgra = np.random.randint(0, 256, (48, 48, 4), dtype=np.uint8)
+        result = ScharrDerivative({"type": "VERTICAL"}).compute(bgra)
         assert result.dtype == np.uint8
