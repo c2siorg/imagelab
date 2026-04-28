@@ -18,6 +18,7 @@ class Laplacian(BaseOperator):
     """
 
     def __init__(self, params: dict):
+        super().__init__(params)
         self._ksize = int(params.get("ksize", 1))
 
     def compute(self, image: np.ndarray) -> np.ndarray:

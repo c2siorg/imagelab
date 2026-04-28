@@ -281,3 +281,14 @@ class TestLaplacian:
         edge_image[:, 25:] = 255
         result = Laplacian({}).compute(edge_image)
         assert result.sum() > 0
+
+    def test_params_stored_on_instance(self):
+        # super().__init__(params) must be called so self.params is accessible
+        op = Laplacian({"ksize": 3})
+        assert hasattr(op, "params")
+        assert op.params == {"ksize": 3}
+
+    def test_empty_params_stored_on_instance(self):
+        op = Laplacian({})
+        assert hasattr(op, "params")
+        assert op.params == {}
