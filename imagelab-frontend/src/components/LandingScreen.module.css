@@ -27,6 +27,52 @@
   }
 }
 
+.orbFloat1 {
+  animation: float1 8s ease-in-out infinite;
+}
+
+.orbFloat1Reverse {
+  animation: float1 12s ease-in-out infinite reverse;
+}
+
+.orbFloat2 {
+  animation: float2 10s ease-in-out infinite;
+}
+
+.fadeUpDelay1,
+.fadeUpDelay2,
+.fadeUpDelay3,
+.fadeUpDelay4,
+.fadeUpDelay5,
+.fadeUpDelay6 {
+  opacity: 0;
+  animation: fadeUp 0.6s ease forwards;
+}
+
+.fadeUpDelay1 {
+  animation-delay: 0.1s;
+}
+
+.fadeUpDelay2 {
+  animation-delay: 0.2s;
+}
+
+.fadeUpDelay3 {
+  animation-delay: 0.3s;
+}
+
+.fadeUpDelay4 {
+  animation-delay: 0.4s;
+}
+
+.fadeUpDelay5 {
+  animation-delay: 0.5s;
+}
+
+.fadeUpDelay6 {
+  animation-delay: 0.6s;
+}
+
 .startBtn:hover:not(:disabled) {
   background: linear-gradient(135deg, #7c3aed, #059669) !important;
   transform: translateY(-2px) !important;

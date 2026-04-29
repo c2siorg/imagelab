@@ -20,7 +20,7 @@ const ORBS = [
     width: "400px",
     height: "400px",
     background: "radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)",
-    animation: "float1 8s ease-in-out infinite",
+    className: "orbFloat1",
   },
   {
     bottom: "10%",
@@ -28,7 +28,7 @@ const ORBS = [
     width: "500px",
     height: "500px",
     background: "radial-gradient(circle, rgba(16,185,129,0.1) 0%, transparent 70%)",
-    animation: "float2 10s ease-in-out infinite",
+    className: "orbFloat2",
   },
   {
     top: "50%",
@@ -36,7 +36,7 @@ const ORBS = [
     width: "300px",
     height: "300px",
     background: "radial-gradient(circle, rgba(245,158,11,0.08) 0%, transparent 70%)",
-    animation: "float1 12s ease-in-out infinite reverse",
+    className: "orbFloat1Reverse",
   },
 ];
 
@@ -116,10 +116,11 @@ export function LandingScreen({ onStart }: LandingScreenProps) {
         {transitioning ? "Loading workspace" : ""}
       </div>
 
-      {ORBS.map((orb, i) => (
+      {ORBS.map(({ className, ...orb }, i) => (
         <div
           key={i}
           aria-hidden="true"
+          className={styles[className as keyof typeof styles]}
           style={{
             position: "absolute",
             borderRadius: "50%",
@@ -157,12 +158,11 @@ export function LandingScreen({ onStart }: LandingScreenProps) {
         }}
       >
         <div
+          className={visible ? styles.fadeUpDelay1 : undefined}
           style={{
             display: "flex",
             justifyContent: "center",
             marginBottom: "1.25rem",
-            animation: visible ? "fadeUp 0.6s 0.1s ease forwards" : "none",
-            opacity: 0,
           }}
         >
           <span
@@ -183,11 +183,10 @@ export function LandingScreen({ onStart }: LandingScreenProps) {
         </div>
 
         <div
+          className={visible ? styles.fadeUpDelay2 : undefined}
           style={{
             textAlign: "center",
             marginBottom: "0.75rem",
-            animation: visible ? "fadeUp 0.6s 0.2s ease forwards" : "none",
-            opacity: 0,
           }}
         >
           <h1
@@ -228,23 +227,21 @@ export function LandingScreen({ onStart }: LandingScreenProps) {
 
         <div
           aria-hidden="true"
+          className={visible ? styles.fadeUpDelay3 : undefined}
           style={{
             height: "1px",
             background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)",
             margin: "1rem 0",
-            animation: visible ? "fadeUp 0.6s 0.3s ease forwards" : "none",
-            opacity: 0,
           }}
         />
 
         <div
+          className={visible ? styles.fadeUpDelay4 : undefined}
           style={{
             display: "flex",
             flexDirection: "column",
             gap: "0.5rem",
             marginBottom: "1rem",
-            animation: visible ? "fadeUp 0.6s 0.4s ease forwards" : "none",
-            opacity: 0,
           }}
         >
           {STEPS.map(({ num, title, desc, color }) => (
@@ -308,12 +305,7 @@ export function LandingScreen({ onStart }: LandingScreenProps) {
           ))}
         </div>
 
-        <div
-          style={{
-            animation: visible ? "fadeUp 0.6s 0.5s ease forwards" : "none",
-            opacity: 0,
-          }}
-        >
+        <div className={visible ? styles.fadeUpDelay5 : undefined}>
           <button
             ref={buttonRef}
             className={styles.startBtn}
@@ -341,13 +333,12 @@ export function LandingScreen({ onStart }: LandingScreenProps) {
         </div>
 
         <div
+          className={visible ? styles.fadeUpDelay6 : undefined}
           style={{
             display: "flex",
             justifyContent: "center",
             marginTop: "0.6rem",
             marginBottom: "0.5rem",
-            animation: visible ? "fadeUp 0.6s 0.6s ease forwards" : "none",
-            opacity: 0,
           }}
         >
           <label
