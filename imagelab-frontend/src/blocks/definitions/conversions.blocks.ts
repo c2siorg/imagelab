@@ -130,6 +130,14 @@ export const conversionsBlocks = [
       "Convert colored (RGB) image to binary with adjustable threshold - Applies a binary threshold to a colored image, converting it to black and white. You can choose between 'Threshold Binary' (pixels above the threshold become white) and 'Threshold Binary Inv' (pixels above the threshold become black). Adjust the threshold value to control which pixels are considered foreground (white) or background (black), and set the max value for the output binary image.",
   },
   {
+    type: "imageconvertions_histogramequalization",
+    message0: "Enhance contrast using histogram equalization",
+    previousStatement: null,
+    nextStatement: null,
+    style: "conversions_style",
+    tooltip: "Automatically improves image contrast using histogram equalization",
+  },
+  {
     type: "imageconvertions_bgrtohsv",
     message0: "Convert BGR to HSV",
     previousStatement: null,

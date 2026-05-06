@@ -17,6 +17,7 @@ from app.operators.conversions.color_maps import ColorMaps
 from app.operators.conversions.color_to_binary import ColorToBinary
 from app.operators.conversions.gray_image import GrayImage
 from app.operators.conversions.gray_to_binary import GrayToBinary
+from app.operators.conversions.histogram_equalization import HistogramEqualization
 from app.operators.conversions.hsv_to_bgr import HsvToBgr
 from app.operators.conversions.invert_image import InvertImage
 from app.operators.conversions.lab_to_bgr import LabToBgr
@@ -76,6 +77,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "imageconvertions_graytobinary": GrayToBinary,
     "imageconvertions_colormaps": ColorMaps,
     "imageconvertions_colortobinary": ColorToBinary,
+    "imageconvertions_histogramequalization": HistogramEqualization,
     "imageconvertions_bgrtohsv": BgrToHsv,
     "imageconvertions_hsvtobgr": HsvToBgr,
     "imageconvertions_bgrtolab": BgrToLab,

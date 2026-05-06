@@ -44,6 +44,7 @@ export const categories: CategoryInfo[] = [
       { type: "imageconvertions_graytobinary", label: "Gray to Binary" },
       { type: "imageconvertions_colormaps", label: "Color Maps" },
       { type: "imageconvertions_colortobinary", label: "Color to Binary" },
+      { type: "imageconvertions_histogramequalization", label: "Histogram Equalization" },
       { type: "imageconvertions_bgrtohsv", label: "BGR to HSV" },
       { type: "imageconvertions_hsvtobgr", label: "HSV to BGR" },
       { type: "imageconvertions_bgrtolab", label: "BGR to LAB" },
