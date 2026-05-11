@@ -50,9 +50,11 @@ def test_contour_detection_supports_gray_bgr_bgra(channels):
 
     result = op.compute(image.copy())
 
-    if channels == 4:
-        assert result.shape == (100, 100, 3)  # BGRA -> BGR conversion path
+    if channels == 1:
+        # Grayscale input is promoted to BGR so the contour can be drawn in colour.
+        assert result.shape == (100, 100, 3)
     else:
+        # BGR (3) and BGRA (4) inputs keep their channel count.
         assert result.shape == image.shape
 
 

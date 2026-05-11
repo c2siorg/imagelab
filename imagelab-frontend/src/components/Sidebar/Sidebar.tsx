@@ -42,9 +42,11 @@ export default function Sidebar({ workspace }: SidebarProps) {
   }, [workspace, tick]);
 
   return (
-    <div className="w-80 h-full bg-white border-r border-gray-200 flex-shrink-0 flex flex-col">
-      <div className="flex-shrink-0 px-3 py-2 border-b border-gray-200 flex flex-col gap-2">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Blocks</h2>
+    <div className="w-80 h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col">
+      <div className="flex-shrink-0 px-3 py-2 border-b border-gray-200 dark:border-gray-700 flex flex-col gap-2">
+        <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          Blocks
+        </h2>
         <div className="relative">
           <Search
             size={12}
@@ -56,7 +58,7 @@ export default function Sidebar({ workspace }: SidebarProps) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search blocks..."
-            className="w-full pl-7 pr-7 py-1.5 text-xs border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 placeholder-gray-400"
+            className="w-full pl-7 pr-7 py-1.5 text-xs border border-gray-200 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 placeholder-gray-400"
           />
           {query && (
             <button
@@ -64,7 +66,7 @@ export default function Sidebar({ workspace }: SidebarProps) {
               title="Clear search"
               aria-label="Clear search"
               onClick={() => setQuery("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
             >
               <X size={12} aria-hidden="true" />
             </button>

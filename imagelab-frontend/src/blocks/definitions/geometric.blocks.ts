@@ -36,8 +36,8 @@ export const geometricBlocks = [
     type: "geometric_scaleimage",
     message0: "Scale Image by %1 in X axis and by %2 in Y axis | Interpolation %3",
     args0: [
-      { type: "field_number", name: "fx", value: 1, min: 0 },
-      { type: "field_number", name: "fy", value: 1, min: 0 },
+      { type: "field_number", name: "fx", value: 1, min: 0.01, precision: 0.01 },
+      { type: "field_number", name: "fy", value: 1, min: 0.01, precision: 0.01 },
       {
         type: "field_dropdown",
         name: "interpolation",

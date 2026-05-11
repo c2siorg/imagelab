@@ -17,6 +17,7 @@ from app.operators.conversions.color_maps import ColorMaps
 from app.operators.conversions.color_to_binary import ColorToBinary
 from app.operators.conversions.gray_image import GrayImage
 from app.operators.conversions.gray_to_binary import GrayToBinary
+from app.operators.conversions.histogram_equalization import HistogramEqualization
 from app.operators.conversions.hsv_to_bgr import HsvToBgr
 from app.operators.conversions.invert_image import InvertImage
 from app.operators.conversions.lab_to_bgr import LabToBgr
@@ -29,10 +30,13 @@ from app.operators.drawing.draw_rectangle import DrawRectangle
 from app.operators.drawing.draw_text import DrawText
 from app.operators.filtering.bilateral_filter import BilateralFilter
 from app.operators.filtering.box_filter import BoxFilter
+from app.operators.filtering.canny_edge import CannyEdge
 from app.operators.filtering.contour_detection import ContourDetection
 from app.operators.filtering.dilation import Dilation
 from app.operators.filtering.erosion import Erosion
 from app.operators.filtering.gabor_filter import GaborFilter
+from app.operators.filtering.laplacian import Laplacian
+from app.operators.filtering.laplacian import Laplacian as FilteringLaplacian
 from app.operators.filtering.morphological import Morphological
 from app.operators.filtering.pyramid_down import PyramidDown
 from app.operators.filtering.pyramid_up import PyramidUp
@@ -46,6 +50,7 @@ from app.operators.geometric.scale_image import ScaleImage
 from app.operators.segmentation.kmeans_segmentation import KMeansSegmentation
 from app.operators.segmentation.mean_shift_segmentation import MeanShiftSegmentation
 from app.operators.segmentation.watershed import Watershed
+from app.operators.sobel_derivatives.prewitt_operator import PrewittOperator
 from app.operators.sobel_derivatives.scharr_derivative import ScharrDerivative
 from app.operators.sobel_derivatives.sobel_derivative import SobelDerivative
 from app.operators.thresholding.adaptive_threshold import AdaptiveThreshold
@@ -53,7 +58,6 @@ from app.operators.thresholding.apply_borders import ApplyBorders
 from app.operators.thresholding.apply_threshold import ApplyThreshold
 from app.operators.thresholding.otsu_threshold import OtsuThreshold
 from app.operators.transformation.distance_transform import DistanceTransform
-from app.operators.transformation.laplacian import Laplacian
 
 OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     # Basic
@@ -73,6 +77,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "imageconvertions_graytobinary": GrayToBinary,
     "imageconvertions_colormaps": ColorMaps,
     "imageconvertions_colortobinary": ColorToBinary,
+    "imageconvertions_histogramequalization": HistogramEqualization,
     "imageconvertions_bgrtohsv": BgrToHsv,
     "imageconvertions_hsvtobgr": HsvToBgr,
     "imageconvertions_bgrtolab": BgrToLab,
@@ -95,6 +100,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     # Filtering
     "filtering_boxfilter": BoxFilter,
     "filtering_bilateral": BilateralFilter,
+    "filtering_cannyedge": CannyEdge,
     "filtering_sharpen": Sharpen,
     "filtering_pyramidup": PyramidUp,
     "filtering_pyramiddown": PyramidDown,
@@ -115,6 +121,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     # Sobel Derivatives
     "sobelderivatives_soblederivate": SobelDerivative,
     "sobelderivatives_scharrderivate": ScharrDerivative,
+    "sobelderivatives_prewittoperator": PrewittOperator,
     # Transformation
     "transformation_distance": DistanceTransform,
     "transformation_laplacian": Laplacian,
@@ -122,6 +129,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "segmentation_watershed": Watershed,
     "segmentation_kmeans": KMeansSegmentation,
     "segmentation_meanshift": MeanShiftSegmentation,
+    "laplacian": FilteringLaplacian,
 }
 
 

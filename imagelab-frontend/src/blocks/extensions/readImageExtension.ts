@@ -45,10 +45,12 @@ function initReadImageBlock(block: Blockly.Block) {
     if (label) label.setValue("No image");
   });
 
-  // Clean up on block disposal
+  // Clean up on block disposal (deletion or workspace clear)
   block.dispose = new Proxy(block.dispose, {
     apply(target, thisArg, args) {
       fileInput.remove();
+      // Clear image from store when read_image block is deleted
+      usePipelineStore.getState().clearImage();
       return Reflect.apply(target, thisArg, args);
     },
   });

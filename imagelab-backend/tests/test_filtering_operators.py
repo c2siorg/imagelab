@@ -6,6 +6,7 @@ from app.operators.filtering.bilateral_filter import BilateralFilter
 from app.operators.filtering.box_filter import BoxFilter
 from app.operators.filtering.dilation import Dilation
 from app.operators.filtering.erosion import Erosion
+from app.operators.filtering.laplacian import Laplacian
 from app.operators.filtering.morphological import Morphological
 from app.operators.filtering.pyramid_down import PyramidDown
 from app.operators.filtering.pyramid_up import PyramidUp
@@ -242,3 +243,41 @@ class TestPyramidDown:
     def test_output_is_uint8(self, color_image):
         result = PyramidDown({}).compute(color_image)
         assert result.dtype == np.uint8
+
+
+# Laplacian
+
+
+class TestLaplacian:
+    def test_default_params_output_shape(self, color_image):
+        result = Laplacian({}).compute(color_image)
+        assert result.shape[:2] == color_image.shape[:2]
+
+    def test_grayscale_input(self, grayscale_image):
+        result = Laplacian({}).compute(grayscale_image)
+        assert result.shape == grayscale_image.shape
+
+    def test_rgba_input_handled(self, rgba_image):
+        result = Laplacian({}).compute(rgba_image)
+        assert result.shape[:2] == rgba_image.shape[:2]
+
+    def test_output_is_uint8(self, color_image):
+        result = Laplacian({}).compute(color_image)
+        assert result.dtype == np.uint8
+
+    def test_custom_ksize(self, color_image):
+        result = Laplacian({"ksize": 3}).compute(color_image)
+        assert result.shape[:2] == color_image.shape[:2]
+
+    def test_detects_edges(self):
+        # Flat image should produce near-zero Laplacian response
+        flat = np.ones((50, 50, 3), dtype=np.uint8) * 128
+        result = Laplacian({}).compute(flat)
+        assert result.sum() == 0
+
+    def test_edge_image_produces_nonzero_response(self):
+        # Image with sharp edge should produce nonzero response
+        edge_image = np.zeros((50, 50, 3), dtype=np.uint8)
+        edge_image[:, 25:] = 255
+        result = Laplacian({}).compute(edge_image)
+        assert result.sum() > 0

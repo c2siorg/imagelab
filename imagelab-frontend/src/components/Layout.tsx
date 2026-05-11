@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useBlocklyWorkspace } from "../hooks/useBlocklyWorkspace";
 import { usePipelineStore } from "../store/pipelineStore";
+import { useDarkMode } from "../hooks/useDarkMode";
 import Navbar from "./Navbar";
 import Toolbar from "./Toolbar";
 import Sidebar from "./Sidebar/Sidebar";
@@ -9,7 +10,8 @@ import InfoPane from "./InfoPane";
 import { ErrorBoundary } from "./ErrorBoundary";
 
 export default function Layout() {
-  const { containerRef, workspace } = useBlocklyWorkspace();
+  const [isDark, toggleDark] = useDarkMode();
+  const { containerRef, workspace } = useBlocklyWorkspace({ isDark });
   const { reset } = usePipelineStore();
   const [resetKey, setResetKey] = useState(0);
 
@@ -19,8 +21,8 @@ export default function Layout() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
-      <Navbar />
+    <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+      <Navbar isDark={isDark} onToggleDark={toggleDark} />
       <Toolbar workspace={workspace} />
       <div className="flex flex-1 min-h-0">
         <Sidebar workspace={workspace} />

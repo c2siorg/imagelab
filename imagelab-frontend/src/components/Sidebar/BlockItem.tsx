@@ -35,7 +35,7 @@ export default function BlockItem({ type, label, workspace, preview, disabled }:
       className={`w-full py-1 px-1 rounded transition-colors ${
         disabled
           ? "opacity-40 cursor-not-allowed"
-          : "hover:bg-gray-50 cursor-grab active:cursor-grabbing"
+          : "hover:bg-gray-50 dark:hover:bg-gray-700 cursor-grab active:cursor-grabbing"
       }`}
     >
       {preview ? (
@@ -45,7 +45,7 @@ export default function BlockItem({ type, label, workspace, preview, disabled }:
           dangerouslySetInnerHTML={{ __html: preview.svgMarkup }}
         />
       ) : (
-        <span className="text-xs text-gray-400 italic pl-1">{label}</span>
+        <span className="text-xs text-gray-400 dark:text-gray-500 italic pl-1">{label}</span>
       )}
     </button>
   );

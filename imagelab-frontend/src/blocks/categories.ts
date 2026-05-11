@@ -44,6 +44,7 @@ export const categories: CategoryInfo[] = [
       { type: "imageconvertions_graytobinary", label: "Gray to Binary" },
       { type: "imageconvertions_colormaps", label: "Color Maps" },
       { type: "imageconvertions_colortobinary", label: "Color to Binary" },
+      { type: "imageconvertions_histogramequalization", label: "Histogram Equalization" },
       { type: "imageconvertions_bgrtohsv", label: "BGR to HSV" },
       { type: "imageconvertions_hsvtobgr", label: "HSV to BGR" },
       { type: "imageconvertions_bgrtolab", label: "BGR to LAB" },
@@ -52,6 +53,16 @@ export const categories: CategoryInfo[] = [
       { type: "imageconvertions_ycrcbtobgr", label: "YCrCb to BGR" },
       { type: "imageconvertions_invertimage", label: "Invert Image" },
       { type: "imageconvertions_brightnessandcontrast", label: "Brightness and Contrast" },
+    ],
+  },
+  {
+    name: "Augmentation",
+    icon: "Zap",
+    colour: "#F48FB1",
+    blocks: [
+      { type: "augmentation_gaussiannoise", label: "Gaussian Noise" },
+      { type: "augmentation_saltpeppernoise", label: "Salt & Pepper Noise" },
+      { type: "augmentation_sepiafilter", label: "Sepia Filter" },
     ],
   },
   {
@@ -135,6 +146,7 @@ export const categories: CategoryInfo[] = [
     blocks: [
       { type: "sobelderivatives_soblederivate", label: "Sobel Derivative" },
       { type: "sobelderivatives_scharrderivate", label: "Scharr Derivative" },
+      { type: "sobelderivatives_prewittoperator", label: "Prewitt Operator" },
     ],
   },
   {

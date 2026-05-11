@@ -45,7 +45,8 @@ def test_multi_step_pipeline(make_request, sample_image_b64):
 def test_unknown_operator_gives_clear_error(make_request):
     res = execute_pipeline(make_request([PipelineStep(type="not_a_real_op")]))
     assert res.success is False
-    assert res.step == 0
+    assert res.step == 1
+    assert "at step 1" in res.error
     assert "not_a_real_op" in res.error
     assert "Unknown operator" in res.error
 
@@ -57,7 +58,8 @@ def test_error_includes_correct_step_index(make_request):
     ]
     res = execute_pipeline(make_request(steps))
     assert res.success is False
-    assert res.step == 1  # first step succeeds, second should fail
+    assert res.step == 2  # first step succeeds, second (1-indexed: 2) should fail
+    assert "at step 2" in res.error
     assert "bad_operator_step_one" in res.error
 
 

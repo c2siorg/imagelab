@@ -5,7 +5,7 @@ import "@blockly/field-colour";
 import "@blockly/field-slider";
 import { WorkspaceSearch } from "@blockly/plugin-workspace-search";
 import { usePipelineStore } from "../store/pipelineStore";
-import { imagelabTheme } from "../blocks/theme";
+import { imagelabTheme, imagelabThemeDark } from "../blocks/theme";
 import { SINGLETON_BLOCK_TYPES } from "../utils/blockLimits";
 import {
   clearPersistedWorkspace,
@@ -31,13 +31,24 @@ const MUTATING_EVENTS = new Set<string>([
 
 type WorkspaceState = ReturnType<typeof Blockly.serialization.workspaces.save>;
 
-export function useBlocklyWorkspace() {
+interface UseBlocklyWorkspaceOptions {
+  isDark?: boolean;
+}
+
+export function useBlocklyWorkspace({ isDark = false }: UseBlocklyWorkspaceOptions = {}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<Blockly.WorkspaceSvg | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const saveTimeoutRef = useRef<number | null>(null);
   const [workspace, setWorkspace] = useState<Blockly.WorkspaceSvg | null>(null);
   const setSelectedBlock = usePipelineStore((s) => s.setSelectedBlock);
   const updateBlockStats = usePipelineStore((s) => s.updateBlockStats);
+
+  // Swap Blockly theme when dark mode changes
+  useEffect(() => {
+    if (!workspaceRef.current) return;
+    workspaceRef.current.setTheme(isDark ? imagelabThemeDark : imagelabTheme);
+  }, [isDark]);
 
   const initWorkspace = useCallback(() => {
     if (!containerRef.current || workspaceRef.current) return;
@@ -54,11 +65,11 @@ export function useBlocklyWorkspace() {
       },
       trashcan: true,
       renderer: "zelos",
-      theme: imagelabTheme,
+      theme: isDark ? imagelabThemeDark : imagelabTheme,
       grid: {
         spacing: 20,
         length: 3,
-        colour: "#E5E7EB",
+        colour: isDark ? "#263040" : "#E5E7EB",
         snap: true,
       },
       zoom: {
@@ -70,6 +81,7 @@ export function useBlocklyWorkspace() {
         scaleSpeed: 1.2,
       },
     });
+
     // Load persisted workspace state if available and valid
     const persistedState = loadPersistedWorkspaceState<WorkspaceState>();
     if (persistedState) {
@@ -78,7 +90,6 @@ export function useBlocklyWorkspace() {
       } catch (err) {
         console.warn("[ImageLab] Failed to restore workspace state; clearing persisted data.", err);
         clearPersistedWorkspace();
-        // workspace is already blank — no further action needed
       }
     }
 
@@ -106,7 +117,6 @@ export function useBlocklyWorkspace() {
         }
       }
 
-      // Update stats when blocks are created, deleted, or changed (which might alter their active state but mainly create/delete impact counts)
       if (
         event.type === Blockly.Events.BLOCK_CREATE ||
         event.type === Blockly.Events.BLOCK_DELETE
@@ -114,9 +124,7 @@ export function useBlocklyWorkspace() {
         updateBlockStats(ws);
       }
 
-      // Debounced save on any change that modifies the workspace (create, delete, change, move)
       if (!event.isUiEvent && MUTATING_EVENTS.has(event.type)) {
-        // Clear any existing save timeout to debounce rapid changes
         if (saveTimeoutRef.current !== null) {
           window.clearTimeout(saveTimeoutRef.current);
         }
@@ -131,17 +139,33 @@ export function useBlocklyWorkspace() {
 
     workspaceRef.current = ws;
     setWorkspace(ws);
+    Blockly.svgResize(ws);
+    if (containerRef.current && typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(() => {
+        Blockly.svgResize(ws);
+      });
+      observer.observe(containerRef.current);
+      resizeObserverRef.current = observer;
+    }
     updateBlockStats(ws); // Initial stats calculation if any blocks loaded
+    // isDark is intentionally omitted from deps: initWorkspace is a one-shot
+    // initializer (guarded by workspaceRef.current). Live theme toggles are
+    // handled by the setTheme useEffect above, so adding isDark here would
+    // dispose and recreate the workspace on every toggle, losing user blocks.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setSelectedBlock, updateBlockStats]);
 
   useEffect(() => {
     initWorkspace();
     return () => {
       // Cleanup on unmount: dispose workspace and clear any pending save timeout
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+        resizeObserverRef.current = null;
+      }
       if (saveTimeoutRef.current !== null) {
         window.clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = null;
-        // Flush the save synchronously so the last change is not lost
         if (workspaceRef.current) {
           const state = Blockly.serialization.workspaces.save(workspaceRef.current);
           saveWorkspaceState(state);

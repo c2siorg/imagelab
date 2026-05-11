@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 import pytest
 
@@ -57,6 +58,13 @@ class TestGrayToBinary:
     def test_default_params_output_shape(self, grayscale_image):
         result = GrayToBinary({}).compute(grayscale_image)
         assert result.shape == grayscale_image.shape
+
+    def test_default_params_produce_non_black_output(self):
+        img = np.zeros((100, 100), dtype=np.uint8)
+        img[:50, :] = 50
+        img[50:, :] = 200
+        result = GrayToBinary({}).compute(img)
+        assert set(np.unique(result)) == {0, 255}
 
     def test_custom_threshold_output_shape(self, grayscale_image):
         result = GrayToBinary({"thresholdValue": 127, "maxValue": 255}).compute(grayscale_image)
@@ -128,6 +136,24 @@ class TestColorMaps:
     def test_output_is_uint8(self, grayscale_image):
         result = ColorMaps({}).compute(grayscale_image)
         assert result.dtype == np.uint8
+
+    def test_bgr_input_is_converted_to_grayscale_before_colormap(self, color_image):
+        result = ColorMaps({"type": "HOT"}).compute(color_image)
+        expected = cv2.applyColorMap(
+            cv2.cvtColor(color_image, cv2.COLOR_BGR2GRAY),
+            cv2.COLORMAP_HOT,
+        )
+
+        np.testing.assert_array_equal(result, expected)
+
+    def test_bgra_input_is_converted_to_grayscale_before_colormap(self, rgba_image):
+        result = ColorMaps({"type": "HOT"}).compute(rgba_image)
+        expected = cv2.applyColorMap(
+            cv2.cvtColor(rgba_image, cv2.COLOR_BGRA2GRAY),
+            cv2.COLORMAP_HOT,
+        )
+
+        np.testing.assert_array_equal(result, expected)
 
 
 # ChannelSplit
