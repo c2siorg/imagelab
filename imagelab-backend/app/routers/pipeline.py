@@ -15,8 +15,8 @@ async def health():
     return {"status": "ok"}
 
 
-@router.post("/pipeline/execute", response_model=PipelineResponse)
-def execute(request: PipelineRequest):
+@router.post("/v1/pipeline/executions", response_model=PipelineResponse)
+def create_execution(request: PipelineRequest):
     """Execute an image processing pipeline.
 
     This endpoint performs CPU-bound OpenCV processing (image decoding,
@@ -36,12 +36,6 @@ def execute(request: PipelineRequest):
     except Exception:
         logger.exception("Unexpected error during pipeline execution")
         raise HTTPException(status_code=500, detail="Internal pipeline error") from None
-
-
-@router.post("/v1/pipeline/executions", response_model=PipelineResponse)
-def create_execution(request: PipelineRequest):
-    """Execute a pipeline and return step thumbnails plus an execution id."""
-    return execute(request)
 
 
 @router.get("/v1/pipeline/executions/{execution_id}/steps/inspect", response_model=StepInspectResponse)

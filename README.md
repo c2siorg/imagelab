@@ -57,6 +57,15 @@ cd imagelab-backend && uv run pytest
 cd imagelab-frontend && npm run test
 ```
 
+## Pipeline API
+
+The React app uses the FastAPI backend to execute pipelines and inspect intermediate images.
+
+- `POST /api/v1/pipeline/executions` executes the submitted pipeline and returns the final image, per-step thumbnails, timings, and an `execution_id`.
+- `GET /api/v1/pipeline/executions/{execution_id}/steps/inspect?block_id=...` returns the full-resolution image for one cached step.
+
+The legacy `/api/pipeline/execute` endpoint has been removed. Full-resolution step images are cached in backend memory with a TTL and max-entry bound; clients should keep the lightweight thumbnails from the execution response and fetch full-resolution step images only when selected.
+
 ## Project Structure
 
 ```

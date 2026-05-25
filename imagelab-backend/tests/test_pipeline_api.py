@@ -1,4 +1,4 @@
-EXECUTE_URL = "/api/pipeline/execute"
+EXECUTE_URL = "/api/v1/pipeline/executions"
 
 GRAY_STEP = {"type": "imageconvertions_grayimage", "params": {}}
 GRAY_STEP_WITH_ID = {"type": "imageconvertions_grayimage", "block_id": "gray-block", "params": {}}
@@ -13,6 +13,14 @@ def test_health(client):
     r = client.get("/api/health")
     assert r.status_code == 200
     assert r.json() == {"status": "ok"}
+
+
+def test_legacy_execute_endpoint_removed(client, png_b64):
+    r = client.post(
+        "/api/pipeline/execute",
+        json={"image": png_b64, "image_format": "png", "pipeline": [GRAY_STEP]},
+    )
+    assert r.status_code == 404
 
 
 def test_single_step(client, png_b64):
