@@ -184,14 +184,15 @@ def inspect_step(execution_id: str, block_id: str):
     _evict_expired_executions()
     with _EXECUTION_CACHE_LOCK:
         cached = _EXECUTION_CACHE.get(execution_id)
-    if not cached:
-        return None
-    steps = cached["steps"]
-    if not isinstance(steps, dict) or block_id not in steps:
-        return None
-    step = steps[block_id]
-    if not isinstance(step, dict):
-        return None
+        if not cached:
+            return None
+        steps = cached["steps"]
+        if not isinstance(steps, dict) or block_id not in steps:
+            return None
+        step = steps[block_id]
+        if not isinstance(step, dict):
+            return None
+        cached["last_accessed_at"] = time.time()
     image = step["image"]
     if not isinstance(image, np.ndarray):
         return None
@@ -228,14 +229,19 @@ def analyze_image(image: np.ndarray) -> ImageAnalysis:
 
 def _store_execution(execution_id: str, steps: dict[str, dict[str, object]]) -> None:
     _evict_expired_executions()
+    now = time.time()
     with _EXECUTION_CACHE_LOCK:
-        _EXECUTION_CACHE[execution_id] = {"created_at": time.time(), "steps": steps}
+        _EXECUTION_CACHE[execution_id] = {
+            "created_at": now,
+            "last_accessed_at": now,
+            "steps": steps,
+        }
         if len(_EXECUTION_CACHE) > MAX_EXECUTION_CACHE_ENTRIES:
-            oldest_execution_id = min(
+            least_recently_used_execution_id = min(
                 _EXECUTION_CACHE,
-                key=lambda key: float(_EXECUTION_CACHE[key].get("created_at", 0)),
+                key=lambda key: float(_EXECUTION_CACHE[key].get("last_accessed_at", 0)),
             )
-            _EXECUTION_CACHE.pop(oldest_execution_id, None)
+            _EXECUTION_CACHE.pop(least_recently_used_execution_id, None)
 
 
 def _evict_expired_executions() -> None:

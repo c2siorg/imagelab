@@ -116,6 +116,28 @@ def test_execution_inspect_returns_full_image_and_analysis(client, png_b64):
     assert data["analysis"]["height"] == 10
 
 
+def test_execution_inspect_unknown_execution_returns_404(client):
+    inspect = client.get(
+        "/api/v1/pipeline/executions/not-real/steps/inspect",
+        params={"block_id": "gray-block"},
+    )
+    assert inspect.status_code == 404
+
+
+def test_execution_inspect_unknown_block_returns_404(client, png_b64):
+    r = client.post(
+        "/api/v1/pipeline/executions",
+        json={"image": png_b64, "image_format": "png", "pipeline": [GRAY_STEP_WITH_ID]},
+    )
+    assert r.status_code == 200
+    execution = r.json()
+    inspect = client.get(
+        f"/api/v1/pipeline/executions/{execution['execution_id']}/steps/inspect",
+        params={"block_id": "not-a-real-block"},
+    )
+    assert inspect.status_code == 404
+
+
 def test_execution_inspect_supports_block_ids_with_slashes(client, png_b64):
     step = {"type": "imageconvertions_grayimage", "block_id": "block/with/slash", "params": {}}
     r = client.post(

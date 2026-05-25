@@ -1,8 +1,22 @@
 import base64
 
+import numpy as np
+
 from app.models.pipeline import PipelineRequest, PipelineStep
+from app.services import pipeline_executor
 from app.services.pipeline_executor import execute_pipeline
 from app.utils.image import decode_base64_image
+
+
+def cached_step(block_id="block"):
+    return {
+        "index": 1,
+        "block_id": block_id,
+        "type": "imageconvertions_grayimage",
+        "image": np.zeros((2, 2, 3), dtype=np.uint8),
+        "image_format": "png",
+        "timing_ms": 1.0,
+    }
 
 
 def test_empty_pipeline(make_request):
@@ -102,3 +116,49 @@ def test_pipeline_is_deterministic(make_request):
     assert r1.success is True
     assert r2.success is True
     assert r1.image == r2.image
+
+
+def test_execution_cache_evicts_expired_entries(monkeypatch):
+    pipeline_executor._EXECUTION_CACHE.clear()
+    current_time = 1000.0
+
+    monkeypatch.setattr(pipeline_executor, "EXECUTION_CACHE_TTL_SECONDS", 10)
+    monkeypatch.setattr(pipeline_executor.time, "time", lambda: current_time)
+    pipeline_executor._store_execution("old-execution", {"block": cached_step()})
+
+    current_time = 1011.0
+
+    assert pipeline_executor.inspect_step("old-execution", "block") is None
+    assert "old-execution" not in pipeline_executor._EXECUTION_CACHE
+
+
+def test_execution_cache_updates_last_accessed_on_inspect(monkeypatch):
+    pipeline_executor._EXECUTION_CACHE.clear()
+    current_time = 1000.0
+
+    monkeypatch.setattr(pipeline_executor.time, "time", lambda: current_time)
+    pipeline_executor._store_execution("execution", {"block": cached_step()})
+
+    current_time = 1005.0
+
+    assert pipeline_executor.inspect_step("execution", "block") is not None
+    assert pipeline_executor._EXECUTION_CACHE["execution"]["last_accessed_at"] == 1005.0
+
+
+def test_execution_cache_evicts_least_recently_used_entry_when_max_exceeded(monkeypatch):
+    pipeline_executor._EXECUTION_CACHE.clear()
+    current_time = 1000.0
+
+    monkeypatch.setattr(pipeline_executor, "MAX_EXECUTION_CACHE_ENTRIES", 2)
+    monkeypatch.setattr(pipeline_executor.time, "time", lambda: current_time)
+
+    pipeline_executor._store_execution("execution-1", {"block-1": cached_step("block-1")})
+    current_time = 1001.0
+    pipeline_executor._store_execution("execution-2", {"block-2": cached_step("block-2")})
+    current_time = 1002.0
+    assert pipeline_executor.inspect_step("execution-1", "block-1") is not None
+    current_time = 1003.0
+    pipeline_executor._store_execution("execution-3", {"block-3": cached_step("block-3")})
+
+    assert "execution-2" not in pipeline_executor._EXECUTION_CACHE
+    assert set(pipeline_executor._EXECUTION_CACHE) == {"execution-1", "execution-3"}
