@@ -24,6 +24,10 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     processedImage,
     isExecuting,
     setProcessedImage,
+    setExecutionId,
+    setStepResults,
+    setActiveStep,
+    setActiveStepAnalysis,
     setExecuting,
     setError,
     setTiming,
@@ -68,6 +72,10 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     setExecuting(true);
     setError(null);
     setTiming(null);
+    setExecutionId(null);
+    setStepResults([]);
+    setActiveStep(null);
+    setActiveStepAnalysis(null);
 
     try {
       const response = await executePipeline({
@@ -77,11 +85,19 @@ export default function Toolbar({ workspace }: ToolbarProps) {
       });
 
       setTiming(response.timings ?? null);
+      setExecutionId(response.execution_id ?? null);
+      setStepResults(response.step_results ?? []);
 
       if (response.success && response.image) {
         setProcessedImage(response.image);
+        const lastStep = response.step_results?.filter((step) => step.success).at(-1);
+        setActiveStep(lastStep?.block_id ?? null, lastStep?.index ?? null);
       } else {
         setError(response.error || "Pipeline execution failed", response.step);
+        const lastStep = response.step_results?.filter((step) => step.success).at(-1);
+        if (lastStep) {
+          setActiveStep(lastStep.block_id ?? null, lastStep.index);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network error");

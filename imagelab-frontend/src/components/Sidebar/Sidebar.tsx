@@ -76,7 +76,7 @@ export default function Sidebar({ workspace }: SidebarProps) {
       <div className="overflow-y-auto flex-1">
         {categories.map((category) => (
           <CategorySection
-            key={category.name}
+            key={`${category.name}-${category.icon}`}
             category={category}
             workspace={workspace}
             previews={previews}

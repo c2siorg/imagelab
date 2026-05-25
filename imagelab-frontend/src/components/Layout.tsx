@@ -6,7 +6,7 @@ import Navbar from "./Navbar";
 import Toolbar from "./Toolbar";
 import Sidebar from "./Sidebar/Sidebar";
 import PreviewPane from "./Preview/PreviewPane";
-import InfoPane from "./InfoPane";
+import BottomPanel from "./BottomPanel";
 import { ErrorBoundary } from "./ErrorBoundary";
 import CameraCaptureModal from "./CameraCaptureModal";
 
@@ -31,7 +31,7 @@ export default function Layout() {
           <div className="flex-1 flex min-w-0">
             <div className="flex-1 flex flex-col min-w-0">
               <div ref={containerRef} className="flex-1" />
-              <InfoPane />
+              <BottomPanel workspace={workspace} />
             </div>
             <PreviewPane />
           </div>

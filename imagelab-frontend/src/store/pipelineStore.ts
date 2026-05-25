@@ -1,17 +1,22 @@
 import { create } from "zustand";
 import * as Blockly from "blockly";
 import { categories } from "../blocks/categories";
-import type { PipelineTimings } from "../types/pipeline";
 import { clearPersistedImage, saveImageState } from "../hooks/imagePersistence";
-
 const imageResetListeners = new Set<() => void>();
 const imageLabelSyncListeners = new Set<(filename: string | null) => void>();
+import type { ImageAnalysis, PipelineTimings, StepResult } from "../types/pipeline";
 
 interface PipelineState {
   originalImage: string | null;
   imageFormat: string;
   imageFilename: string | null;
   processedImage: string | null;
+  executionId: string | null;
+  stepResults: StepResult[];
+  activeStepBlockId: string | null;
+  activeStepIndex: number | null;
+  activeStepAnalysis: ImageAnalysis | null;
+  isInspectingStep: boolean;
   isExecuting: boolean;
   error: string | null;
   errorStep: number | null;
@@ -30,6 +35,12 @@ interface PipelineState {
   complexity: "Low" | "Medium" | "High";
   setOriginalImage: (image: string, format: string, filename?: string | null) => void;
   setProcessedImage: (image: string | null) => void;
+  setPreviewImage: (image: string | null) => void;
+  setExecutionId: (executionId: string | null) => void;
+  setStepResults: (results: StepResult[]) => void;
+  setActiveStep: (blockId: string | null, index?: number | null) => void;
+  setActiveStepAnalysis: (analysis: ImageAnalysis | null) => void;
+  setInspectingStep: (inspecting: boolean) => void;
   setExecuting: (executing: boolean) => void;
   setError: (error: string | null, step?: number | null) => void;
   setSelectedBlock: (type: string | null, tooltip: string | null) => void;
@@ -57,6 +68,12 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   imageFormat: "png",
   imageFilename: null,
   processedImage: null,
+  executionId: null,
+  stepResults: [],
+  activeStepBlockId: null,
+  activeStepIndex: null,
+  activeStepAnalysis: null,
+  isInspectingStep: false,
   isExecuting: false,
   error: null,
   errorStep: null,
@@ -77,11 +94,23 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       imageFormat: format,
       imageFilename: filename,
       processedImage: null,
+      executionId: null,
+      stepResults: [],
+      activeStepBlockId: null,
+      activeStepIndex: null,
+      activeStepAnalysis: null,
       error: null,
       timings: null,
     });
   },
   setProcessedImage: (image) => set({ processedImage: image, error: null, errorStep: null }),
+  setPreviewImage: (image) => set({ processedImage: image }),
+  setExecutionId: (executionId) => set({ executionId }),
+  setStepResults: (results) => set({ stepResults: results }),
+  setActiveStep: (blockId, index = null) =>
+    set({ activeStepBlockId: blockId, activeStepIndex: index }),
+  setActiveStepAnalysis: (analysis) => set({ activeStepAnalysis: analysis }),
+  setInspectingStep: (inspecting) => set({ isInspectingStep: inspecting }),
   setExecuting: (executing) => set({ isExecuting: executing }),
   setError: (error, step = null) => set({ error, errorStep: step }),
   setSelectedBlock: (type, tooltip) =>
@@ -118,6 +147,12 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       imageFormat: "png",
       imageFilename: null,
       processedImage: null,
+      executionId: null,
+      stepResults: [],
+      activeStepBlockId: null,
+      activeStepIndex: null,
+      activeStepAnalysis: null,
+      isInspectingStep: false,
       error: null,
       errorStep: null,
       timings: null,
@@ -162,6 +197,12 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       imageFormat: "png",
       imageFilename: null,
       processedImage: null,
+      executionId: null,
+      stepResults: [],
+      activeStepBlockId: null,
+      activeStepIndex: null,
+      activeStepAnalysis: null,
+      isInspectingStep: false,
       isExecuting: false,
       error: null,
       errorStep: null,

@@ -69,10 +69,17 @@ export const operatorDocs: Record<string, OperatorDoc> = {
   },
   geometric_affineimage: {
     name: "Affine Transform",
-    description: "Applies an affine translation by shifting every pixel by (translate_x, translate_y).",
+    description:
+      "Applies an affine translation by shifting every pixel by (translate_x, translate_y).",
     parameters: [
-      { name: "translate_x", description: "Horizontal shift in pixels. Positive moves right, negative moves left." },
-      { name: "translate_y", description: "Vertical shift in pixels. Positive moves down, negative moves up." },
+      {
+        name: "translate_x",
+        description: "Horizontal shift in pixels. Positive moves right, negative moves left.",
+      },
+      {
+        name: "translate_y",
+        description: "Vertical shift in pixels. Positive moves down, negative moves up.",
+      },
     ],
     useCases: ["Repositioning the subject, generating training data with positional jitter."],
   },
