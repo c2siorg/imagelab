@@ -15,6 +15,8 @@ interface PipelineState {
   stepResults: StepResult[];
   activeStepBlockId: string | null;
   activeStepIndex: number | null;
+  activeStepImage: string | null;
+  activeStepImageFormat: string | null;
   activeStepAnalysis: ImageAnalysis | null;
   isInspectingStep: boolean;
   workspaceDirty: boolean;
@@ -40,6 +42,7 @@ interface PipelineState {
   setExecutionId: (executionId: string | null) => void;
   setStepResults: (results: StepResult[]) => void;
   setActiveStep: (blockId: string | null, index?: number | null) => void;
+  setActiveStepImage: (image: string | null, format?: string | null) => void;
   setActiveStepAnalysis: (analysis: ImageAnalysis | null) => void;
   setInspectingStep: (inspecting: boolean) => void;
   setWorkspaceDirty: (dirty: boolean) => void;
@@ -74,6 +77,8 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   stepResults: [],
   activeStepBlockId: null,
   activeStepIndex: null,
+  activeStepImage: null,
+  activeStepImageFormat: null,
   activeStepAnalysis: null,
   isInspectingStep: false,
   workspaceDirty: false,
@@ -101,6 +106,8 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       stepResults: [],
       activeStepBlockId: null,
       activeStepIndex: null,
+      activeStepImage: null,
+      activeStepImageFormat: null,
       activeStepAnalysis: null,
       workspaceDirty: false,
       error: null,
@@ -113,6 +120,8 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   setStepResults: (results) => set({ stepResults: results }),
   setActiveStep: (blockId, index = null) =>
     set({ activeStepBlockId: blockId, activeStepIndex: index }),
+  setActiveStepImage: (image, format = null) =>
+    set({ activeStepImage: image, activeStepImageFormat: image ? format : null }),
   setActiveStepAnalysis: (analysis) => set({ activeStepAnalysis: analysis }),
   setInspectingStep: (inspecting) => set({ isInspectingStep: inspecting }),
   setWorkspaceDirty: (dirty) => set({ workspaceDirty: dirty }),
@@ -156,6 +165,8 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       stepResults: [],
       activeStepBlockId: null,
       activeStepIndex: null,
+      activeStepImage: null,
+      activeStepImageFormat: null,
       activeStepAnalysis: null,
       isInspectingStep: false,
       workspaceDirty: false,
@@ -207,6 +218,8 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       stepResults: [],
       activeStepBlockId: null,
       activeStepIndex: null,
+      activeStepImage: null,
+      activeStepImageFormat: null,
       activeStepAnalysis: null,
       isInspectingStep: false,
       workspaceDirty: false,

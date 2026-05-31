@@ -8,6 +8,7 @@ import { usePipelineStore } from "../store/pipelineStore";
 import { imagelabTheme, imagelabThemeDark } from "../blocks/theme";
 import { SINGLETON_BLOCK_TYPES } from "../utils/blockLimits";
 import { loadPersistedImageState } from "./imagePersistence";
+import { useStepInspection } from "./useStepInspection";
 import {
   clearPersistedWorkspace,
   loadPersistedWorkspaceState,
@@ -46,6 +47,7 @@ export function useBlocklyWorkspace({ isDark = false }: UseBlocklyWorkspaceOptio
   const setActiveStep = usePipelineStore((s) => s.setActiveStep);
   const setWorkspaceDirty = usePipelineStore((s) => s.setWorkspaceDirty);
   const updateBlockStats = usePipelineStore((s) => s.updateBlockStats);
+  const inspectStep = useStepInspection();
 
   // Swap Blockly theme when dark mode changes
   useEffect(() => {
@@ -114,7 +116,15 @@ export function useBlocklyWorkspace({ isDark = false }: UseBlocklyWorkspaceOptio
               .getState()
               .stepResults.find((step) => step.block_id === block.id);
             if (matchingStep) {
-              setActiveStep(matchingStep.block_id ?? null, matchingStep.index);
+              const state = usePipelineStore.getState();
+              const isCurrentStep =
+                state.activeStepBlockId === matchingStep.block_id &&
+                state.activeStepIndex === matchingStep.index;
+              if (state.isInspectingStep || (isCurrentStep && state.activeStepAnalysis)) {
+                setActiveStep(matchingStep.block_id ?? null, matchingStep.index);
+              } else {
+                void inspectStep(matchingStep);
+              }
             }
           }
         } else {
@@ -172,7 +182,7 @@ export function useBlocklyWorkspace({ isDark = false }: UseBlocklyWorkspaceOptio
     // handled by the setTheme useEffect above, so adding isDark here would
     // dispose and recreate the workspace on every toggle, losing user blocks.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setActiveStep, setSelectedBlock, setWorkspaceDirty, updateBlockStats]);
+  }, [inspectStep, setActiveStep, setSelectedBlock, setWorkspaceDirty, updateBlockStats]);
 
   useEffect(() => {
     initWorkspace();

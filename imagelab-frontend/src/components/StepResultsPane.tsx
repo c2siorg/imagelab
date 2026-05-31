@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import * as Blockly from "blockly";
 import { ImageDown, Loader2, RefreshCw } from "lucide-react";
-import { executePipeline, inspectPipelineStep } from "../api/pipeline";
+import { executePipeline } from "../api/pipeline";
 import { extractPipeline } from "../hooks/usePipeline";
+import { useStepInspection } from "../hooks/useStepInspection";
 import { usePipelineStore } from "../store/pipelineStore";
 import type { StepResult } from "../types/pipeline";
 import ImageModal from "./Preview/ImageModal";
@@ -24,7 +25,6 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
   const {
     originalImage,
     imageFormat,
-    executionId,
     stepResults,
     activeStepBlockId,
     activeStepIndex,
@@ -35,10 +35,9 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
     setExecutionId,
     setStepResults,
     setActiveStep,
+    setActiveStepImage,
     setActiveStepAnalysis,
-    setInspectingStep,
     setExecuting,
-    setPreviewImage,
     setError,
     setTiming,
     setWorkspaceDirty,
@@ -46,6 +45,7 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
   const cardRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const clickTimeoutRef = useRef<number | null>(null);
   const [modalImageSrc, setModalImageSrc] = useState<string | null>(null);
+  const inspectStep = useStepInspection();
 
   useEffect(() => {
     const activeKey =
@@ -66,10 +66,7 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
     };
   }, []);
 
-  const selectStep = (step: StepResult) => {
-    setActiveStep(step.block_id ?? null, step.index);
-    setActiveStepAnalysis(null);
-
+  const selectWorkspaceBlock = (step: StepResult) => {
     if (step.block_id && workspace) {
       const block = workspace.getBlockById(step.block_id);
       if (block) {
@@ -80,37 +77,17 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
   };
 
   const handleStepClick = async (step: StepResult) => {
-    selectStep(step);
-
-    if (!executionId || !step.block_id || !step.has_full_image) return;
-
-    setInspectingStep(true);
-    try {
-      const inspected = await inspectPipelineStep(executionId, step.block_id);
-      setPreviewImage(inspected.image);
-      setActiveStepAnalysis(inspected.analysis);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load step preview", step.index);
-    } finally {
-      setInspectingStep(false);
-    }
+    const inspection = inspectStep(step);
+    selectWorkspaceBlock(step);
+    await inspection;
   };
 
   const handleStepDoubleClick = async (step: StepResult) => {
-    selectStep(step);
-
-    if (!executionId || !step.block_id || !step.has_full_image) return;
-
-    setInspectingStep(true);
-    try {
-      const inspected = await inspectPipelineStep(executionId, step.block_id);
-      setPreviewImage(inspected.image);
-      setActiveStepAnalysis(inspected.analysis);
+    const inspection = inspectStep(step);
+    selectWorkspaceBlock(step);
+    const inspected = await inspection;
+    if (inspected) {
       setModalImageSrc(`data:image/${inspected.image_format};base64,${inspected.image}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load step preview", step.index);
-    } finally {
-      setInspectingStep(false);
     }
   };
 
@@ -145,6 +122,7 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
     setExecuting(true);
     setError(null);
     setTiming(null);
+    setActiveStepImage(null);
     setActiveStepAnalysis(null);
 
     try {
@@ -161,13 +139,17 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
       if (response.success && response.image) {
         setProcessedImage(response.image);
         const lastStep = response.step_results?.filter((step) => step.success).at(-1);
-        setActiveStep(lastStep?.block_id ?? null, lastStep?.index ?? null);
+        if (lastStep) {
+          await inspectStep(lastStep, { clearAnalysis: false });
+        } else {
+          setActiveStep(null);
+        }
         setWorkspaceDirty(false);
       } else {
         setError(response.error || "Pipeline execution failed", response.step);
         const lastStep = response.step_results?.filter((step) => step.success).at(-1);
         if (lastStep) {
-          setActiveStep(lastStep.block_id ?? null, lastStep.index);
+          await inspectStep(lastStep, { clearAnalysis: false });
         }
       }
     } catch (err) {
