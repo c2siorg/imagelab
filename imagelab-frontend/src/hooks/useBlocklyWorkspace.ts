@@ -44,6 +44,7 @@ export function useBlocklyWorkspace({ isDark = false }: UseBlocklyWorkspaceOptio
   const [workspace, setWorkspace] = useState<Blockly.WorkspaceSvg | null>(null);
   const setSelectedBlock = usePipelineStore((s) => s.setSelectedBlock);
   const setActiveStep = usePipelineStore((s) => s.setActiveStep);
+  const setWorkspaceDirty = usePipelineStore((s) => s.setWorkspaceDirty);
   const updateBlockStats = usePipelineStore((s) => s.updateBlockStats);
 
   // Swap Blockly theme when dark mode changes
@@ -140,6 +141,9 @@ export function useBlocklyWorkspace({ isDark = false }: UseBlocklyWorkspaceOptio
       }
 
       if (!event.isUiEvent && MUTATING_EVENTS.has(event.type)) {
+        if (usePipelineStore.getState().stepResults.length > 0) {
+          setWorkspaceDirty(true);
+        }
         if (saveTimeoutRef.current !== null) {
           window.clearTimeout(saveTimeoutRef.current);
         }
@@ -168,7 +172,7 @@ export function useBlocklyWorkspace({ isDark = false }: UseBlocklyWorkspaceOptio
     // handled by the setTheme useEffect above, so adding isDark here would
     // dispose and recreate the workspace on every toggle, losing user blocks.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setActiveStep, setSelectedBlock, updateBlockStats]);
+  }, [setActiveStep, setSelectedBlock, setWorkspaceDirty, updateBlockStats]);
 
   useEffect(() => {
     initWorkspace();

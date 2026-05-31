@@ -17,6 +17,7 @@ interface PipelineState {
   activeStepIndex: number | null;
   activeStepAnalysis: ImageAnalysis | null;
   isInspectingStep: boolean;
+  workspaceDirty: boolean;
   isExecuting: boolean;
   error: string | null;
   errorStep: number | null;
@@ -41,6 +42,7 @@ interface PipelineState {
   setActiveStep: (blockId: string | null, index?: number | null) => void;
   setActiveStepAnalysis: (analysis: ImageAnalysis | null) => void;
   setInspectingStep: (inspecting: boolean) => void;
+  setWorkspaceDirty: (dirty: boolean) => void;
   setExecuting: (executing: boolean) => void;
   setError: (error: string | null, step?: number | null) => void;
   setSelectedBlock: (type: string | null, tooltip: string | null) => void;
@@ -74,6 +76,7 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   activeStepIndex: null,
   activeStepAnalysis: null,
   isInspectingStep: false,
+  workspaceDirty: false,
   isExecuting: false,
   error: null,
   errorStep: null,
@@ -99,6 +102,7 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       activeStepBlockId: null,
       activeStepIndex: null,
       activeStepAnalysis: null,
+      workspaceDirty: false,
       error: null,
       timings: null,
     });
@@ -111,6 +115,7 @@ export const usePipelineStore = create<PipelineState>((set) => ({
     set({ activeStepBlockId: blockId, activeStepIndex: index }),
   setActiveStepAnalysis: (analysis) => set({ activeStepAnalysis: analysis }),
   setInspectingStep: (inspecting) => set({ isInspectingStep: inspecting }),
+  setWorkspaceDirty: (dirty) => set({ workspaceDirty: dirty }),
   setExecuting: (executing) => set({ isExecuting: executing }),
   setError: (error, step = null) => set({ error, errorStep: step }),
   setSelectedBlock: (type, tooltip) =>
@@ -153,6 +158,7 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       activeStepIndex: null,
       activeStepAnalysis: null,
       isInspectingStep: false,
+      workspaceDirty: false,
       error: null,
       errorStep: null,
       timings: null,
@@ -203,6 +209,7 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       activeStepIndex: null,
       activeStepAnalysis: null,
       isInspectingStep: false,
+      workspaceDirty: false,
       isExecuting: false,
       error: null,
       errorStep: null,

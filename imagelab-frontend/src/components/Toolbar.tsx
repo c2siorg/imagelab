@@ -28,6 +28,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     setStepResults,
     setActiveStep,
     setActiveStepAnalysis,
+    setWorkspaceDirty,
     setExecuting,
     setError,
     setTiming,
@@ -92,6 +93,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
         setProcessedImage(response.image);
         const lastStep = response.step_results?.filter((step) => step.success).at(-1);
         setActiveStep(lastStep?.block_id ?? null, lastStep?.index ?? null);
+        setWorkspaceDirty(false);
       } else {
         setError(response.error || "Pipeline execution failed", response.step);
         const lastStep = response.step_results?.filter((step) => step.success).at(-1);

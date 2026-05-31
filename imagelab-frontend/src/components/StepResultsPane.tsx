@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import * as Blockly from "blockly";
-import { ImageDown, Loader2 } from "lucide-react";
-import { inspectPipelineStep } from "../api/pipeline";
+import { ImageDown, Loader2, RefreshCw } from "lucide-react";
+import { executePipeline, inspectPipelineStep } from "../api/pipeline";
+import { extractPipeline } from "../hooks/usePipeline";
 import { usePipelineStore } from "../store/pipelineStore";
 import type { StepResult } from "../types/pipeline";
 import ImageModal from "./Preview/ImageModal";
@@ -21,17 +22,26 @@ function getCardKey(step: StepResult): string {
 
 export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
   const {
+    originalImage,
+    imageFormat,
     executionId,
     stepResults,
-    imageFormat,
     activeStepBlockId,
     activeStepIndex,
     isInspectingStep,
+    isExecuting,
+    workspaceDirty,
+    setProcessedImage,
+    setExecutionId,
+    setStepResults,
     setActiveStep,
     setActiveStepAnalysis,
     setInspectingStep,
+    setExecuting,
     setPreviewImage,
     setError,
+    setTiming,
+    setWorkspaceDirty,
   } = usePipelineStore();
   const cardRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const clickTimeoutRef = useRef<number | null>(null);
@@ -123,6 +133,51 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
     void handleStepDoubleClick(step);
   };
 
+  const handleRefresh = async () => {
+    if (!workspace || !originalImage) return;
+
+    const pipeline = extractPipeline(workspace);
+    if (pipeline.length === 0) {
+      setError('No pipeline found. Add a "Read Image" block and connect operations.');
+      return;
+    }
+
+    setExecuting(true);
+    setError(null);
+    setTiming(null);
+    setActiveStepAnalysis(null);
+
+    try {
+      const response = await executePipeline({
+        image: originalImage,
+        image_format: imageFormat,
+        pipeline,
+      });
+
+      setTiming(response.timings ?? null);
+      setExecutionId(response.execution_id ?? null);
+      setStepResults(response.step_results ?? []);
+
+      if (response.success && response.image) {
+        setProcessedImage(response.image);
+        const lastStep = response.step_results?.filter((step) => step.success).at(-1);
+        setActiveStep(lastStep?.block_id ?? null, lastStep?.index ?? null);
+        setWorkspaceDirty(false);
+      } else {
+        setError(response.error || "Pipeline execution failed", response.step);
+        const lastStep = response.step_results?.filter((step) => step.success).at(-1);
+        if (lastStep) {
+          setActiveStep(lastStep.block_id ?? null, lastStep.index);
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Network error");
+      setTiming(null);
+    } finally {
+      setExecuting(false);
+    }
+  };
+
   if (stepResults.length === 0) {
     return (
       <div className="h-full flex items-center justify-center text-xs text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-800">
@@ -135,6 +190,24 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
 
   return (
     <div className="h-full bg-white dark:bg-gray-800 overflow-auto">
+      {workspaceDirty && (
+        <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/30 px-3 py-1.5 text-xs text-amber-700 dark:text-amber-300">
+          <span className="font-semibold">Out of date</span>
+          <span className="text-amber-600 dark:text-amber-400">
+            Workspace changed after this run.
+          </span>
+          <button
+            type="button"
+            onClick={() => void handleRefresh()}
+            disabled={isExecuting || !workspace || !originalImage}
+            className="ml-auto inline-flex items-center gap-1 rounded border border-amber-300 dark:border-amber-700 px-2 py-0.5 font-medium hover:bg-amber-100 dark:hover:bg-amber-900/50 disabled:cursor-not-allowed disabled:opacity-50"
+            title="Refresh step results"
+          >
+            {isExecuting ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+            Refresh
+          </button>
+        </div>
+      )}
       <div className="flex items-start gap-3 px-3 py-3 min-w-max">
         {stepResults.map((step) => {
           const key = getCardKey(step);
@@ -157,7 +230,7 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
                   : step.success
                     ? "border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600"
                     : "border-red-300 dark:border-red-800"
-              }`}
+              } ${workspaceDirty ? "opacity-55" : ""}`}
               title={`${step.type}. Double-click to enlarge.`}
             >
               <div className="h-24 flex items-center justify-center bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-700">
