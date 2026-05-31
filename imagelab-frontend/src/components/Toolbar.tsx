@@ -5,6 +5,7 @@ import { usePipelineStore } from "../store/pipelineStore";
 import { executePipeline } from "../api/pipeline";
 import { extractPipeline } from "../hooks/usePipeline";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
+import { useStepInspection } from "../hooks/useStepInspection";
 import SharePipelineModal from "./SharePipelineModal";
 import KeyboardShortcutsModal from "./KeyboardShortcutsModal";
 
@@ -27,6 +28,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     setExecutionId,
     setStepResults,
     setActiveStep,
+    setActiveStepImage,
     setActiveStepAnalysis,
     setWorkspaceDirty,
     setExecuting,
@@ -41,6 +43,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
 
   const [showShareModal, setShowShareModal] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+  const inspectStep = useStepInspection();
 
   const handleNew = () => {
     if (!window.confirm("This will clear all blocks and the uploaded image. Continue?")) {
@@ -76,6 +79,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     setExecutionId(null);
     setStepResults([]);
     setActiveStep(null);
+    setActiveStepImage(null);
     setActiveStepAnalysis(null);
 
     try {
@@ -92,13 +96,17 @@ export default function Toolbar({ workspace }: ToolbarProps) {
       if (response.success && response.image) {
         setProcessedImage(response.image);
         const lastStep = response.step_results?.filter((step) => step.success).at(-1);
-        setActiveStep(lastStep?.block_id ?? null, lastStep?.index ?? null);
+        if (lastStep) {
+          await inspectStep(lastStep, { clearAnalysis: false });
+        } else {
+          setActiveStep(null);
+        }
         setWorkspaceDirty(false);
       } else {
         setError(response.error || "Pipeline execution failed", response.step);
         const lastStep = response.step_results?.filter((step) => step.success).at(-1);
         if (lastStep) {
-          setActiveStep(lastStep.block_id ?? null, lastStep.index);
+          await inspectStep(lastStep, { clearAnalysis: false });
         }
       }
     } catch (err) {

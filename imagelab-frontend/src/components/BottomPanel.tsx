@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import * as Blockly from "blockly";
-import { BookOpen, GripHorizontal, Images, Maximize2, Minimize2 } from "lucide-react";
+import { BarChart3, BookOpen, GripHorizontal, Images, Maximize2, Minimize2 } from "lucide-react";
+import ImageAnalysisPanel from "./ImageAnalysisPanel";
 import InfoPane from "./InfoPane";
 import StepResultsPane from "./StepResultsPane";
 
@@ -9,7 +10,7 @@ interface BottomPanelProps {
   workspace: Blockly.WorkspaceSvg | null;
 }
 
-type BottomTab = "steps" | "analysis";
+type BottomTab = "steps" | "analysis" | "docs";
 
 const MIN_PANEL_HEIGHT = 120;
 const DEFAULT_PANEL_HEIGHT = 160;
@@ -125,8 +126,12 @@ export default function BottomPanel({ workspace }: BottomPanelProps) {
             Step results
           </button>
           <button className={tabClass("analysis")} onClick={() => setActiveTab("analysis")}>
-            <BookOpen size={14} />
+            <BarChart3 size={14} />
             Image analysis panel
+          </button>
+          <button className={tabClass("docs")} onClick={() => setActiveTab("docs")}>
+            <BookOpen size={14} />
+            Docs
           </button>
         </div>
         <button
@@ -140,7 +145,9 @@ export default function BottomPanel({ workspace }: BottomPanelProps) {
         </button>
       </div>
       <div className="flex-1 min-h-0">
-        {activeTab === "steps" ? <StepResultsPane workspace={workspace} /> : <InfoPane />}
+        {activeTab === "steps" && <StepResultsPane workspace={workspace} />}
+        {activeTab === "analysis" && <ImageAnalysisPanel />}
+        {activeTab === "docs" && <InfoPane />}
       </div>
     </div>
   );
