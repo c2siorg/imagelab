@@ -17,11 +17,10 @@ export default function ImageAnalysisPanel() {
     activeStepBlockId,
     activeStepIndex,
     activeStepImage,
-    activeStepImageFormat,
     activeStepAnalysis,
+    activeStepHistogram,
     isInspectingStep,
     workspaceDirty,
-    imageFormat,
   } = usePipelineStore();
 
   if (stepResults.length === 0) {
@@ -41,7 +40,7 @@ export default function ImageAnalysisPanel() {
     );
   }
 
-  if (!activeStepAnalysis || !activeStepImage) {
+  if (!activeStepAnalysis || !activeStepHistogram || !activeStepImage) {
     return (
       <EmptyState message="Click a step result or matching workspace block to load analysis" />
     );
@@ -69,11 +68,7 @@ export default function ImageAnalysisPanel() {
               {selectedStepLabel}
             </span>
           </div>
-          <HistogramCanvas
-            image={activeStepImage}
-            format={activeStepImageFormat ?? imageFormat}
-            channels={activeStepAnalysis.channels}
-          />
+          <HistogramCanvas histogram={activeStepHistogram} channels={activeStepAnalysis.channels} />
         </section>
         <section className="min-h-0 flex flex-col gap-2">
           <div className="text-xs font-semibold text-gray-600 dark:text-gray-300">Stats</div>

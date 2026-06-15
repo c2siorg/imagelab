@@ -37,6 +37,7 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
     setActiveStep,
     setActiveStepImage,
     setActiveStepAnalysis,
+    setActiveStepHistogram,
     setExecuting,
     setError,
     setTiming,
@@ -124,6 +125,7 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
     setTiming(null);
     setActiveStepImage(null);
     setActiveStepAnalysis(null);
+    setActiveStepHistogram(null);
 
     try {
       const response = await executePipeline({

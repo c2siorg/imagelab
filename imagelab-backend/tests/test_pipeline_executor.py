@@ -4,7 +4,7 @@ import numpy as np
 
 from app.models.pipeline import PipelineRequest, PipelineStep
 from app.services import pipeline_executor
-from app.services.pipeline_executor import execute_pipeline
+from app.services.pipeline_executor import encode_image_bytes, execute_pipeline
 from app.utils.image import decode_base64_image
 
 
@@ -13,7 +13,7 @@ def cached_step(block_id="block"):
         "index": 1,
         "block_id": block_id,
         "type": "imageconvertions_grayimage",
-        "image": np.zeros((2, 2, 3), dtype=np.uint8),
+        "image_bytes": encode_image_bytes(np.zeros((2, 2, 3), dtype=np.uint8), "png"),
         "image_format": "png",
         "timing_ms": 1.0,
     }
@@ -37,6 +37,7 @@ def test_noop_steps_are_skipped(make_request, sample_image_b64):
 
 
 def test_single_operator(make_request):
+    pipeline_executor._EXECUTION_CACHE.clear()
     steps = [PipelineStep(type="imageconvertions_grayimage", block_id="gray-block")]
     res = execute_pipeline(make_request(steps))
     assert res.success is True
@@ -48,6 +49,9 @@ def test_single_operator(make_request):
     # grayscale output should be 2-D or single-channel 3-D
     output = decode_base64_image(res.image)
     assert output.ndim == 2 or (output.ndim == 3 and output.shape[2] == 1), "expected grayscale output"
+    cached = pipeline_executor._EXECUTION_CACHE[res.execution_id]["steps"]["gray-block"]
+    assert isinstance(cached["image_bytes"], bytes)
+    assert "image" not in cached
 
 
 def test_multi_step_pipeline(make_request, sample_image_b64):
@@ -162,3 +166,32 @@ def test_execution_cache_evicts_least_recently_used_entry_when_max_exceeded(monk
 
     assert "execution-2" not in pipeline_executor._EXECUTION_CACHE
     assert set(pipeline_executor._EXECUTION_CACHE) == {"execution-1", "execution-3"}
+
+
+def test_calculate_histogram_large_image_fallback():
+    # Create a dummy large image (e.g. 3000 x 1000 x 3)
+    large_image = np.zeros((3000, 1000, 3), dtype=np.uint8)
+    large_image[0, 0] = [10, 20, 30]
+
+    # Calculate histogram
+    hist = pipeline_executor.calculate_histogram(large_image)
+
+    # The original image shape should NOT be mutated/modified
+    assert large_image.shape == (3000, 1000, 3)
+
+    # Check that bins are calculated correctly
+    assert hist.bins == list(range(256))
+    assert len(hist.luminance) == 256
+    assert len(hist.red) == 256
+    assert len(hist.green) == 256
+    assert len(hist.blue) == 256
+
+
+def test_calculate_histogram_normal_image_no_downsample():
+    # Create a dummy image within the threshold (e.g. 100 x 100 x 3)
+    normal_image = np.zeros((100, 100, 3), dtype=np.uint8)
+    hist = pipeline_executor.calculate_histogram(normal_image)
+
+    # For a completely black 100x100 BGR image, the pixel sum should be 100 * 100 = 10000
+    assert sum(hist.luminance) == 10000
+    assert sum(hist.red) == 10000

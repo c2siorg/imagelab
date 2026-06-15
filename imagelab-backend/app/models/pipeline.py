@@ -47,6 +47,14 @@ class ImageAnalysis(BaseModel):
     std: float | list[float]
 
 
+class ImageHistogram(BaseModel):
+    bins: list[int]
+    luminance: list[int]
+    red: list[int] | None = None
+    green: list[int] | None = None
+    blue: list[int] | None = None
+
+
 class PipelineResponse(BaseModel):
     success: bool
     execution_id: str | None = None
@@ -69,3 +77,4 @@ class StepInspectResponse(BaseModel):
     image_format: str
     timing_ms: float | None = None
     analysis: ImageAnalysis
+    histogram: ImageHistogram
