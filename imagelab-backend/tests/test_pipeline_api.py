@@ -114,6 +114,32 @@ def test_execution_inspect_returns_full_image_and_analysis(client, png_b64):
     assert data["image"] is not None
     assert data["analysis"]["width"] == 10
     assert data["analysis"]["height"] == 10
+    assert data["histogram"]["bins"] == list(range(256))
+    assert len(data["histogram"]["luminance"]) == 256
+    assert data["histogram"]["red"] is None
+    assert data["histogram"]["green"] is None
+    assert data["histogram"]["blue"] is None
+
+
+def test_execution_inspect_returns_rgb_histograms_for_color_steps(client, png_b64):
+    color_step = {"type": "imageconvertions_invertimage", "block_id": "color-block", "params": {}}
+    r = client.post(
+        "/api/v1/pipeline/executions",
+        json={"image": png_b64, "image_format": "png", "pipeline": [color_step]},
+    )
+    assert r.status_code == 200
+    execution = r.json()
+
+    inspect = client.get(
+        f"/api/v1/pipeline/executions/{execution['execution_id']}/steps/inspect",
+        params={"block_id": "color-block"},
+    )
+    assert inspect.status_code == 200
+    histogram = inspect.json()["histogram"]
+    assert len(histogram["luminance"]) == 256
+    assert len(histogram["red"]) == 256
+    assert len(histogram["green"]) == 256
+    assert len(histogram["blue"]) == 256
 
 
 def test_execution_inspect_unknown_execution_returns_404(client):

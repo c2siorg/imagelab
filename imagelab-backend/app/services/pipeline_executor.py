@@ -7,6 +7,7 @@ import numpy as np
 
 from app.models.pipeline import (
     ImageAnalysis,
+    ImageHistogram,
     PipelineRequest,
     PipelineResponse,
     PipelineTimings,
@@ -98,7 +99,7 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
                 "index": i + 1,
                 "block_id": cache_key,
                 "type": step.type,
-                "image": image.copy(),
+                "image_bytes": encode_image_bytes(image, request.image_format),
                 "image_format": request.image_format,
                 "timing_ms": timing_ms,
             }
@@ -193,10 +194,13 @@ def inspect_step(execution_id: str, block_id: str):
         if not isinstance(step, dict):
             return None
         cached["last_accessed_at"] = time.time()
-    image = step["image"]
-    if not isinstance(image, np.ndarray):
-        return None
     image_format = str(step["image_format"])
+    image_bytes = step.get("image_bytes")
+    if not isinstance(image_bytes, bytes):
+        return None
+    image = decode_image_bytes(image_bytes)
+    if image is None:
+        return None
     return {
         "execution_id": execution_id,
         "block_id": block_id,
@@ -206,7 +210,22 @@ def inspect_step(execution_id: str, block_id: str):
         "image_format": image_format,
         "timing_ms": step["timing_ms"],
         "analysis": analyze_image(image),
+        "histogram": calculate_histogram(image),
     }
+
+
+def encode_image_bytes(image: np.ndarray, fmt: str = "png") -> bytes:
+    fmt = fmt.lower()
+    ext = "jpeg" if fmt == "jpg" else "tiff" if fmt == "tif" else fmt
+    success, buf = cv2.imencode(f".{ext}", image)
+    if not success:
+        raise ValueError(f"Could not encode image as {ext}")
+    return buf.tobytes()
+
+
+def decode_image_bytes(image_bytes: bytes) -> np.ndarray | None:
+    arr = np.frombuffer(image_bytes, dtype=np.uint8)
+    return cv2.imdecode(arr, cv2.IMREAD_UNCHANGED)
 
 
 def analyze_image(image: np.ndarray) -> ImageAnalysis:
@@ -224,6 +243,45 @@ def analyze_image(image: np.ndarray) -> ImageAnalysis:
         max=float(np.max(image)),
         mean=mean_values[0] if channels == 1 else mean_values[:channels],
         std=std_values[0] if channels == 1 else std_values[:channels],
+    )
+
+
+def _histogram_counts(channel: np.ndarray) -> list[int]:
+    normalized = np.clip(channel, 0, 255).astype(np.uint8, copy=False)
+    return np.bincount(normalized.ravel(), minlength=256).astype(int).tolist()
+
+
+def calculate_histogram(image: np.ndarray) -> ImageHistogram:
+    bins = list(range(256))
+
+    # Downsample fallback for very large images (max dimension > 2048)
+    height, width = image.shape[:2]
+    largest_side = max(width, height)
+    HISTOGRAM_MAX_SIZE = 2048
+    if largest_side > HISTOGRAM_MAX_SIZE:
+        scale = HISTOGRAM_MAX_SIZE / largest_side
+        image = cv2.resize(
+            image,
+            (max(1, int(width * scale)), max(1, int(height * scale))),
+            interpolation=cv2.INTER_AREA,
+        )
+
+    if image.ndim == 2:
+        return ImageHistogram(bins=bins, luminance=_histogram_counts(image))
+
+    channels = image.shape[2] if image.ndim == 3 else 1
+    if channels < 3:
+        luminance_source = image[:, :, 0]
+        return ImageHistogram(bins=bins, luminance=_histogram_counts(luminance_source))
+
+    bgr = image[:, :, :3]
+    luminance = cv2.cvtColor(np.clip(bgr, 0, 255).astype(np.uint8, copy=False), cv2.COLOR_BGR2GRAY)
+    return ImageHistogram(
+        bins=bins,
+        luminance=_histogram_counts(luminance),
+        red=_histogram_counts(bgr[:, :, 2]),
+        green=_histogram_counts(bgr[:, :, 1]),
+        blue=_histogram_counts(bgr[:, :, 0]),
     )
 
 

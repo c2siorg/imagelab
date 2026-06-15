@@ -2,9 +2,9 @@ import { create } from "zustand";
 import * as Blockly from "blockly";
 import { categories } from "../blocks/categories";
 import { clearPersistedImage, saveImageState } from "../hooks/imagePersistence";
+import type { ImageAnalysis, ImageHistogram, PipelineTimings, StepResult } from "../types/pipeline";
 const imageResetListeners = new Set<() => void>();
 const imageLabelSyncListeners = new Set<(filename: string | null) => void>();
-import type { ImageAnalysis, PipelineTimings, StepResult } from "../types/pipeline";
 
 interface PipelineState {
   originalImage: string | null;
@@ -18,6 +18,7 @@ interface PipelineState {
   activeStepImage: string | null;
   activeStepImageFormat: string | null;
   activeStepAnalysis: ImageAnalysis | null;
+  activeStepHistogram: ImageHistogram | null;
   isInspectingStep: boolean;
   workspaceDirty: boolean;
   isExecuting: boolean;
@@ -44,6 +45,7 @@ interface PipelineState {
   setActiveStep: (blockId: string | null, index?: number | null) => void;
   setActiveStepImage: (image: string | null, format?: string | null) => void;
   setActiveStepAnalysis: (analysis: ImageAnalysis | null) => void;
+  setActiveStepHistogram: (histogram: ImageHistogram | null) => void;
   setInspectingStep: (inspecting: boolean) => void;
   setWorkspaceDirty: (dirty: boolean) => void;
   setExecuting: (executing: boolean) => void;
@@ -80,6 +82,7 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   activeStepImage: null,
   activeStepImageFormat: null,
   activeStepAnalysis: null,
+  activeStepHistogram: null,
   isInspectingStep: false,
   workspaceDirty: false,
   isExecuting: false,
@@ -109,6 +112,7 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       activeStepImage: null,
       activeStepImageFormat: null,
       activeStepAnalysis: null,
+      activeStepHistogram: null,
       workspaceDirty: false,
       error: null,
       timings: null,
@@ -123,6 +127,7 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   setActiveStepImage: (image, format = null) =>
     set({ activeStepImage: image, activeStepImageFormat: image ? format : null }),
   setActiveStepAnalysis: (analysis) => set({ activeStepAnalysis: analysis }),
+  setActiveStepHistogram: (histogram) => set({ activeStepHistogram: histogram }),
   setInspectingStep: (inspecting) => set({ isInspectingStep: inspecting }),
   setWorkspaceDirty: (dirty) => set({ workspaceDirty: dirty }),
   setExecuting: (executing) => set({ isExecuting: executing }),
@@ -168,6 +173,7 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       activeStepImage: null,
       activeStepImageFormat: null,
       activeStepAnalysis: null,
+      activeStepHistogram: null,
       isInspectingStep: false,
       workspaceDirty: false,
       error: null,
@@ -221,6 +227,7 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       activeStepImage: null,
       activeStepImageFormat: null,
       activeStepAnalysis: null,
+      activeStepHistogram: null,
       isInspectingStep: false,
       workspaceDirty: false,
       isExecuting: false,

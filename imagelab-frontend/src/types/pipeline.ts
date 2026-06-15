@@ -44,6 +44,14 @@ export interface ImageAnalysis {
   std: number | number[];
 }
 
+export interface ImageHistogram {
+  bins: number[];
+  luminance: number[];
+  red?: number[] | null;
+  green?: number[] | null;
+  blue?: number[] | null;
+}
+
 export interface PipelineResponse {
   success: boolean;
   execution_id?: string | null;
@@ -66,4 +74,5 @@ export interface StepInspectResponse {
   image_format: string;
   timing_ms?: number | null;
   analysis: ImageAnalysis;
+  histogram: ImageHistogram;
 }

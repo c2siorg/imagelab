@@ -30,6 +30,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     setActiveStep,
     setActiveStepImage,
     setActiveStepAnalysis,
+    setActiveStepHistogram,
     setWorkspaceDirty,
     setExecuting,
     setError,
@@ -81,6 +82,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     setActiveStep(null);
     setActiveStepImage(null);
     setActiveStepAnalysis(null);
+    setActiveStepHistogram(null);
 
     try {
       const response = await executePipeline({
