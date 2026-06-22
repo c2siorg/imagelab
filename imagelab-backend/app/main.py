@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.exceptions import register_exception_handlers
+from app.middleware.rate_limit import ShareRateLimitMiddleware
 from app.routers import persistence, pipeline
 
 logger = logging.getLogger(__name__)
@@ -42,8 +43,11 @@ app.add_middleware(
 
 register_exception_handlers(app)
 
+app.add_middleware(ShareRateLimitMiddleware)
+
 app.include_router(pipeline.router, prefix="/api")
 app.include_router(persistence.router, prefix="/api")
+app.include_router(persistence.share_router, prefix="/api")
 
 if __name__ == "__main__":
     import uvicorn
