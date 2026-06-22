@@ -4,6 +4,11 @@ export interface PipelineStep {
   params: Record<string, unknown>;
 }
 
+/** Pipeline steps as stored in the persistence API (`pipeline_json` field). */
+export interface PersistedPipelineJson {
+  steps: PipelineStep[];
+}
+
 export interface PipelineRequest {
   image: string;
   image_format: string;

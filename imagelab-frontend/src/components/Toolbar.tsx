@@ -1,6 +1,18 @@
 import { useState, useEffect } from "react";
 import * as Blockly from "blockly";
-import { FilePlus, Download, Undo2, Redo2, Play, Loader2, Share2, Keyboard } from "lucide-react";
+import {
+  FilePlus,
+  Download,
+  Undo2,
+  Redo2,
+  Play,
+  Loader2,
+  Share2,
+  Keyboard,
+  Save,
+  FolderOpen,
+  History,
+} from "lucide-react";
 import { usePipelineStore } from "../store/pipelineStore";
 import { executePipeline } from "../api/pipeline";
 import { extractPipeline } from "../hooks/usePipeline";
@@ -8,6 +20,9 @@ import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { useStepInspection } from "../hooks/useStepInspection";
 import SharePipelineModal from "./SharePipelineModal";
 import KeyboardShortcutsModal from "./KeyboardShortcutsModal";
+import SavePipelineModal from "./SavePipelineModal";
+import LoadPipelineModal from "./LoadPipelineModal";
+import VersionHistoryModal from "./VersionHistoryModal";
 
 interface ToolbarProps {
   workspace: Blockly.WorkspaceSvg | null;
@@ -31,6 +46,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     setActiveStepImage,
     setActiveStepAnalysis,
     setActiveStepHistogram,
+    workspaceDirty,
     setWorkspaceDirty,
     setExecuting,
     setError,
@@ -40,10 +56,16 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     uniqueBlockTypes,
     categoryCounts,
     complexity,
+    currentPipelineId,
+    currentPipelineName,
+    currentVersionNumber,
   } = usePipelineStore();
 
   const [showShareModal, setShowShareModal] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showLoadModal, setShowLoadModal] = useState(false);
+  const [showVersionModal, setShowVersionModal] = useState(false);
   const inspectStep = useStepInspection();
 
   const handleNew = () => {
@@ -168,6 +190,53 @@ export default function Toolbar({ workspace }: ToolbarProps) {
 
         <div className={separator} />
 
+        <button
+          onClick={() => setShowSaveModal(true)}
+          disabled={!workspace}
+          className={`${iconBtn} relative`}
+          title="Save Pipeline"
+        >
+          <Save size={18} />
+          {workspaceDirty && (
+            <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-indigo-500 rounded-full" />
+          )}
+        </button>
+        <button
+          onClick={() => setShowLoadModal(true)}
+          disabled={!workspace}
+          className={iconBtn}
+          title="Load Pipeline"
+        >
+          <FolderOpen size={18} />
+        </button>
+        <button
+          onClick={() => setShowVersionModal(true)}
+          disabled={!currentPipelineId}
+          className={iconBtn}
+          title="Version History"
+        >
+          <History size={18} />
+        </button>
+
+        {currentPipelineId && (
+          <>
+            <div className={separator} />
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-gray-50 dark:bg-gray-700/50 border border-gray-150 dark:border-gray-700">
+              <span className="text-[11px] font-semibold text-gray-750 dark:text-gray-250 truncate max-w-[120px]">
+                {currentPipelineName}
+              </span>
+              <span className="text-[9px] px-1.5 py-0.2 rounded font-extrabold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
+                v{currentVersionNumber}
+              </span>
+              {workspaceDirty && (
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-500" title="Unsaved changes" />
+              )}
+            </div>
+          </>
+        )}
+
+        <div className={separator} />
+
         <button onClick={handleUndo} className={iconBtn} title={`Undo (${mod}Z)`}>
           <Undo2 size={18} />
         </button>
@@ -265,6 +334,18 @@ export default function Toolbar({ workspace }: ToolbarProps) {
 
       {showShortcutsModal && (
         <KeyboardShortcutsModal onClose={() => setShowShortcutsModal(false)} />
+      )}
+
+      {showSaveModal && (
+        <SavePipelineModal workspace={workspace} onClose={() => setShowSaveModal(false)} />
+      )}
+
+      {showLoadModal && (
+        <LoadPipelineModal workspace={workspace} onClose={() => setShowLoadModal(false)} />
+      )}
+
+      {showVersionModal && (
+        <VersionHistoryModal workspace={workspace} onClose={() => setShowVersionModal(false)} />
       )}
     </>
   );

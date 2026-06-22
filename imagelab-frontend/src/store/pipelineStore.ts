@@ -32,6 +32,15 @@ interface PipelineState {
     | ((payload: { image: string; format: string; label: string }) => void)
     | null;
 
+  currentPipelineId: string | null;
+  currentPipelineName: string | null;
+  currentVersionNumber: number | null;
+  setCurrentPipeline: (
+    id: string | null,
+    name: string | null,
+    versionNumber: number | null,
+  ) => void;
+
   // Statistics
   blockCount: number;
   uniqueBlockTypes: number;
@@ -97,6 +106,15 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   uniqueBlockTypes: 0,
   categoryCounts: {},
   complexity: "Low",
+  currentPipelineId: null,
+  currentPipelineName: null,
+  currentVersionNumber: null,
+  setCurrentPipeline: (id, name, versionNumber) =>
+    set({
+      currentPipelineId: id,
+      currentPipelineName: name,
+      currentVersionNumber: versionNumber,
+    }),
   setOriginalImage: (image, format, filename = null) => {
     imageLabelSyncListeners.forEach((listener) => listener(filename));
     saveImageState({ image, format, filename });
@@ -242,6 +260,9 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       timings: null,
       isCameraModalOpen: false,
       cameraCaptureHandler: null,
+      currentPipelineId: null,
+      currentPipelineName: null,
+      currentVersionNumber: null,
     });
   },
 }));
