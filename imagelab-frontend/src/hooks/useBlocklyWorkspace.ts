@@ -35,9 +35,13 @@ type WorkspaceState = ReturnType<typeof Blockly.serialization.workspaces.save>;
 
 interface UseBlocklyWorkspaceOptions {
   isDark?: boolean;
+  readOnly?: boolean;
 }
 
-export function useBlocklyWorkspace({ isDark = false }: UseBlocklyWorkspaceOptions = {}) {
+export function useBlocklyWorkspace({
+  isDark = false,
+  readOnly = false,
+}: UseBlocklyWorkspaceOptions = {}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<Blockly.WorkspaceSvg | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
@@ -62,7 +66,7 @@ export function useBlocklyWorkspace({ isDark = false }: UseBlocklyWorkspaceOptio
     Blockly.config.connectingSnapRadius = 68;
 
     const ws = Blockly.inject(containerRef.current, {
-      readOnly: false,
+      readOnly,
       move: {
         scrollbars: true,
         drag: true,
@@ -182,7 +186,7 @@ export function useBlocklyWorkspace({ isDark = false }: UseBlocklyWorkspaceOptio
     // handled by the setTheme useEffect above, so adding isDark here would
     // dispose and recreate the workspace on every toggle, losing user blocks.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inspectStep, setActiveStep, setSelectedBlock, setWorkspaceDirty, updateBlockStats]);
+  }, [inspectStep, readOnly, setActiveStep, setSelectedBlock, setWorkspaceDirty, updateBlockStats]);
 
   useEffect(() => {
     initWorkspace();
@@ -195,14 +199,13 @@ export function useBlocklyWorkspace({ isDark = false }: UseBlocklyWorkspaceOptio
       if (saveTimeoutRef.current !== null) {
         window.clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = null;
-        if (workspaceRef.current) {
-          const state = Blockly.serialization.workspaces.save(workspaceRef.current);
-          saveWorkspaceState(state);
-        }
       }
       if (workspaceRef.current) {
+        const state = Blockly.serialization.workspaces.save(workspaceRef.current);
+        saveWorkspaceState(state);
         workspaceRef.current.dispose();
         workspaceRef.current = null;
+        setWorkspace(null);
       }
     };
   }, [initWorkspace]);

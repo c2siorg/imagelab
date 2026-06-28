@@ -59,6 +59,8 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     currentPipelineId,
     currentPipelineName,
     currentVersionNumber,
+    isReadOnly,
+    clearShareContext,
   } = usePipelineStore();
 
   const [showShareModal, setShowShareModal] = useState(false);
@@ -73,7 +75,10 @@ export default function Toolbar({ workspace }: ToolbarProps) {
       return;
     }
     reset();
-    if (workspace) workspace.clear();
+    clearShareContext();
+    if (workspace) {
+      workspace.clear();
+    }
   };
 
   const handleDownload = () => {
@@ -84,8 +89,12 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     link.click();
   };
 
-  const handleUndo = () => workspace?.undo(false);
-  const handleRedo = () => workspace?.undo(true);
+  const handleUndo = () => {
+    if (!isReadOnly) workspace?.undo(false);
+  };
+  const handleRedo = () => {
+    if (!isReadOnly) workspace?.undo(true);
+  };
 
   const handleRun = async () => {
     if (!workspace || !originalImage) return;
@@ -176,7 +185,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
   return (
     <>
       <div className="h-10 flex items-center gap-1 px-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-        <button onClick={handleNew} className={iconBtn} title="New">
+        <button onClick={handleNew} disabled={isReadOnly} className={iconBtn} title="New">
           <FilePlus size={18} />
         </button>
         <button
@@ -192,7 +201,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
 
         <button
           onClick={() => setShowSaveModal(true)}
-          disabled={!workspace}
+          disabled={!workspace || isReadOnly}
           className={`${iconBtn} relative`}
           title="Save Pipeline"
         >
@@ -203,7 +212,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
         </button>
         <button
           onClick={() => setShowLoadModal(true)}
-          disabled={!workspace}
+          disabled={!workspace || isReadOnly}
           className={iconBtn}
           title="Load Pipeline"
         >
@@ -211,7 +220,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
         </button>
         <button
           onClick={() => setShowVersionModal(true)}
-          disabled={!currentPipelineId}
+          disabled={!currentPipelineId || isReadOnly}
           className={iconBtn}
           title="Version History"
         >
@@ -237,10 +246,20 @@ export default function Toolbar({ workspace }: ToolbarProps) {
 
         <div className={separator} />
 
-        <button onClick={handleUndo} className={iconBtn} title={`Undo (${mod}Z)`}>
+        <button
+          onClick={handleUndo}
+          disabled={isReadOnly}
+          className={iconBtn}
+          title={`Undo (${mod}Z)`}
+        >
           <Undo2 size={18} />
         </button>
-        <button onClick={handleRedo} className={iconBtn} title={`Redo (${mod}Y or ${mod}⇧Z)`}>
+        <button
+          onClick={handleRedo}
+          disabled={isReadOnly}
+          className={iconBtn}
+          title={`Redo (${mod}Y or ${mod}⇧Z)`}
+        >
           <Redo2 size={18} />
         </button>
 
@@ -248,7 +267,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
 
         <button
           onClick={() => setShowShareModal(true)}
-          disabled={!workspace}
+          disabled={!workspace || isReadOnly}
           className={iconBtn}
           title="Share Pipeline"
         >
@@ -329,7 +348,11 @@ export default function Toolbar({ workspace }: ToolbarProps) {
       </div>
 
       {showShareModal && (
-        <SharePipelineModal workspace={workspace} onClose={() => setShowShareModal(false)} />
+        <SharePipelineModal
+          workspace={workspace}
+          onClose={() => setShowShareModal(false)}
+          onSaveFirst={() => setShowSaveModal(true)}
+        />
       )}
 
       {showShortcutsModal && (

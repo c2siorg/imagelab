@@ -2,9 +2,15 @@ import { create } from "zustand";
 import * as Blockly from "blockly";
 import { categories } from "../blocks/categories";
 import { clearPersistedImage, saveImageState } from "../hooks/imagePersistence";
+import {
+  clearPersistedActivePipeline,
+  loadPersistedActivePipeline,
+  saveActivePipeline,
+} from "../hooks/workspacePersistence";
 import type { ImageAnalysis, ImageHistogram, PipelineTimings, StepResult } from "../types/pipeline";
 const imageResetListeners = new Set<() => void>();
 const imageLabelSyncListeners = new Set<(filename: string | null) => void>();
+const persistedActivePipeline = loadPersistedActivePipeline();
 
 interface PipelineState {
   originalImage: string | null;
@@ -35,11 +41,18 @@ interface PipelineState {
   currentPipelineId: string | null;
   currentPipelineName: string | null;
   currentVersionNumber: number | null;
+  isReadOnly: boolean;
+  sharedPipelineName: string | null;
+  sharedVersionNumber: number | null;
+  shareToken: string | null;
   setCurrentPipeline: (
     id: string | null,
     name: string | null,
     versionNumber: number | null,
   ) => void;
+  setShareViewContext: (name: string, versionNumber: number, token: string) => void;
+  setShareEditContext: (id: string, name: string, versionNumber: number, token: string) => void;
+  clearShareContext: () => void;
 
   // Statistics
   blockCount: number;
@@ -106,14 +119,55 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   uniqueBlockTypes: 0,
   categoryCounts: {},
   complexity: "Low",
-  currentPipelineId: null,
-  currentPipelineName: null,
-  currentVersionNumber: null,
-  setCurrentPipeline: (id, name, versionNumber) =>
+  currentPipelineId: persistedActivePipeline?.id ?? null,
+  currentPipelineName: persistedActivePipeline?.name ?? null,
+  currentVersionNumber: persistedActivePipeline?.versionNumber ?? null,
+  isReadOnly: false,
+  sharedPipelineName: null,
+  sharedVersionNumber: null,
+  shareToken: null,
+  setCurrentPipeline: (id, name, versionNumber) => {
+    if (id && name && versionNumber !== null) {
+      saveActivePipeline({ id, name, versionNumber });
+    } else {
+      clearPersistedActivePipeline();
+    }
     set({
       currentPipelineId: id,
       currentPipelineName: name,
       currentVersionNumber: versionNumber,
+    });
+  },
+  setShareViewContext: (name, versionNumber, token) => {
+    clearPersistedActivePipeline();
+    set({
+      isReadOnly: true,
+      sharedPipelineName: name,
+      sharedVersionNumber: versionNumber,
+      shareToken: token,
+      currentPipelineId: null,
+      currentPipelineName: null,
+      currentVersionNumber: null,
+    });
+  },
+  setShareEditContext: (id, name, versionNumber, token) => {
+    clearPersistedActivePipeline();
+    set({
+      isReadOnly: false,
+      sharedPipelineName: name,
+      sharedVersionNumber: versionNumber,
+      shareToken: token,
+      currentPipelineId: id,
+      currentPipelineName: name,
+      currentVersionNumber: versionNumber,
+    });
+  },
+  clearShareContext: () =>
+    set({
+      isReadOnly: false,
+      sharedPipelineName: null,
+      sharedVersionNumber: null,
+      shareToken: null,
     }),
   setOriginalImage: (image, format, filename = null) => {
     imageLabelSyncListeners.forEach((listener) => listener(filename));
@@ -233,6 +287,7 @@ export const usePipelineStore = create<PipelineState>((set) => ({
     imageResetListeners.clear();
     imageLabelSyncListeners.clear();
     clearPersistedImage();
+    clearPersistedActivePipeline();
     set({
       originalImage: null,
       imageFormat: "png",
@@ -263,6 +318,10 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       currentPipelineId: null,
       currentPipelineName: null,
       currentVersionNumber: null,
+      isReadOnly: false,
+      sharedPipelineName: null,
+      sharedVersionNumber: null,
+      shareToken: null,
     });
   },
 }));

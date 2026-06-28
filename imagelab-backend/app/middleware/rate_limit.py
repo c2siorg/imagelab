@@ -7,6 +7,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger(__name__)
 
+_middleware_instances: list["ShareRateLimitMiddleware"] = []
+
 
 class ShareRateLimitMiddleware(BaseHTTPMiddleware):
     def __init__(self, app):
@@ -14,6 +16,7 @@ class ShareRateLimitMiddleware(BaseHTTPMiddleware):
         self.requests = {}  # ip -> list of timestamps
         self.lock = asyncio.Lock()
         self.request_count = 0
+        _middleware_instances.append(self)
 
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
@@ -46,3 +49,10 @@ class ShareRateLimitMiddleware(BaseHTTPMiddleware):
                         self.requests.pop(k, None)
 
         return await call_next(request)
+
+
+def reset_share_rate_limit_state() -> None:
+    """Clear in-memory counters (used by tests to avoid cross-test pollution)."""
+    for middleware in _middleware_instances:
+        middleware.requests.clear()
+        middleware.request_count = 0
