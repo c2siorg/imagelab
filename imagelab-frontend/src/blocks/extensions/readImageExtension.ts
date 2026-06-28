@@ -7,8 +7,9 @@ function setFilenameLabel(block: Blockly.Block, value: string) {
 }
 
 function initReadImageBlock(block: Blockly.Block) {
-  // Skip interactive setup in readOnly workspaces (e.g. sidebar previews)
-  if (block.workspace.options?.readOnly) return;
+  // Sidebar previews are read-only too, but only the main shared-view workspace
+  // should retain image input controls.
+  if (block.workspace.options?.readOnly && !usePipelineStore.getState().isReadOnly) return;
 
   const fileInput = document.createElement("input");
   fileInput.type = "file";
@@ -36,14 +37,19 @@ function initReadImageBlock(block: Blockly.Block) {
   // Wire the field_image click to open the file picker
   const uploadField = block.getField("upload_button");
   if (uploadField) {
-    (uploadField as Blockly.FieldImage).setOnClickHandler(() => {
+    const uploadImageField = uploadField as Blockly.FieldImage;
+    uploadImageField.setOnClickHandler(() => {
       fileInput.click();
     });
+    if (block.workspace.options?.readOnly) {
+      uploadImageField.isClickable = () => true;
+    }
   }
 
   const cameraField = block.getField("camera_button");
   if (cameraField) {
-    (cameraField as Blockly.FieldImage).setOnClickHandler(() => {
+    const cameraImageField = cameraField as Blockly.FieldImage;
+    cameraImageField.setOnClickHandler(() => {
       usePipelineStore.getState().openCameraModal(({ image, format, label }) => {
         if (!block.workspace) {
           return;
@@ -52,6 +58,9 @@ function initReadImageBlock(block: Blockly.Block) {
         usePipelineStore.getState().setOriginalImage(image, format, label);
       });
     });
+    if (block.workspace.options?.readOnly) {
+      cameraImageField.isClickable = () => true;
+    }
   }
 
   const unregisterImageLabelSync = usePipelineStore

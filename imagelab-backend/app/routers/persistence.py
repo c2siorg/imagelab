@@ -17,11 +17,11 @@ from __future__ import annotations
 import hashlib
 import logging
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
@@ -86,9 +86,16 @@ class VersionSummary(BaseModel):
 
 class ShareCreate(BaseModel):
     version_number: int
-    permission: str  # "view" | "clone"
+    permission: str  # "view" | "clone" | "edit"
     expires_at: datetime | None = None
     created_by: str | None = None
+
+    @field_validator("permission")
+    @classmethod
+    def validate_permission(cls, value: str) -> str:
+        if value not in {"view", "clone", "edit"}:
+            raise ValueError("permission must be view, clone, or edit")
+        return value
 
 
 class ShareTokenOut(BaseModel):
@@ -107,6 +114,9 @@ class ShareLookupOut(BaseModel):
 class CloneRequest(BaseModel):
     name: str | None = None
     owner_id: str | None = None
+
+
+INVALID_SHARE_DETAIL = "Invalid or expired share link"
 
 
 # Dependency alias
@@ -148,6 +158,14 @@ def _build_version(
     )
     session.add(version)
     return version
+
+
+def _get_active_share(session: Session, token: str) -> PipelineShare:
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    share = session.exec(select(PipelineShare).where(PipelineShare.token_hash == token_hash)).first()
+    if share is None or (share.expires_at is not None and share.expires_at < datetime.now(UTC)):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=INVALID_SHARE_DETAIL)
+    return share
 
 
 # POST /api/pipelines  – create pipeline + version 1
@@ -249,7 +267,7 @@ def create_version(pipeline_id: uuid.UUID, body: VersionCreate, session: Session
     pipeline = _get_pipeline_or_404(session, pipeline_id)
 
     try:
-        pipeline.updated_at = datetime.now()
+        pipeline.updated_at = datetime.now(UTC)
         session.add(pipeline)
 
         version = _build_version(
@@ -350,7 +368,7 @@ def restore_version(pipeline_id: uuid.UUID, version_number: int, session: Sessio
         )
 
     try:
-        pipeline.updated_at = datetime.now()
+        pipeline.updated_at = datetime.now(UTC)
         session.add(pipeline)
 
         restored = _build_version(
@@ -439,21 +457,7 @@ def share_pipeline(
     summary="Look up a shared pipeline/version configuration",
 )
 def get_shared_pipeline(token: str, session: SessionDep) -> ShareLookupOut:
-    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
-    share = session.exec(select(PipelineShare).where(PipelineShare.token_hash == token_hash)).first()
-
-    # Obfuscated check
-    if share is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invalid or expired share link",
-        )
-
-    if share.expires_at is not None and share.expires_at < datetime.now():
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invalid or expired share link",
-        )
+    share = _get_active_share(session, token)
 
     pipeline = session.get(Pipeline, share.pipeline_id)
     version = session.get(PipelineVersion, share.pipeline_version_id)
@@ -486,21 +490,7 @@ def clone_shared_pipeline(
     body: CloneRequest,
     session: SessionDep,
 ) -> VersionOut:
-    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
-    share = session.exec(select(PipelineShare).where(PipelineShare.token_hash == token_hash)).first()
-
-    # Obfuscated check
-    if share is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invalid or expired share link",
-        )
-
-    if share.expires_at is not None and share.expires_at < datetime.now():
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invalid or expired share link",
-        )
+    share = _get_active_share(session, token)
 
     if share.permission != "clone":
         raise HTTPException(
@@ -537,4 +527,51 @@ def clone_shared_pipeline(
     except Exception as exc:
         session.rollback()
         logger.exception("Failed to clone shared pipeline")
+        raise HTTPException(status_code=500, detail="Internal error") from exc
+
+
+@share_router.post(
+    "/{token}/versions",
+    response_model=VersionOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a version in a pipeline through an edit share token",
+)
+def create_shared_version(
+    token: str,
+    body: VersionCreate,
+    session: SessionDep,
+) -> VersionOut:
+    share = _get_active_share(session, token)
+    if share.permission != "edit":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Editing not permitted for this share link",
+        )
+
+    pipeline = session.get(Pipeline, share.pipeline_id)
+    if pipeline is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=INVALID_SHARE_DETAIL)
+
+    try:
+        version = _build_version(
+            session,
+            pipeline_id=pipeline.id,
+            workspace_json=body.workspace_json,
+            pipeline_json=body.pipeline_json,
+            change_note=body.change_note,
+        )
+        pipeline.updated_at = datetime.now(UTC)
+        session.add(pipeline)
+        session.commit()
+        session.refresh(version)
+        return VersionOut.model_validate(version)
+    except IntegrityError as exc:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Version conflict – please retry",
+        ) from exc
+    except Exception as exc:
+        session.rollback()
+        logger.exception("Failed to create shared pipeline version")
         raise HTTPException(status_code=500, detail="Internal error") from exc

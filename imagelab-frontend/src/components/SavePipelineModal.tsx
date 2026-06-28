@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import * as Blockly from "blockly";
 import { X, Loader2, Save } from "lucide-react";
 import { usePipelineStore } from "../store/pipelineStore";
-import { createPipeline, createVersion } from "../api/persistence";
+import { createPipeline, createSharedVersion, createVersion } from "../api/persistence";
 import { extractPipeline } from "../hooks/usePipeline";
 
 interface SavePipelineModalProps {
@@ -17,6 +17,7 @@ export default function SavePipelineModal({ workspace, onClose }: SavePipelineMo
     currentVersionNumber,
     setCurrentPipeline,
     setWorkspaceDirty,
+    shareToken,
   } = usePipelineStore();
 
   const [name, setName] = useState(currentPipelineName || "");
@@ -32,7 +33,7 @@ export default function SavePipelineModal({ workspace, onClose }: SavePipelineMo
     return () => document.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave: React.ComponentProps<"form">["onSubmit"] = async (e) => {
     e.preventDefault();
     if (!workspace) return;
 
@@ -49,11 +50,14 @@ export default function SavePipelineModal({ workspace, onClose }: SavePipelineMo
 
     try {
       if (currentPipelineId) {
-        const result = await createVersion(currentPipelineId, {
+        const payload = {
           workspace_json,
           pipeline_json,
           change_note: changeNote.trim() || undefined,
-        });
+        };
+        const result = shareToken
+          ? await createSharedVersion(shareToken, payload)
+          : await createVersion(currentPipelineId, payload);
         setCurrentPipeline(result.pipeline_id, currentPipelineName, result.version_number);
         setWorkspaceDirty(false);
       } else {

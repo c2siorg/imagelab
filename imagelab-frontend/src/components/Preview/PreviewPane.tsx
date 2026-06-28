@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ZoomIn, ZoomOut, Image, ImageDown, Trash2, Timer } from "lucide-react";
+import { useRef, useState } from "react";
+import { Camera, Image, ImageDown, Timer, Trash2, Upload, ZoomIn, ZoomOut } from "lucide-react";
 import { usePipelineStore } from "../../store/pipelineStore";
 import ImageDisplay from "./ImageDisplay";
 
@@ -41,8 +41,19 @@ function getStepLabel(operatorType: string): string {
 }
 
 export default function PreviewPane() {
-  const { originalImage, imageFormat, processedImage, error, errorStep, clearImage, timings } =
-    usePipelineStore();
+  const {
+    originalImage,
+    imageFormat,
+    processedImage,
+    error,
+    errorStep,
+    clearImage,
+    timings,
+    isReadOnly,
+    setOriginalImage,
+    openCameraModal,
+  } = usePipelineStore();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [originalZoom, setOriginalZoom] = useState<number | null>(null);
   const [processedZoom, setProcessedZoom] = useState<number | null>(null);
 
@@ -50,6 +61,29 @@ export default function PreviewPane() {
     setter((prev) => Math.min((prev ?? 300) + 100, 2500));
   const zoomOut = (setter: React.Dispatch<React.SetStateAction<number | null>>) => () =>
     setter((prev) => Math.max((prev ?? 300) - 100, 100));
+
+  const handleFileUpload: React.ChangeEventHandler<HTMLInputElement> = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = typeof reader.result === "string" ? reader.result : "";
+      const [, base64 = ""] = dataUrl.split(",", 2);
+      if (!base64) return;
+
+      const format = file.type.split("/")[1] || "png";
+      setOriginalImage(base64, format, file.name);
+    };
+    reader.readAsDataURL(file);
+    event.target.value = "";
+  };
+
+  const handleCameraOpen = () => {
+    openCameraModal(({ image, format, label }) => {
+      setOriginalImage(image, format, label);
+    });
+  };
 
   return (
     <div className="w-80 h-full bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0">
@@ -60,11 +94,42 @@ export default function PreviewPane() {
           <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             Original
           </h2>
+          {isReadOnly && (
+            <div className="ml-auto flex items-center gap-1">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileUpload}
+                aria-label="Upload image file"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="p-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-gray-400 hover:text-indigo-500 transition-colors"
+                title="Upload image"
+                aria-label="Upload image"
+              >
+                <Upload size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={handleCameraOpen}
+                className="p-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-gray-400 hover:text-indigo-500 transition-colors"
+                title="Capture image"
+                aria-label="Capture image"
+              >
+                <Camera size={14} />
+              </button>
+            </div>
+          )}
           {originalImage && (
             <button
               onClick={clearImage}
-              className="ml-auto p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-colors"
+              className={`${isReadOnly ? "" : "ml-auto"} p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-colors`}
               title="Remove image"
+              aria-label="Remove image"
             >
               <Trash2 size={14} />
             </button>

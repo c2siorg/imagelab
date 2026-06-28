@@ -35,7 +35,7 @@ export interface SharedPipeline {
   version_number: number;
   workspace_json: WorkspaceJson;
   pipeline_json: PersistedPipelineJson;
-  permission: "view" | "clone";
+  permission: "view" | "clone" | "edit";
 }
 
 // API functions
@@ -150,7 +150,7 @@ export async function createShareToken(
   pipelineId: string,
   payload: {
     version_number: number;
-    permission: "view" | "clone";
+    permission: "view" | "clone" | "edit";
     expires_at?: string; // ISO string
   },
 ): Promise<{ token: string }> {
@@ -186,6 +186,26 @@ export async function cloneShareToken(
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.detail || "Failed to clone shared pipeline");
+  }
+  return response.json();
+}
+
+export async function createSharedVersion(
+  token: string,
+  payload: {
+    workspace_json: WorkspaceJson;
+    pipeline_json: PersistedPipelineJson;
+    change_note?: string;
+  },
+): Promise<PipelineVersion> {
+  const response = await fetch(`${API_URL}/api/share/${token}/versions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(formatApiError(errorData.detail, "Failed to save shared pipeline version"));
   }
   return response.json();
 }
