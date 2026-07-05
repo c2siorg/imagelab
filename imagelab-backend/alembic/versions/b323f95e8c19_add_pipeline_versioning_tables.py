@@ -61,7 +61,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_pipeline_shares_id"), "pipeline_shares", ["id"], unique=False)
-    op.create_index(op.f("ix_pipeline_shares_token_hash"), "pipeline_shares", ["token_hash"], unique=False)
+    op.create_index(op.f("ix_pipeline_shares_token_hash"), "pipeline_shares", ["token_hash"], unique=True)
     # ### end Alembic commands ###
 
 
