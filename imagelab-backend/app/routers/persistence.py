@@ -163,8 +163,16 @@ def _build_version(
 def _get_active_share(session: Session, token: str) -> PipelineShare:
     token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
     share = session.exec(select(PipelineShare).where(PipelineShare.token_hash == token_hash)).first()
-    if share is None or (share.expires_at is not None and share.expires_at < datetime.now(UTC)):
+    if share is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=INVALID_SHARE_DETAIL)
+
+    if share.expires_at is not None:
+        expires_at = share.expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=UTC)
+        if expires_at < datetime.now(UTC):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=INVALID_SHARE_DETAIL)
+
     return share
 
 
