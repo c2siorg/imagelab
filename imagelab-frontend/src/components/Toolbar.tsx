@@ -12,6 +12,7 @@ import {
   Save,
   FolderOpen,
   History,
+  Layers,
 } from "lucide-react";
 import { usePipelineStore } from "../store/pipelineStore";
 import { executePipeline } from "../api/pipeline";
@@ -23,6 +24,7 @@ import KeyboardShortcutsModal from "./KeyboardShortcutsModal";
 import SavePipelineModal from "./SavePipelineModal";
 import LoadPipelineModal from "./LoadPipelineModal";
 import VersionHistoryModal from "./VersionHistoryModal";
+import BatchProcessingModal from "./BatchProcessingModal";
 
 interface ToolbarProps {
   workspace: Blockly.WorkspaceSvg | null;
@@ -68,6 +70,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showLoadModal, setShowLoadModal] = useState(false);
   const [showVersionModal, setShowVersionModal] = useState(false);
+  const [showBatchModal, setShowBatchModal] = useState(false);
   const inspectStep = useStepInspection();
 
   const handleNew = () => {
@@ -285,6 +288,16 @@ export default function Toolbar({ workspace }: ToolbarProps) {
         <div className={separator} />
 
         <button
+          onClick={() => setShowBatchModal(true)}
+          disabled={isExecuting || blockCount === 0 || isReadOnly}
+          className="flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          title="Batch Run"
+        >
+          <Layers size={16} />
+          Batch Run
+        </button>
+
+        <button
           onClick={handleRun}
           disabled={isExecuting || !originalImage}
           className="flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -369,6 +382,13 @@ export default function Toolbar({ workspace }: ToolbarProps) {
 
       {showVersionModal && (
         <VersionHistoryModal workspace={workspace} onClose={() => setShowVersionModal(false)} />
+      )}
+
+      {showBatchModal && workspace && (
+        <BatchProcessingModal
+          pipeline={extractPipeline(workspace)}
+          onClose={() => setShowBatchModal(false)}
+        />
       )}
     </>
   );
