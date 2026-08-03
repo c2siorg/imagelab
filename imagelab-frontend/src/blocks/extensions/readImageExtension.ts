@@ -1,4 +1,5 @@
 import * as Blockly from "blockly";
+import { getImageFormatFromMimeType } from "../../utils/imageData";
 import { usePipelineStore } from "../../store/pipelineStore";
 
 function setFilenameLabel(block: Blockly.Block, value: string) {
@@ -21,7 +22,7 @@ function initReadImageBlock(block: Blockly.Block) {
     const file = fileInput.files?.[0];
     if (!file) return;
 
-    const format = file.type.split("/")[1] || "png";
+    const format = getImageFormatFromMimeType(file.type);
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result as string;
