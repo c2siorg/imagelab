@@ -26,9 +26,16 @@ export function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
+const SUPPORTED_IMAGE_FORMATS = new Set(["png", "jpg", "jpeg", "webp", "bmp", "tiff", "tif"]);
+
 export function getImageFormatFromMimeType(type: string | undefined): string {
   if (!type) return "png";
 
-  const [, subtype = "png"] = type.split("/");
-  return subtype.toLowerCase() || "png";
+  const [, subtype = ""] = type.split("/");
+  const format = subtype.toLowerCase();
+
+  // Reject compound subtypes (e.g. "svg+xml") and unsupported formats like "gif"
+  if (!format || !SUPPORTED_IMAGE_FORMATS.has(format)) return "png";
+
+  return format;
 }

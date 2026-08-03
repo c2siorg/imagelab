@@ -89,4 +89,25 @@ describe("getImageFormatFromMimeType", () => {
   it("falls back to png when the mime type is missing", () => {
     expect(getImageFormatFromMimeType(undefined)).toBe("png");
   });
+
+  it("falls back to png for an empty string", () => {
+    expect(getImageFormatFromMimeType("")).toBe("png");
+  });
+
+  it("returns png for compound mime types like image/svg+xml instead of svg+xml", () => {
+    // Raw split gives 'svg+xml' which the backend rejects as unsupported
+    expect(getImageFormatFromMimeType("image/svg+xml")).toBe("png");
+  });
+
+  it("handles image/webp", () => {
+    expect(getImageFormatFromMimeType("image/webp")).toBe("webp");
+  });
+
+  it("handles image/tiff", () => {
+    expect(getImageFormatFromMimeType("image/tiff")).toBe("tiff");
+  });
+
+  it("falls back to png for unsupported types like image/gif", () => {
+    expect(getImageFormatFromMimeType("image/gif")).toBe("png");
+  });
 });

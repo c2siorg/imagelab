@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Camera, Image, ImageDown, Timer, Trash2, Upload, ZoomIn, ZoomOut } from "lucide-react";
 import { usePipelineStore } from "../../store/pipelineStore";
+import { getImageFormatFromMimeType } from "../../utils/imageData";
 import ImageDisplay from "./ImageDisplay";
 
 function ZoomControls({
@@ -72,7 +73,7 @@ export default function PreviewPane() {
       const [, base64 = ""] = dataUrl.split(",", 2);
       if (!base64) return;
 
-      const format = file.type.split("/")[1] || "png";
+      const format = getImageFormatFromMimeType(file.type);
       setOriginalImage(base64, format, file.name);
     };
     reader.readAsDataURL(file);
