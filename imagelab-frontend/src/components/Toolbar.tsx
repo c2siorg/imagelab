@@ -13,18 +13,21 @@ import {
   FolderOpen,
   History,
   Layers,
+  FolderPlus,
 } from "lucide-react";
 import { usePipelineStore } from "../store/pipelineStore";
 import { executePipeline } from "../api/pipeline";
 import { extractPipeline } from "../hooks/usePipeline";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { useStepInspection } from "../hooks/useStepInspection";
+import { getSelectedBlocks } from "../utils/extractMacroGraph";
 import SharePipelineModal from "./SharePipelineModal";
 import KeyboardShortcutsModal from "./KeyboardShortcutsModal";
 import SavePipelineModal from "./SavePipelineModal";
 import LoadPipelineModal from "./LoadPipelineModal";
 import VersionHistoryModal from "./VersionHistoryModal";
 import BatchProcessingModal from "./BatchProcessingModal";
+import CreateMacroModal from "./modals/CreateMacroModal";
 
 interface ToolbarProps {
   workspace: Blockly.WorkspaceSvg | null;
@@ -71,7 +74,40 @@ export default function Toolbar({ workspace }: ToolbarProps) {
   const [showLoadModal, setShowLoadModal] = useState(false);
   const [showVersionModal, setShowVersionModal] = useState(false);
   const [showBatchModal, setShowBatchModal] = useState(false);
+  const [showCreateMacroModal, setShowCreateMacroModal] = useState(false);
+  const [selectedBlocks, setSelectedBlocks] = useState<Blockly.Block[]>([]);
   const inspectStep = useStepInspection();
+
+  useEffect(() => {
+    if (!workspace) {
+      setSelectedBlocks([]);
+      return;
+    }
+
+    const updateSelection = () => {
+      const blocks = getSelectedBlocks(workspace);
+      setSelectedBlocks(blocks);
+    };
+
+    updateSelection();
+
+    const listener = (event: Blockly.Events.Abstract) => {
+      if (
+        event.type === Blockly.Events.SELECTED ||
+        event.type === Blockly.Events.BLOCK_CHANGE ||
+        event.type === Blockly.Events.BLOCK_MOVE ||
+        event.type === Blockly.Events.BLOCK_CREATE ||
+        event.type === Blockly.Events.BLOCK_DELETE
+      ) {
+        updateSelection();
+      }
+    };
+
+    workspace.addChangeListener(listener);
+    return () => {
+      workspace.removeChangeListener(listener);
+    };
+  }, [workspace]);
 
   const handleNew = () => {
     if (!window.confirm("This will clear all blocks and the uploaded image. Continue?")) {
@@ -298,6 +334,16 @@ export default function Toolbar({ workspace }: ToolbarProps) {
         </button>
 
         <button
+          onClick={() => setShowCreateMacroModal(true)}
+          disabled={selectedBlocks.length < 2 || isReadOnly}
+          className="flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          title="Create Macro from selected workspace blocks"
+        >
+          <FolderPlus size={16} />
+          Create Macro
+        </button>
+
+        <button
           onClick={handleRun}
           disabled={isExecuting || !originalImage}
           className="flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -388,6 +434,13 @@ export default function Toolbar({ workspace }: ToolbarProps) {
         <BatchProcessingModal
           pipeline={extractPipeline(workspace)}
           onClose={() => setShowBatchModal(false)}
+        />
+      )}
+
+      {showCreateMacroModal && (
+        <CreateMacroModal
+          selectedBlocks={selectedBlocks}
+          onClose={() => setShowCreateMacroModal(false)}
         />
       )}
     </>

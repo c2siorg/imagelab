@@ -12,8 +12,7 @@ class Pipeline(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, index=True)
     name: str
     owner_id: str | None = Field(default=None, nullable=True)
-    created_at: datetime = Field(default_factory=datetime.now(UTC))
-    updated_at: datetime = Field(default_factory=datetime.now(UTC))
+    is_macro: bool = Field(default=False, nullable=False)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 

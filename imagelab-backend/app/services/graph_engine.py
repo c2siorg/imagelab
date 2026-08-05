@@ -290,3 +290,42 @@ def execute_graph_pipeline(session: Session, pipeline_id: uuid.UUID, request: Pi
     # Inject steps into request and execute using PipelineExecutor
     request.pipeline = steps
     return execute_pipeline(request)
+
+
+def validate_macro_graph(graph: PipelineGraph, session: Session, macro_id: uuid.UUID | None = None) -> PipelineGraph:
+    """
+    Validates a macro graph for structure correctness, cycle detection, and cyclic nesting.
+    """
+    graph.validate_no_cycles()
+    active_macro_ids = [macro_id] if macro_id else []
+    expand_all_macros(graph, session, active_macro_ids=active_macro_ids)
+    return graph
+
+
+def expand_macro_steps(steps: list[PipelineStep], session: Session) -> list[PipelineStep]:
+    """
+    Recursively unrolls any macro_ref steps in a flat list of PipelineSteps.
+    Preserves parent block_id as a prefix (e.g. 'parent_block_id:child_block_id').
+    """
+    expanded: list[PipelineStep] = []
+    for step in steps:
+        if step.type == "macro_ref" or (step.params.get("macro_id") and step.type.startswith("macro")):
+            macro_id_str = step.params.get("macro_id")
+            if not macro_id_str:
+                raise ValueError(f"Step {step.block_id} is a macro reference but missing 'macro_id' parameter.")
+            macro_id = uuid.UUID(str(macro_id_str))
+
+            sub_steps = prepare_pipeline(session, macro_id, input_channels=3)
+            prefix = step.block_id or f"macro_{macro_id}"
+            for sub_step in sub_steps:
+                new_block_id = f"{prefix}:{sub_step.block_id}" if sub_step.block_id else prefix
+                expanded.append(
+                    PipelineStep(
+                        type=sub_step.type,
+                        block_id=new_block_id,
+                        params=sub_step.params,
+                    )
+                )
+        else:
+            expanded.append(step)
+    return expanded
