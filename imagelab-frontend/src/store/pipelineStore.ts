@@ -59,6 +59,7 @@ interface PipelineState {
   uniqueBlockTypes: number;
   categoryCounts: Record<string, number>;
   complexity: "Low" | "Medium" | "High";
+  getStepResultByBlockId: (blockId: string) => StepResult | undefined;
   setOriginalImage: (image: string, format: string, filename?: string | null) => void;
   setProcessedImage: (image: string | null) => void;
   setPreviewImage: (image: string | null) => void;
@@ -92,7 +93,7 @@ function calculateComplexity(blocks: number, unique: number): "Low" | "Medium" |
   return "Low";
 }
 
-export const usePipelineStore = create<PipelineState>((set) => ({
+export const usePipelineStore = create<PipelineState>((set, get) => ({
   originalImage: null,
   imageFormat: "png",
   imageFilename: null,
@@ -194,6 +195,15 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   setPreviewImage: (image) => set({ processedImage: image }),
   setExecutionId: (executionId) => set({ executionId }),
   setStepResults: (results) => set({ stepResults: results }),
+  getStepResultByBlockId: (blockId: string): StepResult | undefined => {
+    const { stepResults } = get();
+    const exact = stepResults.find((r: StepResult) => r.block_id === blockId);
+    if (exact) return exact;
+    const matches = stepResults.filter(
+      (r: StepResult) => r.block_id && r.block_id.startsWith(`${blockId}:`),
+    );
+    return matches.length > 0 ? matches[matches.length - 1] : undefined;
+  },
   setActiveStep: (blockId, index = null) =>
     set({ activeStepBlockId: blockId, activeStepIndex: index }),
   setActiveStepImage: (image, format = null) =>

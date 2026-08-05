@@ -38,7 +38,20 @@ async def process_single_image(job_id: str, filename: str, pipeline: list[Pipeli
 
                 image_b64 = base64.b64encode(image_bytes).decode("utf-8")
 
-                req = PipelineRequest(image=image_b64, image_format=image_format, pipeline=pipeline)
+                exec_pipeline = pipeline
+                if any(step.type == "macro_ref" or (step.params and step.params.get("macro_id")) for step in pipeline):
+                    try:
+                        from sqlmodel import Session
+
+                        from app.database import engine
+                        from app.services.graph_engine import expand_macro_steps
+
+                        with Session(engine) as session:
+                            exec_pipeline = expand_macro_steps(pipeline, session)
+                    except Exception as err:
+                        logger.warning(f"Failed macro expansion in batch execution: {err}")
+
+                req = PipelineRequest(image=image_b64, image_format=image_format, pipeline=exec_pipeline)
                 return execute_pipeline(req)
 
             response = await asyncio.to_thread(read_and_execute)

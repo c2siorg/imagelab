@@ -188,9 +188,18 @@ def inspect_step(execution_id: str, block_id: str):
         if not cached:
             return None
         steps = cached["steps"]
-        if not isinstance(steps, dict) or block_id not in steps:
+        if not isinstance(steps, dict):
             return None
-        step = steps[block_id]
+        step = steps.get(block_id)
+        if step is None:
+            # Fallback for parent macro block_id matching (e.g., 'm1' matching 'm1:gray')
+            matching_keys = [k for k in steps if k.startswith(f"{block_id}:")]
+            if matching_keys:
+                last_key = max(
+                    matching_keys,
+                    key=lambda k: int(steps[k]["index"]) if isinstance(steps[k], dict) and "index" in steps[k] else 0,
+                )
+                step = steps[last_key]
         if not isinstance(step, dict):
             return None
         cached["last_accessed_at"] = time.time()

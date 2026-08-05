@@ -1,0 +1,182 @@
+import { describe, expect, it } from "vitest";
+import type * as Blockly from "blockly";
+import {
+  extractExposedParamCandidates,
+  extractMacroGraph,
+  getSelectedBlocks,
+} from "../extractMacroGraph";
+
+const INPUT_TYPE_VALUE = 1;
+
+type MockField = {
+  name?: string;
+  getValue: () => unknown;
+};
+
+type MockInput = {
+  name?: string;
+  fieldRow: MockField[];
+  type: number;
+  connection: { targetBlock: () => MockBlock | null };
+};
+
+type MockBlock = {
+  id: string;
+  type: string;
+  inputList: MockInput[];
+  getNextBlock: () => MockBlock | null;
+  getDescendants?: (ordered?: boolean) => MockBlock[];
+};
+
+function createMockField(name?: string, value?: unknown): MockField {
+  return { name, getValue: () => value };
+}
+
+function createMockInput(
+  name?: string,
+  fieldRow: MockField[] = [],
+  opts?: { type?: number; connected?: MockBlock | null },
+): MockInput {
+  return {
+    name,
+    fieldRow,
+    type: opts?.type ?? 0,
+    connection: { targetBlock: () => opts?.connected ?? null },
+  };
+}
+
+function createMockBlock(
+  id: string,
+  type: string,
+  inputList: MockInput[] = [],
+  next: MockBlock | null = null,
+): MockBlock {
+  const block: MockBlock = {
+    id,
+    type,
+    inputList,
+    getNextBlock: () => next,
+  };
+  block.getDescendants = () => {
+    const list: MockBlock[] = [block];
+    let curr = next;
+    while (curr) {
+      list.push(curr);
+      curr = curr.getNextBlock();
+    }
+    return list;
+  };
+  return block;
+}
+
+describe("extractMacroGraph", () => {
+  it("throws an error when selecting fewer than two blocks", () => {
+    const b1 = createMockBlock("b1", "filtering_blur") as unknown as Blockly.Block;
+    expect(() => extractMacroGraph([])).toThrow(
+      "At least two blocks must be selected to create a macro",
+    );
+    expect(() => extractMacroGraph([b1])).toThrow(
+      "At least two blocks must be selected to create a macro",
+    );
+  });
+
+  it("extracts a valid linear chain of connected blocks", () => {
+    const b2 = createMockBlock("b2", "filtering_cannyedge", [
+      createMockInput(undefined, [createMockField("threshold1", 100)]),
+    ]);
+
+    const b1 = createMockBlock(
+      "b1",
+      "filtering_gaussianblur",
+      [createMockInput(undefined, [createMockField("kernel_size", 5)])],
+      b2,
+    ) as unknown as Blockly.Block;
+
+    const selected = [b1, b2 as unknown as Blockly.Block];
+    const graph = extractMacroGraph(selected);
+
+    expect(graph.nodes).toHaveLength(2);
+    expect(graph.nodes[0]).toEqual({
+      id: "b1",
+      type: "filtering_gaussianblur",
+      op: "filtering_gaussianblur",
+      params: { kernel_size: 5 },
+    });
+    expect(graph.nodes[1]).toEqual({
+      id: "b2",
+      type: "filtering_cannyedge",
+      op: "filtering_cannyedge",
+      params: { threshold1: 100 },
+    });
+
+    expect(graph.edges).toHaveLength(1);
+    expect(graph.edges[0]).toEqual({
+      from: "b1",
+      to: "b2",
+    });
+  });
+
+  it("extracts multi-input / split value connection edges", () => {
+    const sourceBlock = createMockBlock("src1", "image_source", [
+      createMockInput(undefined, [createMockField("src_val", "active")]),
+    ]);
+
+    const targetBlock = createMockBlock("tgt1", "blend_images", [
+      createMockInput("image", [], { type: INPUT_TYPE_VALUE, connected: sourceBlock }),
+      createMockInput(undefined, [createMockField("alpha", 0.5)]),
+    ]);
+
+    const selected = [
+      sourceBlock as unknown as Blockly.Block,
+      targetBlock as unknown as Blockly.Block,
+    ];
+    const graph = extractMacroGraph(selected);
+
+    expect(graph.nodes).toHaveLength(2);
+    expect(graph.edges).toHaveLength(1);
+    expect(graph.edges[0]).toEqual({
+      from: "src1",
+      to: "tgt1",
+      input_port: "image",
+    });
+  });
+
+  it("throws error on disconnected / floating block selections", () => {
+    const b1 = createMockBlock("b1", "filtering_gaussianblur") as unknown as Blockly.Block;
+    const b2 = createMockBlock("b2", "filtering_cannyedge") as unknown as Blockly.Block;
+
+    expect(() => extractMacroGraph([b1, b2])).toThrow(
+      "Selection contains floating/unconnected blocks",
+    );
+  });
+
+  it("extracts candidate exposed parameters correctly", () => {
+    const b1 = createMockBlock("b1", "filtering_gaussianblur", [
+      createMockInput(undefined, [createMockField("kernel_size", 5)]),
+    ]) as unknown as Blockly.Block;
+
+    const b2 = createMockBlock("b2", "filtering_cannyedge", [
+      createMockInput(undefined, [createMockField("low", 10), createMockField("high", 20)]),
+    ]) as unknown as Blockly.Block;
+
+    const candidates = extractExposedParamCandidates([b1, b2]);
+
+    expect(candidates).toHaveLength(3);
+    expect(candidates[0]).toEqual({
+      blockId: "b1",
+      blockType: "filtering_gaussianblur",
+      paramName: "kernel_size",
+      label: "kernel_size (filtering_gaussianblur)",
+      defaultValue: 5,
+    });
+    expect(candidates[1].paramName).toBe("low");
+    expect(candidates[2].paramName).toBe("high");
+  });
+
+  it("gets selected blocks and descendants from workspace", () => {
+    const mockWs = {} as unknown as Blockly.WorkspaceSvg;
+
+    expect(getSelectedBlocks(null)).toEqual([]);
+    expect(getSelectedBlocks(mockWs)).toEqual([]);
+  });
+});
