@@ -7,6 +7,59 @@ const INPUT_TYPE_VALUE = 1;
 type ExtendedField = Blockly.Field & { value?: unknown };
 type ExtendedConnection = Blockly.Connection & { getParentInput?: () => Blockly.Input | null };
 
+/**
+ * Traverses sequentially downstream from `startBlock` to `endBlock` using
+ * `.getNextBlock()`, capturing each intermediate stack block and any value-input
+ * parameter blocks attached to each step.
+ *
+ * @throws {Error} if `endBlock` is not reachable downstream from `startBlock`.
+ */
+export function getBlocksBetween(
+  startBlock: Blockly.Block,
+  endBlock: Blockly.Block,
+): Blockly.Block[] {
+  if (startBlock.id === endBlock.id) {
+    return [startBlock];
+  }
+
+  const result: Blockly.Block[] = [];
+  const seen = new Set<string>();
+
+  const collectValueInputs = (block: Blockly.Block): void => {
+    if (!Array.isArray(block.inputList)) return;
+    for (const input of block.inputList) {
+      if ((input.type as number) !== INPUT_TYPE_VALUE) continue;
+      const attached = input.connection?.targetBlock ? input.connection.targetBlock() : null;
+      if (!attached || seen.has(attached.id)) continue;
+      seen.add(attached.id);
+      result.push(attached);
+      // Recursively collect nested value inputs on the attached parameter block
+      collectValueInputs(attached);
+    }
+  };
+
+  let curr: Blockly.Block | null = startBlock;
+  while (curr !== null) {
+    if (!seen.has(curr.id)) {
+      seen.add(curr.id);
+      result.push(curr);
+      collectValueInputs(curr);
+    }
+
+    if (curr.id === endBlock.id) {
+      // endBlock reached — collection is complete
+      return result;
+    }
+
+    curr = typeof curr.getNextBlock === "function" ? curr.getNextBlock() : null;
+  }
+
+  throw new Error(
+    `Block "${endBlock.type}" (id: ${endBlock.id}) is not downstream of block "${startBlock.type}" (id: ${startBlock.id}). ` +
+      "Ensure the end block follows the start block in the same sequential chain.",
+  );
+}
+
 export function extractMacroGraph(selectedBlocks: Blockly.Block[]): PipelineGraph {
   if (!selectedBlocks || selectedBlocks.length < 2) {
     throw new Error("At least two blocks must be selected to create a macro");
@@ -132,19 +185,32 @@ export function extractMacroGraph(selectedBlocks: Blockly.Block[]): PipelineGrap
     });
   }
 
-  // 2. Validate Connected Component / Check for floating unconnected blocks
+  // 2. Validate Connected Component — undirected BFS so source blocks (no
+  //    previousConnection) and sink blocks (no nextConnection) are valid roots/leaves.
+  //    Only throw if the graph is genuinely disconnected (isolated floating blocks).
   const adj = new Map<string, Set<string>>();
   selectedIds.forEach((id) => adj.set(id, new Set()));
 
   for (const edge of edges) {
+    // Build undirected adjacency so a source at position 0 can still reach all nodes
     adj.get(edge.from)?.add(edge.to);
     adj.get(edge.to)?.add(edge.from);
   }
 
-  const startId = selectedBlocks[0].id;
+  // Start BFS from the node with the most outgoing edges — avoids false failures
+  // when selectedBlocks[0] happens to be a pure sink with no edges yet discovered.
+  let bfsStartId = selectedBlocks[0].id;
+  let maxDegree = adj.get(bfsStartId)?.size ?? 0;
+  for (const [id, neighbors] of adj) {
+    if (neighbors.size > maxDegree) {
+      maxDegree = neighbors.size;
+      bfsStartId = id;
+    }
+  }
+
   const visited = new Set<string>();
-  const queue: string[] = [startId];
-  visited.add(startId);
+  const queue: string[] = [bfsStartId];
+  visited.add(bfsStartId);
 
   while (queue.length > 0) {
     const curr = queue.shift()!;
@@ -160,7 +226,10 @@ export function extractMacroGraph(selectedBlocks: Blockly.Block[]): PipelineGrap
   }
 
   if (visited.size !== selectedIds.size) {
-    throw new Error("Selection contains floating/unconnected blocks");
+    throw new Error(
+      "Selection contains floating/unconnected blocks. " +
+        "Ensure all selected blocks form a single connected chain.",
+    );
   }
 
   return { nodes, edges };

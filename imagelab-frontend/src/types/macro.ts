@@ -45,6 +45,13 @@ export interface MacroItem {
   updated_at: string;
 }
 
+/** The graph JSON returned by the macro API. */
+export interface MacroPipelineJson {
+  nodes?: GraphNode[];
+  edges?: GraphEdge[];
+  exposed_params?: ExposedParam[];
+}
+
 export interface MacroVersion {
   id: string;
   macro_id: string;
@@ -52,7 +59,7 @@ export interface MacroVersion {
   name: string;
   owner_id?: string | null;
   workspace_json: Record<string, unknown>;
-  pipeline_json: Record<string, unknown>;
+  pipeline_json: MacroPipelineJson;
   created_at: string;
   updated_at: string;
 }
@@ -61,7 +68,7 @@ export interface MacroCreatePayload {
   name: string;
   owner_id?: string | null;
   workspace_json?: Record<string, unknown>;
-  pipeline_json: Record<string, unknown>;
+  pipeline_json: MacroPipelineJson;
   description?: string | null;
 }
 
@@ -69,6 +76,6 @@ export interface MacroUpdatePayload {
   name?: string;
   owner_id?: string | null;
   workspace_json?: Record<string, unknown>;
-  pipeline_json?: Record<string, unknown>;
+  pipeline_json?: MacroPipelineJson;
   description?: string | null;
 }

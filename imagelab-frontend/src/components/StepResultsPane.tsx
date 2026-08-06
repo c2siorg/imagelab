@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import * as Blockly from "blockly";
 import { ImageDown, Loader2, RefreshCw } from "lucide-react";
 import { executePipeline } from "../api/pipeline";
-import { extractPipeline } from "../hooks/usePipeline";
+import { extractExecutablePipeline } from "../hooks/usePipeline";
 import { useStepInspection } from "../hooks/useStepInspection";
 import { usePipelineStore } from "../store/pipelineStore";
 import type { StepResult } from "../types/pipeline";
@@ -114,7 +114,7 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
   const handleRefresh = async () => {
     if (!workspace || !originalImage) return;
 
-    const pipeline = extractPipeline(workspace);
+    const pipeline = extractExecutablePipeline(workspace);
     if (pipeline.length === 0) {
       setError('No pipeline found. Add a "Read Image" block and connect operations.');
       return;

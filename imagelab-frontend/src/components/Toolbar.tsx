@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import * as Blockly from "blockly";
 import {
   FilePlus,
@@ -14,13 +14,15 @@ import {
   History,
   Layers,
   FolderPlus,
+  MousePointer2,
+  X,
 } from "lucide-react";
 import { usePipelineStore } from "../store/pipelineStore";
 import { executePipeline } from "../api/pipeline";
-import { extractPipeline } from "../hooks/usePipeline";
+import { extractExecutablePipeline } from "../hooks/usePipeline";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { useStepInspection } from "../hooks/useStepInspection";
-import { getSelectedBlocks } from "../utils/extractMacroGraph";
+import { getSelectedBlocks, getBlocksBetween } from "../utils/extractMacroGraph";
 import SharePipelineModal from "./SharePipelineModal";
 import KeyboardShortcutsModal from "./KeyboardShortcutsModal";
 import SavePipelineModal from "./SavePipelineModal";
@@ -28,6 +30,9 @@ import LoadPipelineModal from "./LoadPipelineModal";
 import VersionHistoryModal from "./VersionHistoryModal";
 import BatchProcessingModal from "./BatchProcessingModal";
 import CreateMacroModal from "./modals/CreateMacroModal";
+
+/** Three-phase selection state for 2-click macro range picking. */
+type SelectionPhase = "idle" | "selecting" | "waitingForEnd";
 
 interface ToolbarProps {
   workspace: Blockly.WorkspaceSvg | null;
@@ -75,9 +80,26 @@ export default function Toolbar({ workspace }: ToolbarProps) {
   const [showVersionModal, setShowVersionModal] = useState(false);
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [showCreateMacroModal, setShowCreateMacroModal] = useState(false);
+
+  // ── Fallback single-click selection (used outside range-selection mode) ────
   const [selectedBlocks, setSelectedBlocks] = useState<Blockly.Block[]>([]);
+
+  // ── 2-click range selection state machine ─────────────────────────────────
+  const [selectionPhase, setSelectionPhase] = useState<SelectionPhase>("idle");
+  const [startBlock, setStartBlock] = useState<Blockly.Block | null>(null);
+  const [rangeBlocks, setRangeBlocks] = useState<Blockly.Block[]>([]);
+  const [rangeError, setRangeError] = useState<string | null>(null);
+
+  const resetSelectionState = useCallback(() => {
+    setSelectionPhase("idle");
+    setStartBlock(null);
+    setRangeBlocks([]);
+    setRangeError(null);
+  }, []);
+
   const inspectStep = useStepInspection();
 
+  // ── Fallback workspace selection listener (active only in idle mode) ───────
   useEffect(() => {
     if (!workspace) {
       setSelectedBlocks([]);
@@ -109,6 +131,58 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     };
   }, [workspace]);
 
+  // ── Range selection: workspace CLICK listener ──────────────────────────────
+  useEffect(() => {
+    if (!workspace || selectionPhase === "idle") return;
+
+    const handleClick = (event: Blockly.Events.Abstract) => {
+      // Only respond to block clicks — Blockly.Events.CLICK on a blockId
+      if (event.type !== Blockly.Events.CLICK) return;
+      const clickEvent = event as Blockly.Events.Click;
+      const blockId = clickEvent.blockId;
+      if (!blockId) return;
+
+      const clicked = workspace.getBlockById(blockId);
+      if (!clicked) return;
+
+      if (selectionPhase === "selecting") {
+        // Phase 1 → 2: store start block and provide visual feedback
+        setStartBlock(clicked);
+        setRangeError(null);
+        try {
+          clicked.select();
+        } catch {
+          // select() may not exist in all Blockly versions; safe to ignore
+        }
+        setSelectionPhase("waitingForEnd");
+      } else if (selectionPhase === "waitingForEnd") {
+        // Phase 2 → idle: compute range and validate
+        if (!startBlock) return;
+
+        if (clicked.id === startBlock.id) {
+          // Same block clicked twice — treat as accidental; require a different end block
+          setRangeError("Please click a different block as the end block.");
+          return;
+        }
+
+        try {
+          const blocks = getBlocksBetween(startBlock, clicked);
+          setRangeBlocks(blocks);
+          setRangeError(null);
+        } catch (err) {
+          setRangeError(err instanceof Error ? err.message : "Invalid block range.");
+          setRangeBlocks([]);
+        }
+        // Return to idle regardless of success/failure — user sees result in toolbar
+        setSelectionPhase("idle");
+        setStartBlock(null);
+      }
+    };
+
+    workspace.addChangeListener(handleClick);
+    return () => workspace.removeChangeListener(handleClick);
+  }, [workspace, selectionPhase, startBlock]);
+
   const handleNew = () => {
     if (!window.confirm("This will clear all blocks and the uploaded image. Continue?")) {
       return;
@@ -138,7 +212,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
   const handleRun = async () => {
     if (!workspace || !originalImage) return;
 
-    const pipeline = extractPipeline(workspace);
+    const pipeline = extractExecutablePipeline(workspace);
     if (pipeline.length === 0) {
       setError('No pipeline found. Add a "Read Image" block and connect operations.');
       return;
@@ -221,8 +295,44 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     "p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors";
   const separator = "w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1";
 
+  // Determine which blocks feed the Create Macro modal
+  const macroSourceBlocks = rangeBlocks.length >= 2 ? rangeBlocks : selectedBlocks;
+  const canCreateMacro = macroSourceBlocks.length >= 2 && !isReadOnly;
+
+  // Phase-specific banner labels
+  const phaseBannerText =
+    selectionPhase === "selecting"
+      ? "Click the START block on the canvas…"
+      : selectionPhase === "waitingForEnd"
+        ? "Now click the END block…"
+        : null;
+
   return (
     <>
+      {/* Selection mode banner */}
+      {(selectionPhase !== "idle" || rangeError) && (
+        <div
+          className={`px-4 py-1 text-xs flex items-center gap-2 border-b ${
+            rangeError
+              ? "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400"
+              : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/40 text-amber-700 dark:text-amber-300"
+          }`}
+        >
+          <MousePointer2 size={12} className="shrink-0" />
+          <span className="flex-1">{rangeError ?? phaseBannerText}</span>
+          {rangeError && (
+            <button
+              type="button"
+              onClick={() => setRangeError(null)}
+              className="ml-auto p-0.5 rounded hover:bg-red-100 dark:hover:bg-red-900/40"
+              title="Dismiss"
+              aria-label="Dismiss range error"
+            >
+              <X size={11} />
+            </button>
+          )}
+        </div>
+      )}
       <div className="h-10 flex items-center gap-1 px-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
         <button onClick={handleNew} disabled={isReadOnly} className={iconBtn} title="New">
           <FilePlus size={18} />
@@ -333,11 +443,47 @@ export default function Toolbar({ workspace }: ToolbarProps) {
           Batch Run
         </button>
 
+        {/* ── Macro range selection controls ─────────────────────────────── */}
+        <div className={separator} />
+
+        {/* "Select Macro Range" toggle button */}
+        {selectionPhase === "idle" ? (
+          <button
+            id="btn-select-macro-range"
+            onClick={() => {
+              setRangeBlocks([]);
+              setRangeError(null);
+              setSelectionPhase("selecting");
+            }}
+            disabled={isReadOnly || blockCount === 0}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-950/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="2-click range selection: click start block then end block"
+          >
+            <MousePointer2 size={16} />
+            Select Range
+          </button>
+        ) : (
+          <button
+            id="btn-cancel-macro-selection"
+            onClick={resetSelectionState}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium text-orange-600 dark:text-orange-400 border border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-950/30 hover:bg-orange-100 dark:hover:bg-orange-950/50 animate-pulse transition-colors"
+            title="Cancel range selection"
+          >
+            <X size={16} />
+            Cancel Selection
+          </button>
+        )}
+
         <button
+          id="btn-create-macro"
           onClick={() => setShowCreateMacroModal(true)}
-          disabled={selectedBlocks.length < 2 || isReadOnly}
+          disabled={!canCreateMacro}
           className="flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          title="Create Macro from selected workspace blocks"
+          title={
+            rangeBlocks.length >= 2
+              ? `Create macro from ${rangeBlocks.length} selected blocks`
+              : "Create Macro from selected workspace blocks"
+          }
         >
           <FolderPlus size={16} />
           Create Macro
@@ -432,15 +578,19 @@ export default function Toolbar({ workspace }: ToolbarProps) {
 
       {showBatchModal && workspace && (
         <BatchProcessingModal
-          pipeline={extractPipeline(workspace)}
+          pipeline={extractExecutablePipeline(workspace)}
           onClose={() => setShowBatchModal(false)}
         />
       )}
 
       {showCreateMacroModal && (
         <CreateMacroModal
-          selectedBlocks={selectedBlocks}
-          onClose={() => setShowCreateMacroModal(false)}
+          selectedBlocks={macroSourceBlocks}
+          onClose={() => {
+            setShowCreateMacroModal(false);
+            // Clear range blocks after modal closes so the button goes back to disabled
+            setRangeBlocks([]);
+          }}
         />
       )}
     </>
