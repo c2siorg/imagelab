@@ -14,6 +14,7 @@ import {
   Shuffle,
   Zap,
   Layers,
+  Package,
 } from "lucide-react";
 import type { CategoryInfo } from "../../blocks/categories";
 import type { BlockPreview } from "../../hooks/useBlockPreviews";
@@ -31,6 +32,7 @@ const iconMap: Record<string, React.ComponentType<{ size?: number; color?: strin
   Shuffle,
   Zap,
   Layers,
+  Package,
 };
 
 interface CategorySectionProps {

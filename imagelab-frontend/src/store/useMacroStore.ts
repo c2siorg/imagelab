@@ -1,14 +1,30 @@
 import { create } from "zustand";
 import * as macroApi from "../api/macros";
 import type {
+  MacroDefinition,
   MacroCreatePayload,
-  MacroItem,
   MacroUpdatePayload,
   MacroVersion,
 } from "../types/macro";
 
+function definitionFromVersion(macro: MacroVersion): MacroDefinition {
+  return {
+    id: macro.macro_id,
+    name: macro.name,
+    owner_id: macro.owner_id,
+    graph: {
+      nodes: macro.pipeline_json.nodes ?? [],
+      edges: macro.pipeline_json.edges ?? [],
+      exposed_params: macro.pipeline_json.exposed_params,
+    },
+    exposedParams: macro.pipeline_json.exposed_params ?? [],
+    created_at: macro.created_at,
+    updated_at: macro.updated_at,
+  };
+}
+
 export interface MacroState {
-  macros: MacroItem[];
+  macros: MacroDefinition[];
   selectedMacro: MacroVersion | null;
   isLoading: boolean;
   error: string | null;
@@ -31,8 +47,11 @@ export const useMacroStore = create<MacroState>((set, get) => ({
   loadMacros: async () => {
     set({ isLoading: true, error: null });
     try {
-      const macros = await macroApi.fetchMacros();
-      set({ macros, isLoading: false });
+      const macroItems = await macroApi.fetchMacros();
+      const macroVersions = await Promise.all(
+        macroItems.map((macro) => macroApi.getMacro(macro.id)),
+      );
+      set({ macros: macroVersions.map(definitionFromVersion), isLoading: false });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to load macros";
       set({ error: message, isLoading: false });
@@ -43,7 +62,12 @@ export const useMacroStore = create<MacroState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const macroVersion = await macroApi.getMacro(id);
-      set({ selectedMacro: macroVersion, isLoading: false });
+      const definition = definitionFromVersion(macroVersion);
+      set((state) => ({
+        macros: state.macros.map((macro) => (macro.id === definition.id ? definition : macro)),
+        selectedMacro: macroVersion,
+        isLoading: false,
+      }));
       return macroVersion;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : `Failed to load macro ${id}`;

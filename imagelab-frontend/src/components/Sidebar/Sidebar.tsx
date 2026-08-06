@@ -3,8 +3,11 @@ import * as Blockly from "blockly";
 import { categories } from "../../blocks/categories";
 import { useBlockPreviews } from "../../hooks/useBlockPreviews";
 import { SINGLETON_BLOCK_TYPES } from "../../utils/blockLimits";
+import { useMacroStore } from "../../store/useMacroStore";
+import { registerMacroBlock } from "../../blocks/macroBlock";
 import CategorySection from "./CategorySection";
 import { Search, X } from "lucide-react";
+import type { CategoryInfo } from "../../blocks/categories";
 
 interface SidebarProps {
   workspace: Blockly.WorkspaceSvg | null;
@@ -15,6 +18,30 @@ export default function Sidebar({ workspace }: SidebarProps) {
   const [tick, setTick] = useState(0);
   const [query, setQuery] = useState("");
 
+  // ── Macro store subscription ──────────────────────────────────────────────
+  const macros = useMacroStore((state) => state.macros);
+  const loadMacros = useMacroStore((state) => state.loadMacros);
+
+  useEffect(() => {
+    void loadMacros();
+  }, [loadMacros]);
+
+  // Build the dynamic Macros category. Register each block type before render.
+  const macrosCategory = useMemo((): CategoryInfo | null => {
+    if (macros.length === 0) return null;
+    const blocks = macros.map((macro) => {
+      registerMacroBlock(macro);
+      return { type: `macro_${macro.id}`, label: macro.name };
+    });
+    return {
+      name: "Macros",
+      icon: "Package",
+      colour: "#7058a3",
+      blocks,
+    };
+  }, [macros]);
+
+  // ── Workspace block-count tracking for singleton enforcement ──────────────
   useEffect(() => {
     if (!workspace) return;
     const listener = (event: Blockly.Events.Abstract) => {
@@ -85,6 +112,19 @@ export default function Sidebar({ workspace }: SidebarProps) {
             searchQuery={query}
           />
         ))}
+
+        {/* Dynamic Macros category — rendered only when saved macros exist */}
+        {macrosCategory && (
+          <CategorySection
+            key="macros-category"
+            category={macrosCategory}
+            workspace={workspace}
+            previews={previews}
+            disabledTypes={presentSingletons}
+            defaultOpen={false}
+            searchQuery={query}
+          />
+        )}
       </div>
     </div>
   );
