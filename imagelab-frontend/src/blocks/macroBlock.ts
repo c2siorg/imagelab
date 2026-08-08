@@ -15,6 +15,55 @@ function createFieldForParam(param: ExposedParam): Blockly.Field {
   return new Blockly.FieldTextInput(typeof val === "string" ? val : "");
 }
 
+const HEADER_INPUT = "MACRO_HEADER";
+const PARAM_INPUT_PREFIX = "MACRO_PARAM_";
+type RenderableBlock = Blockly.Block & { render: () => void };
+
+function exposedParamsFor(macro: MacroDefinition): ExposedParam[] {
+  return macro.exposedParams ?? macro.graph.exposed_params ?? [];
+}
+
+function fieldNameFor(param: ExposedParam): string {
+  return `${param.blockId}__${param.paramName}`;
+}
+
+function labelFor(param: ExposedParam): string {
+  const label = param.label || param.paramName;
+  return label.replace(/\|PB=[^|]*__(.+)$/, "$1");
+}
+
+function populateMacroBlock(
+  block: Blockly.Block,
+  macro: MacroDefinition,
+  values = new Map<string, string>(),
+): void {
+  for (const input of [...block.inputList]) {
+    block.removeInput(input.name, true);
+  }
+
+  const truncatedName = macro.name.length > 24 ? `${macro.name.slice(0, 22)}\u2026` : macro.name;
+  block
+    .appendDummyInput(HEADER_INPUT)
+    .appendField(new Blockly.FieldLabelSerializable(truncatedName), "MACRO_NAME");
+
+  for (const param of exposedParamsFor(macro)) {
+    const fieldName = fieldNameFor(param);
+    const field = createFieldForParam(param);
+    const savedValue = values.get(fieldName);
+    if (savedValue !== undefined) field.setValue(savedValue);
+    block
+      .appendDummyInput(`${PARAM_INPUT_PREFIX}${fieldName}`)
+      .appendField(labelFor(param))
+      .appendField(field, fieldName);
+  }
+
+  block.setPreviousStatement(true, null);
+  block.setNextStatement(true, null);
+  block.setColour("#7058a3");
+  block.setTooltip(`Macro: ${macro.name}`);
+  block.setHelpUrl("");
+}
+
 /**
  * Register a saved macro block with vertical stacking for exposed parameters
  * to prevent horizontal block stretching across the canvas.
@@ -22,36 +71,32 @@ function createFieldForParam(param: ExposedParam): Blockly.Field {
 export function registerMacroBlock(macro: MacroDefinition): void {
   const blockType = `macro_${macro.id}`;
 
-  // Avoid re-registering an already defined block
-  if (blockType in Blockly.Blocks) return;
-
-  const truncatedName = macro.name.length > 24 ? `${macro.name.slice(0, 22)}\u2026` : macro.name;
-  const exposedParams = macro.exposedParams ?? macro.graph.exposed_params ?? [];
+  // Macro definitions are mutable. Replace an old definition so new instances
+  // immediately use the latest exposed parameters.
+  delete Blockly.Blocks[blockType];
 
   // Define block using dynamic init function for vertical layout control
   Blockly.Blocks[blockType] = {
     init: function (this: Blockly.Block) {
-      // 1. Header row (Macro Title)
-      this.appendDummyInput().appendField(
-        new Blockly.FieldLabelSerializable(truncatedName),
-        "MACRO_NAME",
-      );
-
-      // 2. Add each exposed parameter on its own new row
-      for (const param of exposedParams) {
-        const fieldName = `${param.blockId}__${param.paramName}`;
-        const labelText = param.label ?? param.paramName;
-        const field = createFieldForParam(param);
-
-        this.appendDummyInput().appendField(labelText).appendField(field, fieldName);
-      }
-
-      // 3. Connectors & Styling
-      this.setPreviousStatement(true, null);
-      this.setNextStatement(true, null);
-      this.setColour("#7058a3");
-      this.setTooltip(`Macro: ${macro.name}`);
-      this.setHelpUrl("");
+      populateMacroBlock(this, macro);
     },
   };
+}
+
+/** Refresh all placed instances after a macro's exposed parameters change. */
+export function refreshMacroBlockInstances(
+  workspace: Blockly.WorkspaceSvg | null,
+  macro: MacroDefinition,
+): void {
+  if (!workspace) return;
+  for (const block of workspace.getBlocksByType(`macro_${macro.id}`, false)) {
+    const values = new Map<string, string>();
+    for (const param of exposedParamsFor(macro)) {
+      const fieldName = fieldNameFor(param);
+      const value = block.getFieldValue(fieldName);
+      if (value !== null && value !== undefined) values.set(fieldName, value);
+    }
+    populateMacroBlock(block, macro, values);
+    (block as RenderableBlock).render();
+  }
 }

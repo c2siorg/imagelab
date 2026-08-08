@@ -4,7 +4,9 @@ import {
   extractExposedParamCandidates,
   extractMacroGraph,
   getSelectedBlocks,
+  hasMacroCycle,
 } from "../extractMacroGraph";
+import { useMacroStore } from "../../store/useMacroStore";
 
 const INPUT_TYPE_VALUE = 1;
 
@@ -171,6 +173,59 @@ describe("extractMacroGraph", () => {
     });
     expect(candidates[1].paramName).toBe("low");
     expect(candidates[2].paramName).toBe("high");
+  });
+
+  it("excludes Read Image blocks and static UI fields from macro data", () => {
+    const b2 = createMockBlock("b2", "canny") as unknown as Blockly.Block;
+    const b1 = createMockBlock(
+      "b1",
+      "blur",
+      [
+        createMockInput(undefined, [
+          createMockField("kernel", 5),
+          createMockField("MACRO_NAME", "Blur"),
+        ]),
+      ],
+      b2 as unknown as MockBlock,
+    ) as unknown as Blockly.Block;
+    const read = createMockBlock(
+      "read",
+      "basic_readimage",
+      [],
+      b1 as unknown as MockBlock,
+    ) as unknown as Blockly.Block;
+
+    expect(extractMacroGraph([read, b1, b2]).nodes.map((node) => node.id)).toEqual(["b1", "b2"]);
+    expect(extractExposedParamCandidates([read, b1, b2])).toHaveLength(1);
+  });
+
+  it("cleans nested macro parameter labels", () => {
+    const nested = createMockBlock("nested", "macro-child", [
+      createMockInput(undefined, [createMockField("|PB=inner__filterSize", 5)]),
+    ]) as unknown as Blockly.Block;
+
+    expect(extractExposedParamCandidates([nested])[0].label).toBe("filterSize (macro-child)");
+  });
+
+  it("detects direct and transitive saved macro cycles", () => {
+    useMacroStore.setState({
+      macros: [
+        { id: "a", name: "A", graph: { nodes: [{ id: "b", type: "macro_b" }], edges: [] } },
+        { id: "b", name: "B", graph: { nodes: [{ id: "a", type: "macro_a" }], edges: [] } },
+      ],
+    });
+    const selected = createMockBlock("selected", "macro_a") as unknown as Blockly.Block;
+
+    expect(hasMacroCycle("a", [selected])).toBe(true);
+    expect(hasMacroCycle("missing", [selected])).toBe(true);
+
+    useMacroStore.setState({
+      macros: [
+        { id: "a", name: "A", graph: { nodes: [{ id: "b", type: "macro_b" }], edges: [] } },
+        { id: "b", name: "B", graph: { nodes: [], edges: [] } },
+      ],
+    });
+    expect(hasMacroCycle("a", [selected])).toBe(false);
   });
 
   it("gets selected blocks and descendants from workspace", () => {

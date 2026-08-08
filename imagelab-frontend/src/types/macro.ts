@@ -34,6 +34,8 @@ export interface MacroDefinition {
   owner_id?: string | null;
   created_at?: string;
   updated_at?: string;
+  /** API-shaped graph retained for callers that update a macro definition. */
+  pipeline_json?: MacroPipelineJson;
 }
 
 export interface MacroItem {

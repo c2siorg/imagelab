@@ -3,7 +3,13 @@ import * as Blockly from "blockly";
 import { FolderPlus, Loader2, X } from "lucide-react";
 import { useMacroStore } from "../../store/useMacroStore";
 import type { ExposedParam } from "../../types/macro";
-import { extractExposedParamCandidates, extractMacroGraph } from "../../utils/extractMacroGraph";
+import {
+  extractExposedParamCandidates,
+  extractMacroGraph,
+  filterMacroBlocks,
+  hasMacroCycle,
+  isExcludedMacroBlock,
+} from "../../utils/extractMacroGraph";
 
 interface CreateMacroModalProps {
   selectedBlocks: Blockly.Block[];
@@ -17,10 +23,19 @@ export default function CreateMacroModal({ selectedBlocks, onClose }: CreateMacr
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const containsReadBlock = selectedBlocks.some(isExcludedMacroBlock);
 
   // Extract graph & exposed param candidates on mount / block change
   const { graph, candidates, initError } = useMemo(() => {
     try {
+      const selectedMacroIds = selectedBlocks
+        .map((block) =>
+          block.type.startsWith("macro_") ? block.type.slice("macro_".length) : null,
+        )
+        .filter((id): id is string => id !== null);
+      if (selectedMacroIds.some((macroId) => hasMacroCycle(macroId, selectedBlocks))) {
+        throw new Error("Circular macro reference detected. A macro cannot contain itself.");
+      }
       const g = extractMacroGraph(selectedBlocks);
       const c = extractExposedParamCandidates(selectedBlocks);
       return { graph: g, candidates: c, initError: null };
@@ -87,7 +102,7 @@ export default function CreateMacroModal({ selectedBlocks, onClose }: CreateMacr
     };
 
     const workspace_json: Record<string, unknown> = {
-      block_ids: selectedBlocks.map((b) => b.id),
+      block_ids: filterMacroBlocks(selectedBlocks).map((b) => b.id),
     };
 
     try {
@@ -144,6 +159,12 @@ export default function CreateMacroModal({ selectedBlocks, onClose }: CreateMacr
               className="p-3 text-xs bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 rounded-lg"
             >
               {error}
+            </div>
+          )}
+
+          {containsReadBlock && (
+            <div className="p-3 text-xs bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 text-amber-700 dark:text-amber-300 rounded-lg">
+              Read Image blocks are excluded from macro creation.
             </div>
           )}
 
