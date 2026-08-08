@@ -1,11 +1,77 @@
 import * as Blockly from "blockly";
 import type { ExposedParam, GraphEdge, GraphNode, PipelineGraph } from "../types/macro";
+import { useMacroStore } from "../store/useMacroStore";
 
 const INPUT_TYPE_VALUE = 1;
+export const EXCLUDED_BLOCK_TYPES = ["basic_readimage", "read_image", "input_image"] as const;
+const EXCLUDED_BLOCK_TYPE_SET = new Set<string>(EXCLUDED_BLOCK_TYPES);
+const STATIC_FIELD_NAMES = new Set([
+  "MACRO_NAME",
+  "upload_button",
+  "camera_button",
+  "filename_label",
+]);
 
 // Define helper types to avoid using 'any' while satisfying the linter
 type ExtendedField = Blockly.Field & { value?: unknown };
 type ExtendedConnection = Blockly.Connection & { getParentInput?: () => Blockly.Input | null };
+
+export function isExcludedMacroBlock(block: Blockly.Block): boolean {
+  return EXCLUDED_BLOCK_TYPE_SET.has(block.type);
+}
+
+export function filterMacroBlocks(blocks: Blockly.Block[]): Blockly.Block[] {
+  return blocks.filter((block) => !isExcludedMacroBlock(block));
+}
+
+function isSerializableField(name: string | null): name is string {
+  return Boolean(name && !STATIC_FIELD_NAMES.has(name));
+}
+
+/** Human-facing nested macro labels must not leak Blockly's internal PB prefix. */
+export function cleanNestedMacroParamLabel(name: string): string {
+  const prefixed = name.match(/\|PB=[^|]*__(.+)$/);
+  return prefixed?.[1] ?? name;
+}
+
+function macroIdFromType(type: string): string | null {
+  return type.startsWith("macro_") ? type.slice("macro_".length) : null;
+}
+
+/**
+ * Checks a selected macro subtree against a root macro id. Stored macro graphs
+ * supply nested nodes that are not present as live Blockly blocks.
+ */
+export function hasMacroCycle(macroId: string, selection: Blockly.Block[]): boolean {
+  const macros = useMacroStore.getState().macros;
+  const byId = new Map(macros.map((macro) => [macro.id, macro]));
+
+  const visitsMacro = (candidateId: string, visiting: Set<string>): boolean => {
+    if (candidateId === macroId) return true;
+    if (visiting.has(candidateId)) return true;
+    const candidate = byId.get(candidateId);
+    if (!candidate) return false;
+    const nextVisiting = new Set(visiting);
+    nextVisiting.add(candidateId);
+    return candidate.graph.nodes.some((node) => {
+      const nestedId = macroIdFromType(node.type ?? node.op ?? "");
+      return nestedId !== null && visitsMacro(nestedId, nextVisiting);
+    });
+  };
+
+  return selection.some((block) => {
+    const selectedMacroId = macroIdFromType(block.type);
+    if (selectedMacroId === null) return false;
+    if (selectedMacroId !== macroId) return visitsMacro(selectedMacroId, new Set());
+    const root = byId.get(macroId);
+    return (
+      root?.graph.nodes.some((node) => {
+        const nestedId = macroIdFromType(node.type ?? node.op ?? "");
+        return nestedId !== null && visitsMacro(nestedId, new Set([macroId]));
+      }) ?? false
+    );
+  });
+}
 
 /**
  * Traverses sequentially downstream from `startBlock` to `endBlock` using
@@ -61,14 +127,15 @@ export function getBlocksBetween(
 }
 
 export function extractMacroGraph(selectedBlocks: Blockly.Block[]): PipelineGraph {
-  if (!selectedBlocks || selectedBlocks.length < 2) {
+  const includedBlocks = filterMacroBlocks(selectedBlocks);
+  if (!includedBlocks || includedBlocks.length < 2) {
     throw new Error("At least two blocks must be selected to create a macro");
   }
 
   const selectedIds = new Set<string>();
   const idToBlockMap = new Map<string, Blockly.Block>();
 
-  for (const block of selectedBlocks) {
+  for (const block of includedBlocks) {
     if (!block || !block.id) {
       throw new Error("Invalid block in selection");
     }
@@ -97,7 +164,7 @@ export function extractMacroGraph(selectedBlocks: Blockly.Block[]): PipelineGrap
   };
 
   // 1. Build Nodes and extract edges from all possible connection types
-  for (const block of selectedBlocks) {
+  for (const block of includedBlocks) {
     const params: Record<string, unknown> = {};
 
     if (Array.isArray(block.inputList)) {
@@ -105,8 +172,9 @@ export function extractMacroGraph(selectedBlocks: Blockly.Block[]): PipelineGrap
         // Extract fields
         if (Array.isArray(input.fieldRow)) {
           input.fieldRow.forEach((field) => {
-            if (field.name) {
-              params[field.name] =
+            const fieldName = field.name ?? "";
+            if (isSerializableField(fieldName)) {
+              params[fieldName] =
                 typeof field.getValue === "function"
                   ? field.getValue()
                   : (field as ExtendedField).value;
@@ -128,8 +196,9 @@ export function extractMacroGraph(selectedBlocks: Blockly.Block[]): PipelineGrap
             connected.inputList.forEach((childInput) => {
               if (Array.isArray(childInput.fieldRow)) {
                 childInput.fieldRow.forEach((field) => {
-                  if (field.name) {
-                    params[field.name] =
+                  const fieldName = field.name ?? "";
+                  if (isSerializableField(fieldName)) {
+                    params[fieldName] =
                       typeof field.getValue === "function"
                         ? field.getValue()
                         : (field as ExtendedField).value;
@@ -199,7 +268,7 @@ export function extractMacroGraph(selectedBlocks: Blockly.Block[]): PipelineGrap
 
   // Start BFS from the node with the most outgoing edges — avoids false failures
   // when selectedBlocks[0] happens to be a pure sink with no edges yet discovered.
-  let bfsStartId = selectedBlocks[0].id;
+  let bfsStartId = includedBlocks[0].id;
   let maxDegree = adj.get(bfsStartId)?.size ?? 0;
   for (const [id, neighbors] of adj) {
     if (neighbors.size > maxDegree) {
@@ -239,12 +308,13 @@ export function extractExposedParamCandidates(selectedBlocks: Blockly.Block[]): 
   const params: ExposedParam[] = [];
   const seenKeys = new Set<string>();
 
-  for (const block of selectedBlocks) {
+  for (const block of filterMacroBlocks(selectedBlocks)) {
     if (!block || !Array.isArray(block.inputList)) continue;
     block.inputList.forEach((input) => {
       if (Array.isArray(input.fieldRow)) {
         input.fieldRow.forEach((field) => {
-          if (field.name) {
+          const fieldName = field.name ?? "";
+          if (isSerializableField(fieldName)) {
             const key = `${block.id}:${field.name}`;
             if (!seenKeys.has(key)) {
               seenKeys.add(key);
@@ -255,8 +325,8 @@ export function extractExposedParamCandidates(selectedBlocks: Blockly.Block[]): 
               params.push({
                 blockId: block.id,
                 blockType: block.type,
-                paramName: field.name,
-                label: `${field.name} (${block.type})`,
+                paramName: fieldName,
+                label: `${cleanNestedMacroParamLabel(fieldName)} (${block.type})`,
                 defaultValue: val,
               });
             }

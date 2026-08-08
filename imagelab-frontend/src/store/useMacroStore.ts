@@ -6,6 +6,7 @@ import type {
   MacroUpdatePayload,
   MacroVersion,
 } from "../types/macro";
+import { registerMacroBlock } from "../blocks/macroBlock";
 
 function definitionFromVersion(macro: MacroVersion): MacroDefinition {
   return {
@@ -18,6 +19,7 @@ function definitionFromVersion(macro: MacroVersion): MacroDefinition {
       exposed_params: macro.pipeline_json.exposed_params,
     },
     exposedParams: macro.pipeline_json.exposed_params ?? [],
+    pipeline_json: macro.pipeline_json,
     created_at: macro.created_at,
     updated_at: macro.updated_at,
   };
@@ -32,6 +34,7 @@ export interface MacroState {
   loadMacros: () => Promise<void>;
   loadMacroDetails: (id: string) => Promise<MacroVersion>;
   addMacro: (payload: MacroCreatePayload) => Promise<MacroVersion>;
+  updateMacro: (macroId: string, updates: Partial<MacroDefinition>) => Promise<void>;
   editMacro: (id: string, payload: MacroUpdatePayload) => Promise<MacroVersion>;
   removeMacro: (id: string) => Promise<void>;
   setSelectedMacro: (macro: MacroVersion | null) => void;
@@ -99,6 +102,41 @@ export const useMacroStore = create<MacroState>((set, get) => ({
       return updated;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : `Failed to update macro ${id}`;
+      set({ error: message, isLoading: false });
+      throw err;
+    }
+  },
+
+  updateMacro: async (macroId, updates) => {
+    const existing = get().macros.find((macro) => macro.id === macroId);
+    if (!existing) {
+      throw new Error(`Macro ${macroId} was not found`);
+    }
+
+    const graph = updates.graph ?? existing.graph;
+    const pipelineJson = updates.pipeline_json ?? {
+      nodes: graph.nodes,
+      edges: graph.edges,
+      exposed_params: updates.exposedParams ?? graph.exposed_params ?? existing.exposedParams ?? [],
+    };
+
+    set({ isLoading: true, error: null });
+    try {
+      const updated = await macroApi.updateMacro(macroId, {
+        name: updates.name,
+        owner_id: updates.owner_id,
+        description: updates.description ?? undefined,
+        pipeline_json: pipelineJson,
+      });
+      const definition = definitionFromVersion(updated);
+      registerMacroBlock(definition);
+      set((state) => ({
+        macros: state.macros.map((macro) => (macro.id === macroId ? definition : macro)),
+        selectedMacro: updated,
+        isLoading: false,
+      }));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : `Failed to update macro ${macroId}`;
       set({ error: message, isLoading: false });
       throw err;
     }

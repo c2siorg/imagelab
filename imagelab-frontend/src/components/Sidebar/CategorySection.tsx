@@ -42,6 +42,8 @@ interface CategorySectionProps {
   disabledTypes: Set<string>;
   defaultOpen?: boolean;
   searchQuery?: string;
+  onEditMacro?: (macroId: string) => void;
+  onDeleteMacro?: (macroId: string) => void;
 }
 
 export default function CategorySection({
@@ -51,6 +53,8 @@ export default function CategorySection({
   disabledTypes,
   defaultOpen,
   searchQuery = "",
+  onEditMacro,
+  onDeleteMacro,
 }: CategorySectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
   const Icon = iconMap[category.icon];
@@ -108,6 +112,16 @@ export default function CategorySection({
               workspace={workspace}
               preview={previews.get(block.type)}
               disabled={disabledTypes.has(block.type)}
+              onEdit={
+                category.name === "Macros"
+                  ? () => onEditMacro?.(block.type.slice("macro_".length))
+                  : undefined
+              }
+              onDelete={
+                category.name === "Macros"
+                  ? () => onDeleteMacro?.(block.type.slice("macro_".length))
+                  : undefined
+              }
             />
           ))}
         </div>

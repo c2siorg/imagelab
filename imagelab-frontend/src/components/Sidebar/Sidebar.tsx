@@ -4,10 +4,12 @@ import { categories } from "../../blocks/categories";
 import { useBlockPreviews } from "../../hooks/useBlockPreviews";
 import { SINGLETON_BLOCK_TYPES } from "../../utils/blockLimits";
 import { useMacroStore } from "../../store/useMacroStore";
-import { registerMacroBlock } from "../../blocks/macroBlock";
+import { refreshMacroBlockInstances, registerMacroBlock } from "../../blocks/macroBlock";
 import CategorySection from "./CategorySection";
 import { Search, X } from "lucide-react";
 import type { CategoryInfo } from "../../blocks/categories";
+import type { MacroDefinition } from "../../types/macro";
+import EditMacroModal from "../modals/EditMacroModal";
 
 interface SidebarProps {
   workspace: Blockly.WorkspaceSvg | null;
@@ -17,14 +19,31 @@ export default function Sidebar({ workspace }: SidebarProps) {
   const previews = useBlockPreviews();
   const [tick, setTick] = useState(0);
   const [query, setQuery] = useState("");
+  const [editingMacro, setEditingMacro] = useState<MacroDefinition | null>(null);
 
   // ── Macro store subscription ──────────────────────────────────────────────
   const macros = useMacroStore((state) => state.macros);
   const loadMacros = useMacroStore((state) => state.loadMacros);
+  const removeMacro = useMacroStore((state) => state.removeMacro);
 
   useEffect(() => {
     void loadMacros();
   }, [loadMacros]);
+
+  useEffect(() => {
+    for (const macro of macros) {
+      refreshMacroBlockInstances(workspace, macro);
+    }
+  }, [macros, workspace]);
+
+  const editMacro = (macroId: string) => {
+    const macro = macros.find((candidate) => candidate.id === macroId);
+    if (macro) setEditingMacro(macro);
+  };
+
+  const deleteMacro = (macroId: string) => {
+    void removeMacro(macroId);
+  };
 
   // Build the dynamic Macros category. Register each block type before render.
   const macrosCategory = useMemo((): CategoryInfo | null => {
@@ -123,9 +142,14 @@ export default function Sidebar({ workspace }: SidebarProps) {
             disabledTypes={presentSingletons}
             defaultOpen={false}
             searchQuery={query}
+            onEditMacro={editMacro}
+            onDeleteMacro={deleteMacro}
           />
         )}
       </div>
+      {editingMacro && (
+        <EditMacroModal macro={editingMacro} onClose={() => setEditingMacro(null)} />
+      )}
     </div>
   );
 }
