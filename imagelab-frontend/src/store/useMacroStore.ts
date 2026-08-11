@@ -1,12 +1,13 @@
 import { create } from "zustand";
 import * as macroApi from "../api/macros";
+import * as Blockly from "blockly";
 import type {
   MacroDefinition,
   MacroCreatePayload,
   MacroUpdatePayload,
   MacroVersion,
 } from "../types/macro";
-import { registerMacroBlock } from "../blocks/macroBlock";
+import { registerMacroBlock, refreshMacroBlockInstances } from "../blocks/macroBlock";
 
 function definitionFromVersion(macro: MacroVersion): MacroDefinition {
   return {
@@ -30,6 +31,8 @@ export interface MacroState {
   selectedMacro: MacroVersion | null;
   isLoading: boolean;
   error: string | null;
+  workspace: Blockly.WorkspaceSvg | null;
+  setWorkspace: (workspace: Blockly.WorkspaceSvg | null) => void;
 
   loadMacros: () => Promise<void>;
   loadMacroDetails: (id: string) => Promise<MacroVersion>;
@@ -46,14 +49,12 @@ export const useMacroStore = create<MacroState>((set, get) => ({
   selectedMacro: null,
   isLoading: false,
   error: null,
+  workspace: null,
 
   loadMacros: async () => {
     set({ isLoading: true, error: null });
     try {
-      const macroItems = await macroApi.fetchMacros();
-      const macroVersions = await Promise.all(
-        macroItems.map((macro) => macroApi.getMacro(macro.id)),
-      );
+      const macroVersions = await macroApi.fetchMacros();
       set({ macros: macroVersions.map(definitionFromVersion), isLoading: false });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to load macros";
@@ -130,6 +131,7 @@ export const useMacroStore = create<MacroState>((set, get) => ({
       });
       const definition = definitionFromVersion(updated);
       registerMacroBlock(definition);
+      refreshMacroBlockInstances(get().workspace, definition);
       set((state) => ({
         macros: state.macros.map((macro) => (macro.id === macroId ? definition : macro)),
         selectedMacro: updated,
@@ -160,6 +162,8 @@ export const useMacroStore = create<MacroState>((set, get) => ({
   },
 
   setSelectedMacro: (macro) => set({ selectedMacro: macro }),
+
+  setWorkspace: (workspace) => set({ workspace }),
 
   clearError: () => set({ error: null }),
 }));

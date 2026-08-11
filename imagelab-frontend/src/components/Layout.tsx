@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useBlocklyWorkspace } from "../hooks/useBlocklyWorkspace";
 import { useShareFromUrl } from "../hooks/useShareFromUrl";
 import { usePipelineStore } from "../store/pipelineStore";
+import { useMacroStore } from "../store/useMacroStore";
 import { useDarkMode } from "../hooks/useDarkMode";
 import Navbar from "./Navbar";
 import Toolbar from "./Toolbar";
@@ -21,7 +22,13 @@ export default function Layout({ shareToken = null }: LayoutProps) {
   const [isDark, toggleDark] = useDarkMode();
   const { reset, isReadOnly, sharedPipelineName, sharedVersionNumber } = usePipelineStore();
   const { containerRef, workspace } = useBlocklyWorkspace({ isDark, readOnly: isReadOnly });
+  const { setWorkspace } = useMacroStore();
   const [resetKey, setResetKey] = useState(0);
+
+  // Update macro store with workspace reference when available
+  useEffect(() => {
+    setWorkspace(workspace);
+  }, [workspace, setWorkspace]);
 
   const {
     sharedPipeline,

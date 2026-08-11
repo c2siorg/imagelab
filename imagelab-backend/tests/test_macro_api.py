@@ -67,7 +67,7 @@ def test_macro_crud_lifecycle(client: TestClient):
     assert response.status_code == 200
     macros = response.json()
     assert len(macros) == 1
-    assert macros[0]["id"] == macro_id
+    assert macros[0]["macro_id"] == macro_id
     assert macros[0]["name"] == "Custom Blur Macro"
 
     # 3. Retrieve Macro details

@@ -3,9 +3,9 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMacro, deleteMacro, fetchMacros, getMacro, updateMacro } from "../src/api/macros";
-import { useMacroStore } from "../src/store/macroStore";
+import { useMacroStore } from "../src/store/useMacroStore";
 import { usePipelineStore } from "../src/store/pipelineStore";
-import type { MacroItem, MacroVersion } from "../src/types/macro";
+import type { MacroVersion } from "../src/types/macro";
 
 describe("Frontend Macro API Client", () => {
   beforeEach(() => {
@@ -13,11 +13,15 @@ describe("Frontend Macro API Client", () => {
   });
 
   it("fetches macro list successfully", async () => {
-    const mockMacros: MacroItem[] = [
+    const mockMacros: MacroVersion[] = [
       {
-        id: "macro-123",
+        id: "ver-1",
+        macro_id: "macro-123",
+        version_number: 1,
         name: "Test Blur Macro",
-        is_macro: true,
+        owner_id: "user-1",
+        workspace_json: {},
+        pipeline_json: { nodes: [] },
         created_at: "2026-07-28T00:00:00Z",
         updated_at: "2026-07-28T00:00:00Z",
       },
@@ -39,6 +43,7 @@ describe("Frontend Macro API Client", () => {
       macro_id: "macro-123",
       version_number: 1,
       name: "New Macro",
+      owner_id: "user-1",
       workspace_json: {},
       pipeline_json: { nodes: [] },
       created_at: "2026-07-28T00:00:00Z",
@@ -60,6 +65,7 @@ describe("Frontend Macro API Client", () => {
       macro_id: "macro-123",
       version_number: 1,
       name: "Retrieved Macro",
+      owner_id: "user-1",
       workspace_json: {},
       pipeline_json: { nodes: [] },
       created_at: "2026-07-28T00:00:00Z",
@@ -81,6 +87,7 @@ describe("Frontend Macro API Client", () => {
       macro_id: "macro-123",
       version_number: 2,
       name: "Updated Macro",
+      owner_id: "user-1",
       workspace_json: {},
       pipeline_json: { nodes: [] },
       created_at: "2026-07-28T00:00:00Z",
@@ -127,36 +134,24 @@ describe("MacroStore Zustand", () => {
   });
 
   it("loads macros into store", async () => {
-    const mockMacros: MacroItem[] = [
+    const mockMacroVersions: MacroVersion[] = [
       {
-        id: "m-1",
+        id: "v-1",
+        macro_id: "m-1",
+        version_number: 1,
         name: "Macro One",
-        is_macro: true,
+        owner_id: "user-1",
+        workspace_json: {},
+        pipeline_json: { nodes: [] },
         created_at: "2026-07-28T00:00:00Z",
         updated_at: "2026-07-28T00:00:00Z",
       },
     ];
 
-    const mockMacroVersion: MacroVersion = {
-      id: "v-1",
-      macro_id: "m-1",
-      version_number: 1,
-      name: "Macro One",
-      workspace_json: {},
-      pipeline_json: { nodes: [] },
-      created_at: "2026-07-28T00:00:00Z",
-      updated_at: "2026-07-28T00:00:00Z",
-    };
-
-    vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockMacros,
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockMacroVersion,
-      } as Response);
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockMacroVersions,
+    } as Response);
 
     await useMacroStore.getState().loadMacros();
 
@@ -172,6 +167,7 @@ describe("MacroStore Zustand", () => {
       macro_id: "m-2",
       version_number: 1,
       name: "Macro Two",
+      owner_id: "user-1",
       workspace_json: {},
       pipeline_json: {},
       created_at: "2026-07-28T00:00:00Z",
@@ -185,9 +181,7 @@ describe("MacroStore Zustand", () => {
       } as Response) // create call
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => [
-          { id: "m-2", name: "Macro Two", is_macro: true, created_at: "", updated_at: "" },
-        ],
+        json: async () => [mockVersion],
       } as Response); // reload list call
 
     const res = await useMacroStore.getState().addMacro({ name: "Macro Two", pipeline_json: {} });
@@ -203,9 +197,9 @@ describe("PipelineStore Macro Step Result Lookup", () => {
 
   it("looks up step result by exact block ID or parent macro prefix", () => {
     const results = [
-      { index: 1, block_id: "step_1", type: "basic_readimage", success: true },
-      { index: 2, block_id: "m1_node:blur_1", type: "blurring_applyblur", success: true },
-      { index: 3, block_id: "m1_node:canny_1", type: "filtering_cannyedge", success: true },
+      { index: 1, block_id: "step_1", type: "basic_readimage",has_full_image: false, success: true },
+      { index: 2, block_id: "m1_node:blur_1", type: "blurring_applyblur",has_full_image: false, success: true },
+      { index: 3, block_id: "m1_node:canny_1", type: "filtering_cannyedge",has_full_image: false, success: true },
     ];
 
     usePipelineStore.getState().setStepResults(results);
