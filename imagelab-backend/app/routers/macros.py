@@ -13,6 +13,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
@@ -81,10 +82,26 @@ def _get_macro_or_404(session: Session, macro_id: uuid.UUID) -> Pipeline:
 
 
 def _check_macro_in_use(session: Session, macro_id: uuid.UUID) -> bool:
-    """Return True if macro_id is referenced in any existing pipeline or macro's PipelineVersion."""
+    """Return True if macro_id is referenced in any existing pipeline or macro's latest PipelineVersion."""
     macro_id_str = str(macro_id)
-    versions = session.exec(select(PipelineVersion)).all()
-    for ver in versions:
+
+    # Subquery to get the latest version for each pipeline
+    latest_versions_subquery = (
+        select(PipelineVersion.pipeline_id, func.max(PipelineVersion.version_number).label("max_version"))
+        .group_by(PipelineVersion.pipeline_id)
+        .subquery()
+    )
+
+    # Query only the latest versions
+    latest_versions = session.exec(
+        select(PipelineVersion).join(
+            latest_versions_subquery,
+            (PipelineVersion.pipeline_id == latest_versions_subquery.c.pipeline_id)
+            & (PipelineVersion.version_number == latest_versions_subquery.c.max_version),
+        )
+    ).all()
+
+    for ver in latest_versions:
         if ver.pipeline_id == macro_id:
             continue
         pipeline = session.get(Pipeline, ver.pipeline_id)
@@ -119,11 +136,33 @@ def _validate_macro_payload(session: Session, pipeline_json: dict[str, Any], mac
 # Endpoints
 
 
-@router.get("", response_model=list[MacroOut], summary="List all macros")
-@router.get("/", response_model=list[MacroOut], summary="List all macros", include_in_schema=False)
-def list_macros(session: SessionDep) -> list[MacroOut]:
+@router.get("", response_model=list[MacroVersionOut], summary="List all macros")
+@router.get("/", response_model=list[MacroVersionOut], summary="List all macros", include_in_schema=False)
+def list_macros(session: SessionDep) -> list[MacroVersionOut]:
     macros = session.exec(select(Pipeline).where(Pipeline.is_macro == True)).all()  # noqa: E712
-    return [MacroOut.model_validate(m) for m in macros]
+    result = []
+    for macro in macros:
+        version = session.exec(
+            select(PipelineVersion)
+            .where(PipelineVersion.pipeline_id == macro.id)
+            .order_by(PipelineVersion.version_number.desc())
+            .limit(1)
+        ).first()
+        if version:
+            result.append(
+                MacroVersionOut(
+                    id=version.id,
+                    macro_id=macro.id,
+                    version_number=version.version_number,
+                    name=macro.name,
+                    owner_id=macro.owner_id,
+                    workspace_json=version.workspace_json,
+                    pipeline_json=version.pipeline_json,
+                    created_at=version.created_at,
+                    updated_at=macro.updated_at,
+                )
+            )
+    return result
 
 
 @router.post("", response_model=MacroVersionOut, status_code=status.HTTP_201_CREATED, summary="Create a new macro")
@@ -170,7 +209,7 @@ def create_macro(body: MacroCreate, session: SessionDep) -> MacroVersionOut:
     except Exception as exc:
         session.rollback()
         logger.exception("Failed to create macro")
-        raise HTTPException(status_code=500, detail=f"Failed to create macro: {exc}") from exc
+        raise HTTPException(status_code=500, detail="Failed to create macro. Please try again.") from exc
 
 
 @router.get("/{macro_id}", response_model=MacroVersionOut, summary="Retrieve a macro by ID")
@@ -255,7 +294,7 @@ def update_macro(macro_id: uuid.UUID, body: MacroUpdate, session: SessionDep) ->
     except Exception as exc:
         session.rollback()
         logger.exception("Failed to update macro")
-        raise HTTPException(status_code=500, detail=f"Failed to update macro: {exc}") from exc
+        raise HTTPException(status_code=500, detail="Failed to update macro. Please try again.") from exc
 
 
 @router.delete("/{macro_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a macro")

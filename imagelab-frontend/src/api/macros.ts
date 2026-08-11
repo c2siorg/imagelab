@@ -1,13 +1,8 @@
-import type {
-  MacroCreatePayload,
-  MacroItem,
-  MacroUpdatePayload,
-  MacroVersion,
-} from "../types/macro";
+import type { MacroCreatePayload, MacroUpdatePayload, MacroVersion } from "../types/macro";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4100";
 
-export async function fetchMacros(): Promise<MacroItem[]> {
+export async function fetchMacros(): Promise<MacroVersion[]> {
   const response = await fetch(`${API_URL}/api/v1/macros`, {
     method: "GET",
     headers: { "Content-Type": "application/json" },

@@ -12,6 +12,13 @@ from app.services.pipeline_executor import execute_pipeline
 
 logger = logging.getLogger(__name__)
 
+
+class MacroExpansionError(Exception):
+    """Raised when macro expansion fails during batch processing."""
+
+    pass
+
+
 JOBS_DIR = os.path.abspath("jobs")
 MAX_WORKERS = min(8, os.cpu_count() or 1)
 semaphore = asyncio.Semaphore(MAX_WORKERS)
@@ -40,16 +47,17 @@ async def process_single_image(job_id: str, filename: str, pipeline: list[Pipeli
 
                 exec_pipeline = pipeline
                 if any(step.type == "macro_ref" or (step.params and step.params.get("macro_id")) for step in pipeline):
-                    try:
-                        from sqlmodel import Session
+                    from sqlmodel import Session
 
-                        from app.database import engine
-                        from app.services.graph_engine import expand_macro_steps
+                    from app.database import engine
+                    from app.services.graph_engine import expand_macro_steps
 
-                        with Session(engine) as session:
+                    with Session(engine) as session:
+                        try:
                             exec_pipeline = expand_macro_steps(pipeline, session)
-                    except Exception as err:
-                        logger.warning(f"Failed macro expansion in batch execution: {err}")
+                        except Exception as err:
+                            logger.exception("Failed macro expansion in batch execution")
+                            raise MacroExpansionError(f"Failed to expand macro in pipeline: {err}") from err
 
                 req = PipelineRequest(image=image_b64, image_format=image_format, pipeline=exec_pipeline)
                 return execute_pipeline(req)
@@ -84,13 +92,21 @@ async def process_single_image(job_id: str, filename: str, pipeline: list[Pipeli
                     "output_filename": None,
                     "error": response.error or "Unknown pipeline execution error",
                 }
+        except MacroExpansionError as e:
+            logger.exception(f"Macro expansion error processing image {filename} in job {job_id}")
+            return {
+                "filename": filename,
+                "success": False,
+                "output_filename": None,
+                "error": f"Macro expansion failed: {e}",
+            }
         except Exception as e:
             logger.exception(f"Error processing image {filename} in job {job_id}")
             return {
                 "filename": filename,
                 "success": False,
                 "output_filename": None,
-                "error": f"Unexpected error: {str(e)}",
+                "error": f"Unexpected error: {e}",
             }
 
 

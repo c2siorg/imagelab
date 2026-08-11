@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as Blockly from "blockly";
-import { ImageDown, Loader2, RefreshCw } from "lucide-react";
+import { ChevronDown, ChevronRight, ImageDown, Loader2, RefreshCw } from "lucide-react";
 import { executePipeline } from "../api/pipeline";
 import { extractExecutablePipeline } from "../hooks/usePipeline";
 import { useStepInspection } from "../hooks/useStepInspection";
 import { usePipelineStore } from "../store/pipelineStore";
+import { useMacroStore } from "../store/useMacroStore";
 import type { StepResult } from "../types/pipeline";
 import ImageModal from "./Preview/ImageModal";
 
@@ -19,6 +20,43 @@ function getStepLabel(operatorType: string): string {
 
 function getCardKey(step: StepResult): string {
   return step.block_id ?? String(step.index);
+}
+
+function getMacroParentId(blockId: string | undefined): string | null {
+  if (!blockId) return null;
+  const colonIndex = blockId.indexOf(":");
+  return colonIndex !== -1 ? blockId.slice(0, colonIndex) : null;
+}
+
+type InlineItem =
+  | { kind: "step"; step: StepResult }
+  | { kind: "macro"; macroBlockId: string; steps: StepResult[] };
+
+/**
+ * Groups step results into a single horizontal sequence.
+ * Macro internal steps get grouped under their parent macro block ID
+ * and placed inline at the exact spot where the macro executed.
+ */
+function organizeStepsInline(steps: StepResult[]): InlineItem[] {
+  const items: InlineItem[] = [];
+  const processedMacros = new Map<string, StepResult[]>();
+
+  for (const step of steps) {
+    const parentId = getMacroParentId(step.block_id || "");
+
+    if (parentId) {
+      if (!processedMacros.has(parentId)) {
+        const group: StepResult[] = [];
+        processedMacros.set(parentId, group);
+        items.push({ kind: "macro", macroBlockId: parentId, steps: group });
+      }
+      processedMacros.get(parentId)!.push(step);
+    } else {
+      items.push({ kind: "step", step });
+    }
+  }
+
+  return items;
 }
 
 export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
@@ -43,10 +81,26 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
     setTiming,
     setWorkspaceDirty,
   } = usePipelineStore();
+  const { macros } = useMacroStore();
   const cardRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const clickTimeoutRef = useRef<number | null>(null);
   const [modalImageSrc, setModalImageSrc] = useState<string | null>(null);
+  const [collapsedMacros, setCollapsedMacros] = useState<Set<string>>(new Set());
   const inspectStep = useStepInspection();
+
+  // Organize steps inline horizontally
+  const inlineItems = useMemo(() => organizeStepsInline(stepResults), [stepResults]);
+
+  const finalStep = useMemo(
+    () => [...stepResults].reverse().find((step) => step.success),
+    [stepResults],
+  );
+
+  const activeMacroBlockIds = useMemo(() => {
+    return inlineItems
+      .filter((item): item is Extract<InlineItem, { kind: "macro" }> => item.kind === "macro")
+      .map((item) => item.macroBlockId);
+  }, [inlineItems]);
 
   useEffect(() => {
     const activeKey =
@@ -66,6 +120,46 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
       }
     };
   }, []);
+
+  // Initialize all detected macro blocks as collapsed by default
+  useEffect(() => {
+    setCollapsedMacros((prev) => {
+      const next = new Set(prev);
+      for (const id of activeMacroBlockIds) {
+        if (!next.has(id)) {
+          next.add(id); // Default to collapsed
+        }
+      }
+      return next;
+    });
+  }, [activeMacroBlockIds]);
+
+  const toggleMacroCollapse = (macroBlockId: string) => {
+    setCollapsedMacros((prev) => {
+      const next = new Set(prev);
+      if (next.has(macroBlockId)) {
+        next.delete(macroBlockId);
+      } else {
+        next.add(macroBlockId);
+      }
+      return next;
+    });
+  };
+
+  // Resolves the block instance back to its Macro template name on the canvas
+  const getMacroDisplayName = (macroBlockId: string): string => {
+    if (workspace) {
+      const block = workspace.getBlockById(macroBlockId);
+      if (block) {
+        // Reads the block type or title text (e.g. "Test1")
+        const type = block.type.replace(/^macro_/, "");
+        const matched = macros.find((m) => m.id === type || m.name === type);
+        if (matched) return matched.name;
+        return block.type.startsWith("macro_") ? block.type.replace(/^macro_/, "") : "Macro";
+      }
+    }
+    return "Macro";
+  };
 
   const selectWorkspaceBlock = (step: StepResult) => {
     if (step.block_id && workspace) {
@@ -96,7 +190,6 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
     if (clickTimeoutRef.current !== null) {
       window.clearTimeout(clickTimeoutRef.current);
     }
-    // Delay single-click so double-click can open the modal without duplicate fetches.
     clickTimeoutRef.current = window.setTimeout(() => {
       void handleStepClick(step);
       clickTimeoutRef.current = null;
@@ -170,7 +263,115 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
     );
   }
 
-  const finalStep = [...stepResults].reverse().find((step) => step.success);
+  const renderStepCard = (step: StepResult, isMacroChild: boolean = false) => {
+    const key = getCardKey(step);
+    const isActive =
+      (activeStepBlockId && step.block_id === activeStepBlockId) ||
+      (!activeStepBlockId && activeStepIndex === step.index);
+    const label = getStepLabel(step.type);
+    const isFinalStep = step === finalStep;
+
+    return (
+      <button
+        key={key}
+        ref={(node) => {
+          cardRefs.current[key] = node;
+        }}
+        onClick={() => handleCardClick(step)}
+        onDoubleClick={() => handleCardDoubleClick(step)}
+        className={`w-32 h-40 flex-shrink-0 flex flex-col overflow-hidden rounded-md border bg-gray-50 dark:bg-gray-900 text-left transition-colors ${
+          isActive
+            ? "border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-900"
+            : step.success
+              ? "border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600"
+              : "border-red-300 dark:border-red-800"
+        } ${workspaceDirty ? "opacity-55" : ""}`}
+        title={`${step.type}. Double-click to enlarge.`}
+      >
+        <div className="h-24 flex items-center justify-center bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-700">
+          {step.thumbnail ? (
+            <img
+              src={`data:image/${step.image_format ?? imageFormat};base64,${step.thumbnail}`}
+              alt={`Step ${step.index}`}
+              className="max-h-full max-w-full object-contain"
+            />
+          ) : (
+            <ImageDown size={20} className="text-gray-300 dark:text-gray-600" />
+          )}
+        </div>
+        <div className="min-h-0 flex-1 px-2 py-1.5">
+          <div className="flex items-center gap-1">
+            <span className="text-[11px] font-semibold text-gray-700 dark:text-gray-200">
+              Step {step.index}
+            </span>
+            {isMacroChild && (
+              <span className="rounded bg-indigo-50 dark:bg-indigo-900/40 px-1 py-0.2 text-[8px] font-medium uppercase text-indigo-600 dark:text-indigo-300">
+                Macro
+              </span>
+            )}
+            {isFinalStep && (
+              <span className="rounded bg-emerald-50 dark:bg-emerald-900/30 px-1 py-0.5 text-[9px] font-semibold uppercase text-emerald-600 dark:text-emerald-400">
+                Final
+              </span>
+            )}
+            {isActive && isInspectingStep && (
+              <Loader2 size={11} className="animate-spin text-indigo-500" />
+            )}
+          </div>
+          <div className="truncate text-[10px] text-gray-500 dark:text-gray-400">{label}</div>
+          {step.timing_ms !== null && step.timing_ms !== undefined && (
+            <div className="text-[10px] text-gray-400 dark:text-gray-500">
+              {step.timing_ms.toFixed(1)} ms
+            </div>
+          )}
+          {!step.success && (
+            <div className="truncate text-[10px] text-red-500 dark:text-red-400">
+              {step.error ?? "Failed"}
+            </div>
+          )}
+        </div>
+      </button>
+    );
+  };
+
+  const renderInlineMacro = (macroBlockId: string, steps: StepResult[]) => {
+    const isCollapsed = collapsedMacros.has(macroBlockId);
+    const macroName = getMacroDisplayName(macroBlockId);
+
+    return (
+      <div
+        key={macroBlockId}
+        className={`flex items-center gap-2 flex-shrink-0 p-1 rounded-lg border transition-all ${
+          !isCollapsed
+            ? "border-indigo-200 bg-indigo-50/30 dark:border-indigo-800/50 dark:bg-indigo-950/20"
+            : "border-transparent"
+        }`}
+      >
+        {/* Card-sized Inline Toggle Button with Chevron Arrow */}
+        <button
+          type="button"
+          onClick={() => toggleMacroCollapse(macroBlockId)}
+          className="h-40 px-3 flex flex-col items-center justify-center gap-2 border border-indigo-200 dark:border-indigo-700/60 bg-indigo-50/50 dark:bg-indigo-900/20 hover:bg-indigo-100/70 dark:hover:bg-indigo-900/40 rounded-md transition-colors text-indigo-700 dark:text-indigo-300"
+          title={`${macroName} (${steps.length} steps). Click to toggle expansion.`}
+        >
+          <div className="flex items-center gap-1 font-semibold text-xs">
+            {isCollapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
+            <span className="truncate max-w-[90px]">{macroName}</span>
+          </div>
+          <span className="rounded bg-indigo-100 dark:bg-indigo-800/60 px-2 py-0.5 text-[10px] text-indigo-800 dark:text-indigo-200 font-medium">
+            {steps.length} {steps.length === 1 ? "step" : "steps"}
+          </span>
+        </button>
+
+        {/* Expands inner steps horizontally to the right */}
+        {!isCollapsed && (
+          <div className="flex items-center gap-2.5 pl-1 pr-1">
+            {steps.map((step) => renderStepCard(step, true))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="h-full bg-white dark:bg-gray-800 overflow-auto">
@@ -192,72 +393,16 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
           </button>
         </div>
       )}
-      <div className="flex items-start gap-3 px-3 py-3 min-w-max">
-        {stepResults.map((step) => {
-          const key = getCardKey(step);
-          const isActive =
-            (activeStepBlockId && step.block_id === activeStepBlockId) ||
-            (!activeStepBlockId && activeStepIndex === step.index);
-          const label = getStepLabel(step.type);
-          const isFinalStep = step === finalStep;
-          return (
-            <button
-              key={key}
-              ref={(node) => {
-                cardRefs.current[key] = node;
-              }}
-              onClick={() => handleCardClick(step)}
-              onDoubleClick={() => handleCardDoubleClick(step)}
-              className={`w-32 h-40 flex-shrink-0 flex flex-col overflow-hidden rounded-md border bg-gray-50 dark:bg-gray-900 text-left transition-colors ${
-                isActive
-                  ? "border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-900"
-                  : step.success
-                    ? "border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600"
-                    : "border-red-300 dark:border-red-800"
-              } ${workspaceDirty ? "opacity-55" : ""}`}
-              title={`${step.type}. Double-click to enlarge.`}
-            >
-              <div className="h-24 flex items-center justify-center bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-700">
-                {step.thumbnail ? (
-                  <img
-                    src={`data:image/${step.image_format ?? imageFormat};base64,${step.thumbnail}`}
-                    alt={`Step ${step.index}`}
-                    className="max-h-full max-w-full object-contain"
-                  />
-                ) : (
-                  <ImageDown size={20} className="text-gray-300 dark:text-gray-600" />
-                )}
-              </div>
-              <div className="min-h-0 flex-1 px-2 py-1.5">
-                <div className="flex items-center gap-1">
-                  <span className="text-[11px] font-semibold text-gray-700 dark:text-gray-200">
-                    Step {step.index}
-                  </span>
-                  {isFinalStep && (
-                    <span className="rounded bg-emerald-50 dark:bg-emerald-900/30 px-1 py-0.5 text-[9px] font-semibold uppercase text-emerald-600 dark:text-emerald-400">
-                      Final
-                    </span>
-                  )}
-                  {isActive && isInspectingStep && (
-                    <Loader2 size={11} className="animate-spin text-indigo-500" />
-                  )}
-                </div>
-                <div className="truncate text-[10px] text-gray-500 dark:text-gray-400">{label}</div>
-                {step.timing_ms !== null && step.timing_ms !== undefined && (
-                  <div className="text-[10px] text-gray-400 dark:text-gray-500">
-                    {step.timing_ms.toFixed(1)} ms
-                  </div>
-                )}
-                {!step.success && (
-                  <div className="truncate text-[10px] text-red-500 dark:text-red-400">
-                    {step.error ?? "Failed"}
-                  </div>
-                )}
-              </div>
-            </button>
-          );
-        })}
+
+      {/* HORIZONTAL FILMSTRIP */}
+      <div className="flex items-center gap-3 px-3 py-3 min-w-max">
+        {inlineItems.map((item) =>
+          item.kind === "step"
+            ? renderStepCard(item.step)
+            : renderInlineMacro(item.macroBlockId, item.steps),
+        )}
       </div>
+
       {modalImageSrc && (
         <ImageModal
           isOpen={modalImageSrc !== null}
