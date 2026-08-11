@@ -10,7 +10,7 @@ _GRAY[:, 32:] = 255
 # BGRA image with a vertical edge (4-channel with alpha)
 _BGRA = np.zeros((64, 64, 4), dtype=np.uint8)
 _BGRA[:, 32:, 0] = 255  # blue channel edge
-_BGRA[:, :, 3] = 128    # semi-transparent alpha
+_BGRA[:, :, 3] = 128  # semi-transparent alpha
 
 
 class TestSobelDerivative:
