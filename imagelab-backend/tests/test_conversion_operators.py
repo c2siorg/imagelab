@@ -82,6 +82,24 @@ class TestGrayToBinary:
         result = GrayToBinary({"thresholdValue": 127, "maxValue": 255}).compute(grayscale_image)
         assert result.dtype == np.uint8
 
+    def test_color_bgr_input_produces_grayscale_output(self):
+        """BGR images should be converted to grayscale before thresholding — not produce 3-channel binary."""
+        color = np.full((100, 100, 3), 128, dtype=np.uint8)
+        color[50:, :] = [200, 200, 200]
+        result = GrayToBinary({}).compute(color)
+        assert result.dtype == np.uint8
+        assert result.ndim == 2, f"Expected 2D grayscale output for BGR input, got shape {result.shape}"
+        assert set(np.unique(result)).issubset({0, 255})
+
+    def test_color_bgra_input_produces_grayscale_output(self):
+        """BGRA images should be converted to grayscale before thresholding — not produce 4-channel binary."""
+        bgra = np.full((100, 100, 4), 128, dtype=np.uint8)
+        bgra[50:, :] = [200, 200, 200, 255]
+        result = GrayToBinary({}).compute(bgra)
+        assert result.dtype == np.uint8
+        assert result.ndim == 2, f"Expected 2D grayscale output for BGRA input, got shape {result.shape}"
+        assert set(np.unique(result)).issubset({0, 255})
+
 
 # ColorToBinary
 
