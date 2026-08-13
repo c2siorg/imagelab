@@ -3,6 +3,7 @@ import * as Blockly from "blockly";
 import { FolderPlus, Loader2, X } from "lucide-react";
 import { useMacroStore } from "../../store/useMacroStore";
 import type { ExposedParam } from "../../types/macro";
+import { formatExposedFieldKey } from "../../utils/macroFieldKeys";
 import {
   extractExposedParamCandidates,
   extractMacroGraph,
@@ -53,7 +54,7 @@ export default function CreateMacroModal({ selectedBlocks, onClose }: CreateMacr
   const [exposedSelection, setExposedSelection] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
     candidates.forEach((c) => {
-      initial[`${c.blockId}:${c.paramName}`] = true;
+      initial[formatExposedFieldKey(c.blockId, c.paramName)] = true;
     });
     return initial;
   });
@@ -79,6 +80,9 @@ export default function CreateMacroModal({ selectedBlocks, onClose }: CreateMacr
     }));
   };
 
+  const paramKey = (c: { blockId: string; paramName: string }) =>
+    formatExposedFieldKey(c.blockId, c.paramName);
+
   const handleSubmit: React.ComponentProps<"form">["onSubmit"] = async (e) => {
     e.preventDefault();
     if (!graph) return;
@@ -91,9 +95,7 @@ export default function CreateMacroModal({ selectedBlocks, onClose }: CreateMacr
     setIsSubmitting(true);
     setError(null);
 
-    const exposedParams: ExposedParam[] = candidates.filter(
-      (c) => exposedSelection[`${c.blockId}:${c.paramName}`],
-    );
+    const exposedParams: ExposedParam[] = candidates.filter((c) => exposedSelection[paramKey(c)]);
 
     const pipeline_json = {
       nodes: graph.nodes,
@@ -217,28 +219,26 @@ export default function CreateMacroModal({ selectedBlocks, onClose }: CreateMacr
               </label>
               <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                 {candidates.map((c) => {
-                  const key = `${c.blockId}:${c.paramName}`;
-                  const isChecked = Boolean(exposedSelection[key]);
+                  const fieldKey = formatExposedFieldKey(c.blockId, c.paramName);
+                  const isChecked = Boolean(exposedSelection[fieldKey]);
+
                   return (
                     <label
-                      key={key}
-                      htmlFor={`param-${key}`}
-                      className="flex items-center gap-2 px-2.5 py-1.5 rounded bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      key={fieldKey}
+                      htmlFor={`param-${fieldKey}`}
+                      className="flex items-center gap-3 p-2 border rounded"
                     >
                       <input
-                        id={`param-${key}`}
                         type="checkbox"
+                        id={`param-${fieldKey}`} // <--- ID uses fieldKey for tests/DOM matching
                         checked={isChecked}
-                        onChange={() => toggleParam(key)}
-                        disabled={isSubmitting || Boolean(initError)}
-                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
+                        onChange={() => toggleParam(fieldKey)}
                       />
-                      <div className="flex-1 flex justify-between items-center text-xs">
-                        <span className="font-medium text-gray-700 dark:text-gray-200">
-                          {c.paramName}
-                        </span>
-                        <span className="text-[10px] text-gray-400 font-mono">{c.blockType}</span>
-                      </div>
+
+                      {/* 🟢 DISPLAY CLEAN HUMAN LABEL HERE (NO RANDOM HASHES) */}
+                      <span className="text-sm font-medium text-gray-800">
+                        {c.label ?? `${c.paramName} (${c.blockType})`}
+                      </span>
                     </label>
                   );
                 })}

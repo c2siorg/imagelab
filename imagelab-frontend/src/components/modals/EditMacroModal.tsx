@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2, Pencil, X } from "lucide-react";
 import { useMacroStore } from "../../store/useMacroStore";
 import type { ExposedParam, MacroDefinition } from "../../types/macro";
+import { formatExposedFieldKey } from "../../utils/macroFieldKeys";
 import { findDependentMacros } from "../../utils/macroDependencies";
 import { cleanNestedMacroParamLabel } from "../../utils/extractMacroGraph";
 
@@ -14,21 +15,17 @@ interface EditableParam extends ExposedParam {
   enabled: boolean;
 }
 
-function fieldKey(param: ExposedParam): string {
-  return `${param.blockId}__${param.paramName}`;
-}
-
 function candidatesFor(macro: MacroDefinition): EditableParam[] {
   const existing = new Map(
     (macro.exposedParams ?? macro.graph.exposed_params ?? []).map((param) => [
-      fieldKey(param),
+      formatExposedFieldKey(param.blockId, param.paramName),
       param,
     ]),
   );
   const candidates: EditableParam[] = [];
   for (const node of macro.graph.nodes) {
     for (const [paramName, defaultValue] of Object.entries(node.params ?? {})) {
-      const key = `${node.id}__${paramName}`;
+      const key = formatExposedFieldKey(node.id, paramName);
       const saved = existing.get(key);
       candidates.push({
         blockId: node.id,
@@ -87,9 +84,16 @@ export default function EditMacroModal({ macro, onClose }: EditMacroModalProps) 
           defaultValue: param.defaultValue,
         }),
       );
-    const exposedKeys = new Set(exposedParams.map(fieldKey));
-    const removed = originalExposed.filter((param) => !exposedKeys.has(fieldKey(param)));
-    const dependents = findDependentMacros(macro.id, removed.map(fieldKey));
+    const exposedKeys = new Set(
+      exposedParams.map((param) => formatExposedFieldKey(param.blockId, param.paramName)),
+    );
+    const removed = originalExposed.filter(
+      (param) => !exposedKeys.has(formatExposedFieldKey(param.blockId, param.paramName)),
+    );
+    const dependents = findDependentMacros(
+      macro.id,
+      removed.map((param) => formatExposedFieldKey(param.blockId, param.paramName)),
+    );
     if (dependents.length > 0 && removed.length > 0) {
       setError(
         `Cannot remove parameter '${cleanNestedMacroParamLabel(removed[0].paramName)}' because it is exposed/used in dependent macro '${dependents[0].name}'.`,
@@ -159,7 +163,7 @@ export default function EditMacroModal({ macro, onClose }: EditMacroModalProps) 
           <div className="space-y-2">
             {params.map((param, index) => (
               <div
-                key={fieldKey(param)}
+                key={formatExposedFieldKey(param.blockId, param.paramName)}
                 className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-2 p-3 rounded border border-gray-200 dark:border-gray-700"
               >
                 <input

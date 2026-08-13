@@ -6,7 +6,7 @@ import { SINGLETON_BLOCK_TYPES } from "../../utils/blockLimits";
 import { useMacroStore } from "../../store/useMacroStore";
 import { refreshMacroBlockInstances, registerMacroBlock } from "../../blocks/macroBlock";
 import CategorySection from "./CategorySection";
-import { Search, X } from "lucide-react";
+import { Search, X, AlertCircle } from "lucide-react";
 import type { CategoryInfo } from "../../blocks/categories";
 import type { MacroDefinition } from "../../types/macro";
 import EditMacroModal from "../modals/EditMacroModal";
@@ -25,6 +25,8 @@ export default function Sidebar({ workspace }: SidebarProps) {
   const macros = useMacroStore((state) => state.macros);
   const loadMacros = useMacroStore((state) => state.loadMacros);
   const removeMacro = useMacroStore((state) => state.removeMacro);
+  const deletionError = useMacroStore((state) => state.deletionError);
+  const clearDeletionError = useMacroStore((state) => state.clearDeletionError);
 
   useEffect(() => {
     void loadMacros();
@@ -42,7 +44,10 @@ export default function Sidebar({ workspace }: SidebarProps) {
   };
 
   const deleteMacro = (macroId: string) => {
-    void removeMacro(macroId);
+    clearDeletionError();
+    void removeMacro(macroId).catch(() => {
+      // Error is handled by the store and displayed via deletionError state
+    });
   };
 
   // Build the dynamic Macros category. Register each block type before render.
@@ -149,6 +154,24 @@ export default function Sidebar({ workspace }: SidebarProps) {
       </div>
       {editingMacro && (
         <EditMacroModal macro={editingMacro} onClose={() => setEditingMacro(null)} />
+      )}
+      {deletionError && (
+        <div className="fixed bottom-4 right-4 max-w-md bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 rounded-lg p-4 shadow-lg z-50">
+          <div className="flex items-start gap-3">
+            <AlertCircle size={20} className="flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium mb-1">Cannot Delete Macro</p>
+              <p className="text-xs">{deletionError}</p>
+            </div>
+            <button
+              onClick={clearDeletionError}
+              className="text-red-400 hover:text-red-600 dark:hover:text-red-300"
+              aria-label="Close error"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

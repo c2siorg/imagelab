@@ -1,5 +1,6 @@
 import * as Blockly from "blockly";
 import type { ExposedParam, GraphEdge, GraphNode, PipelineGraph } from "../types/macro";
+import { cleanFieldLabel, formatExposedFieldKey } from "./macroFieldKeys";
 import { useMacroStore } from "../store/useMacroStore";
 
 const INPUT_TYPE_VALUE = 1;
@@ -30,8 +31,7 @@ function isSerializableField(name: string | null): name is string {
 
 /** Human-facing nested macro labels must not leak Blockly's internal PB prefix. */
 export function cleanNestedMacroParamLabel(name: string): string {
-  const prefixed = name.match(/\|PB=[^|]*__(.+)$/);
-  return prefixed?.[1] ?? name;
+  return cleanFieldLabel(name);
 }
 
 function macroIdFromType(type: string): string | null {
@@ -303,30 +303,98 @@ export function extractMacroGraph(selectedBlocks: Blockly.Block[]): PipelineGrap
 
   return { nodes, edges };
 }
+export function getCleanBlockDisplayName(block: Blockly.Block): string {
+  // 1. Check if the block has a human-readable title field on the canvas
+  const displayTitle =
+    (typeof block.getFieldValue === "function"
+      ? block.getFieldValue("TITLE") || block.getFieldValue("MACRO_TITLE")
+      : null) ?? (block as unknown as { macroName?: string }).macroName;
 
+  // Only use displayTitle if it's NOT a raw macro ID (starts with macro_) or serialized key
+  if (
+    displayTitle &&
+    typeof displayTitle === "string" &&
+    displayTitle.trim() &&
+    !displayTitle.startsWith("macro_") &&
+    !displayTitle.includes("|")
+  ) {
+    return cleanFieldLabel(displayTitle);
+  }
+
+  // 2. Check if it is a TRUE user-defined macro block
+  if (block.type && block.type.startsWith("macro_")) {
+    const rawId = block.type.replace(/^macro_/, "");
+    const realMacro = useMacroStore.getState().macros.find((m) => m.id === rawId);
+    if (realMacro && realMacro.name) {
+      return realMacro.name;
+    }
+  }
+
+  // 3. Standard / Built-in Pipeline Blocks
+  let cleanType = (block.type || "").replace(
+    /^(macro_|geometric_|filtering_|morphological_|color_|edge_|transform_|annotation_|drawing_|basic_|op_)/,
+    "",
+  );
+
+  cleanType = cleanType
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/drawline/i, "draw line")
+    .replace(/drawcircle/i, "draw circle")
+    .replace(/drawrectangle/i, "draw rectangle")
+    .replace(/drawtext/i, "draw text")
+    .replace(/cropimage/i, "crop image")
+    .replace(/contourdetection/i, "contour detection")
+    .replace(/_+/g, " ");
+
+  return cleanType
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
+/**
+ * Determines if a block is a macro block (starts with macro_ or macro-)
+ */
+function isMacroBlockType(blockType: string): boolean {
+  return blockType.startsWith("macro_") || blockType.startsWith("macro-");
+}
 export function extractExposedParamCandidates(selectedBlocks: Blockly.Block[]): ExposedParam[] {
   const params: ExposedParam[] = [];
   const seenKeys = new Set<string>();
 
   for (const block of filterMacroBlocks(selectedBlocks)) {
     if (!block || !Array.isArray(block.inputList)) continue;
+
+    const displayBlockType = getCleanBlockDisplayName(block);
+
     block.inputList.forEach((input) => {
       if (Array.isArray(input.fieldRow)) {
         input.fieldRow.forEach((field) => {
           const fieldName = field.name ?? "";
           if (isSerializableField(fieldName)) {
-            const key = `${block.id}:${field.name}`;
+            const key = formatExposedFieldKey(block.id, fieldName);
             if (!seenKeys.has(key)) {
               seenKeys.add(key);
               const val =
                 typeof field.getValue === "function"
                   ? field.getValue()
                   : (field as ExtendedField).value;
+
+              const cleanParamName = cleanFieldLabel(fieldName);
+
+              // For nested macro blocks, preserve lowercase parent macro name in suffix
+              let labelSuffix = displayBlockType;
+              if (block.type && isMacroBlockType(block.type)) {
+                // For nested macros, use the raw block type in lowercase (e.g., "macro-child")
+                labelSuffix = block.type.toLowerCase();
+              }
+
               params.push({
                 blockId: block.id,
                 blockType: block.type,
                 paramName: fieldName,
-                label: `${cleanNestedMacroParamLabel(fieldName)} (${block.type})`,
+                label: `${cleanParamName} (${labelSuffix})`,
                 defaultValue: val,
               });
             }
@@ -338,7 +406,6 @@ export function extractExposedParamCandidates(selectedBlocks: Blockly.Block[]): 
 
   return params;
 }
-
 export function getSelectedBlocksFromBlock(startBlock: Blockly.Block): Blockly.Block[] {
   if (!startBlock) return [];
   const collectedSet = new Set<string>();

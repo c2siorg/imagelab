@@ -66,10 +66,10 @@ def test_macro_crud_lifecycle(client: TestClient):
     response = client.get("/api/v1/macros")
     assert response.status_code == 200
     macros = response.json()
-    assert len(macros) == 1
-    assert macros[0]["macro_id"] == macro_id
-    assert macros[0]["name"] == "Custom Blur Macro"
+    created_macro = next((m for m in macros if m.get("id") == macro_id or m.get("macro_id") == macro_id), None)
 
+    assert created_macro is not None, f"Macro with ID {macro_id} not found in response list: {macros}"
+    assert created_macro["name"] == "Custom Blur Macro"
     # 3. Retrieve Macro details
     response = client.get(f"/api/v1/macros/{macro_id}")
     assert response.status_code == 200

@@ -22,10 +22,23 @@ function getCardKey(step: StepResult): string {
   return step.block_id ?? String(step.index);
 }
 
-function getMacroParentId(blockId: string | undefined): string | null {
-  if (!blockId) return null;
+function getMacroParentId(
+  blockId: string | undefined,
+  workspace: Blockly.WorkspaceSvg | null,
+): string | null {
+  if (!blockId || !workspace) return null;
+
   const colonIndex = blockId.indexOf(":");
-  return colonIndex !== -1 ? blockId.slice(0, colonIndex) : null;
+  if (colonIndex === -1) return null;
+
+  const candidateParentId = blockId.slice(0, colonIndex);
+  const parentBlock = workspace.getBlockById(candidateParentId);
+  if (parentBlock && (parentBlock.type.startsWith("macro_") || "macroName" in parentBlock)) {
+    return candidateParentId;
+  }
+
+  // Not a macro step — just a standard block whose random ID contained a colon!
+  return null;
 }
 
 type InlineItem =
@@ -37,12 +50,15 @@ type InlineItem =
  * Macro internal steps get grouped under their parent macro block ID
  * and placed inline at the exact spot where the macro executed.
  */
-function organizeStepsInline(steps: StepResult[]): InlineItem[] {
+function organizeStepsInline(
+  steps: StepResult[],
+  workspace: Blockly.WorkspaceSvg | null,
+): InlineItem[] {
   const items: InlineItem[] = [];
   const processedMacros = new Map<string, StepResult[]>();
 
   for (const step of steps) {
-    const parentId = getMacroParentId(step.block_id || "");
+    const parentId = getMacroParentId(step.block_id || "", workspace);
 
     if (parentId) {
       if (!processedMacros.has(parentId)) {
@@ -58,7 +74,6 @@ function organizeStepsInline(steps: StepResult[]): InlineItem[] {
 
   return items;
 }
-
 export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
   const {
     originalImage,
@@ -89,7 +104,10 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
   const inspectStep = useStepInspection();
 
   // Organize steps inline horizontally
-  const inlineItems = useMemo(() => organizeStepsInline(stepResults), [stepResults]);
+  const inlineItems = useMemo(
+    () => organizeStepsInline(stepResults, workspace),
+    [stepResults, workspace],
+  );
 
   const finalStep = useMemo(
     () => [...stepResults].reverse().find((step) => step.success),
@@ -148,19 +166,45 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
 
   // Resolves the block instance back to its Macro template name on the canvas
   const getMacroDisplayName = (macroBlockId: string): string => {
+    let resolvedName = "Macro";
+
     if (workspace) {
       const block = workspace.getBlockById(macroBlockId);
       if (block) {
-        // Reads the block type or title text (e.g. "Test1")
-        const type = block.type.replace(/^macro_/, "");
-        const matched = macros.find((m) => m.id === type || m.name === type);
-        if (matched) return matched.name;
-        return block.type.startsWith("macro_") ? block.type.replace(/^macro_/, "") : "Macro";
+        const displayTitle =
+          block.getFieldValue("TITLE") ||
+          block.getFieldValue("MACRO_TITLE") ||
+          (block as unknown as { macroName?: string }).macroName;
+
+        if (
+          displayTitle &&
+          typeof displayTitle === "string" &&
+          !displayTitle.startsWith("macro_")
+        ) {
+          resolvedName = displayTitle;
+        } else if (block.type.startsWith("macro_")) {
+          const rawId = block.type.replace(/^macro_/, "");
+          const matched = macros.find((m) => m.id === rawId);
+          if (matched) {
+            resolvedName = matched.name;
+          } else {
+            resolvedName = "Nested Macro";
+          }
+        } else {
+          // Standard block fallback
+          resolvedName = block.type
+            .replace(
+              /^(geometric_|filtering_|morphological_|color_|edge_|transform_|drawing_|basic_|op_)/,
+              "",
+            )
+            .replace(/_+/g, " ")
+            .replace(/\b\w/g, (l) => l.toUpperCase());
+        }
+        return resolvedName;
       }
     }
-    return "Macro";
+    return resolvedName;
   };
-
   const selectWorkspaceBlock = (step: StepResult) => {
     if (step.block_id && workspace) {
       const block = workspace.getBlockById(step.block_id);

@@ -1,5 +1,6 @@
 import * as Blockly from "blockly";
 import { useMacroStore } from "../store/useMacroStore";
+import { formatExposedFieldKey } from "./macroFieldKeys";
 import type { ExposedParam, GraphEdge, GraphNode, PipelineGraph } from "../types/macro";
 
 const MAX_DEPTH = 10;
@@ -33,7 +34,8 @@ function cloneEdge(edge: GraphEdge, wrapperId: string): GraphEdge {
 }
 
 function valueForExposedParam(macroBlock: Blockly.Block | null, param: ExposedParam): unknown {
-  const value = macroBlock?.getFieldValue(`${param.blockId}__${param.paramName}`);
+  const fieldKey = formatExposedFieldKey(param.blockId, param.paramName);
+  const value = macroBlock?.getFieldValue(fieldKey);
   if (value === undefined || value === null) return param.defaultValue;
   if (typeof param.defaultValue === "number") {
     const parsed = Number(value);

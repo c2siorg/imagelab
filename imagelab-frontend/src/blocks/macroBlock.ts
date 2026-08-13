@@ -1,5 +1,6 @@
 import * as Blockly from "blockly";
 import type { ExposedParam, MacroDefinition } from "../types/macro";
+import { cleanFieldLabel, formatExposedFieldKey } from "../utils/macroFieldKeys";
 
 /**
  * Helper to build the appropriate Blockly field instance based on parameter default value type.
@@ -24,12 +25,12 @@ function exposedParamsFor(macro: MacroDefinition): ExposedParam[] {
 }
 
 function fieldNameFor(param: ExposedParam): string {
-  return `${param.blockId}__${param.paramName}`;
+  return formatExposedFieldKey(param.blockId, param.paramName);
 }
 
 function labelFor(param: ExposedParam): string {
   const label = param.label || param.paramName;
-  return label.replace(/\|PB=[^|]*__(.+)$/, "$1");
+  return cleanFieldLabel(label);
 }
 
 function populateMacroBlock(
