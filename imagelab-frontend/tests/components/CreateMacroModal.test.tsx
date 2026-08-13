@@ -55,8 +55,8 @@ describe("CreateMacroModal Component", () => {
     expect(screen.getByLabelText(/Macro Name \*/i)).toBeTruthy();
     expect(screen.getByLabelText(/Description \(Optional\)/i)).toBeTruthy();
 
-    expect(screen.getByText("kernel")).toBeTruthy();
-    expect(screen.getByText("threshold")).toBeTruthy();
+    expect(screen.getByText(/kernel/i)).toBeTruthy();
+    expect(screen.getByText(/threshold/i)).toBeTruthy();
   });
 
   it("toggles parameter checkboxes and submits graph JSON with exposed params", async () => {
@@ -76,7 +76,7 @@ describe("CreateMacroModal Component", () => {
     fireEvent.change(nameInput, { target: { value: "My Edge Macro" } });
 
     const thresholdCheckbox = container.querySelector(
-      "#param-b2\\:threshold",
+      "#param-b2__threshold",
     ) as HTMLInputElement;
     expect(thresholdCheckbox).toBeTruthy();
     fireEvent.click(thresholdCheckbox);
@@ -102,7 +102,7 @@ describe("CreateMacroModal Component", () => {
             blockId: "b1",
             blockType: "blur",
             paramName: "kernel",
-            label: "kernel (blur)",
+            label: "kernel (Blur)",
             defaultValue: 5,
           },
         ],

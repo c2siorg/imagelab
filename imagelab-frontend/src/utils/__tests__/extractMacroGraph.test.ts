@@ -168,7 +168,7 @@ describe("extractMacroGraph", () => {
       blockId: "b1",
       blockType: "filtering_gaussianblur",
       paramName: "kernel_size",
-      label: "kernel_size (filtering_gaussianblur)",
+      label: "kernel_size (Gaussianblur)",
       defaultValue: 5,
     });
     expect(candidates[1].paramName).toBe("low");

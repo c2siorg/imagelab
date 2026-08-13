@@ -5,6 +5,7 @@ import "@blockly/field-colour";
 import "@blockly/field-slider";
 import { WorkspaceSearch } from "@blockly/plugin-workspace-search";
 import { usePipelineStore } from "../store/pipelineStore";
+import { useMacroStore } from "../store/useMacroStore";
 import { imagelabTheme, imagelabThemeDark } from "../blocks/theme";
 import { SINGLETON_BLOCK_TYPES } from "../utils/blockLimits";
 import { loadPersistedImageState } from "./imagePersistence";
@@ -172,6 +173,8 @@ export function useBlocklyWorkspace({
 
     workspaceRef.current = ws;
     setWorkspace(ws);
+    // Directly set workspace reference in macro store for deletion guards and canvas sync
+    useMacroStore.getState().setWorkspace(ws);
     Blockly.svgResize(ws);
     if (containerRef.current && typeof ResizeObserver !== "undefined") {
       const observer = new ResizeObserver(() => {
@@ -181,12 +184,15 @@ export function useBlocklyWorkspace({
       resizeObserverRef.current = observer;
     }
     updateBlockStats(ws); // Initial stats calculation if any blocks loaded
-    // isDark is intentionally omitted from deps: initWorkspace is a one-shot
-    // initializer (guarded by workspaceRef.current). Live theme toggles are
-    // handled by the setTheme useEffect above, so adding isDark here would
-    // dispose and recreate the workspace on every toggle, losing user blocks.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inspectStep, readOnly, setActiveStep, setSelectedBlock, setWorkspaceDirty, updateBlockStats]);
+  }, [
+    isDark,
+    inspectStep,
+    readOnly,
+    setActiveStep,
+    setSelectedBlock,
+    setWorkspaceDirty,
+    updateBlockStats,
+  ]);
 
   useEffect(() => {
     initWorkspace();
@@ -206,6 +212,8 @@ export function useBlocklyWorkspace({
         workspaceRef.current.dispose();
         workspaceRef.current = null;
         setWorkspace(null);
+        // Directly clear workspace reference in macro store
+        useMacroStore.getState().setWorkspace(null);
       }
     };
   }, [initWorkspace]);

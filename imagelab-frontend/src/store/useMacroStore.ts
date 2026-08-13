@@ -8,6 +8,7 @@ import type {
   MacroVersion,
 } from "../types/macro";
 import { registerMacroBlock, refreshMacroBlockInstances } from "../blocks/macroBlock";
+import { safeDeleteMacro } from "../utils/macroDeletionGuards";
 
 function definitionFromVersion(macro: MacroVersion): MacroDefinition {
   return {
@@ -31,6 +32,7 @@ export interface MacroState {
   selectedMacro: MacroVersion | null;
   isLoading: boolean;
   error: string | null;
+  deletionError: string | null;
   workspace: Blockly.WorkspaceSvg | null;
   setWorkspace: (workspace: Blockly.WorkspaceSvg | null) => void;
 
@@ -42,6 +44,7 @@ export interface MacroState {
   removeMacro: (id: string) => Promise<void>;
   setSelectedMacro: (macro: MacroVersion | null) => void;
   clearError: () => void;
+  clearDeletionError: () => void;
 }
 
 export const useMacroStore = create<MacroState>((set, get) => ({
@@ -49,6 +52,7 @@ export const useMacroStore = create<MacroState>((set, get) => ({
   selectedMacro: null,
   isLoading: false,
   error: null,
+  deletionError: null,
   workspace: null,
 
   loadMacros: async () => {
@@ -145,8 +149,15 @@ export const useMacroStore = create<MacroState>((set, get) => ({
   },
 
   removeMacro: async (id: string) => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true, error: null, deletionError: null });
     try {
+      // Run deletion guards before attempting deletion
+      const guardResult = safeDeleteMacro(get().workspace, id, get().macros);
+      if (!guardResult.canDelete) {
+        set({ deletionError: guardResult.error ?? "Cannot delete macro", isLoading: false });
+        throw new Error(guardResult.error);
+      }
+
       await macroApi.deleteMacro(id);
       const currentSelected = get().selectedMacro;
       if (currentSelected && currentSelected.macro_id === id) {
@@ -156,7 +167,7 @@ export const useMacroStore = create<MacroState>((set, get) => ({
       set({ isLoading: false });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : `Failed to delete macro ${id}`;
-      set({ error: message, isLoading: false });
+      set({ deletionError: message, isLoading: false });
       throw err;
     }
   },
@@ -166,4 +177,6 @@ export const useMacroStore = create<MacroState>((set, get) => ({
   setWorkspace: (workspace) => set({ workspace }),
 
   clearError: () => set({ error: null }),
+
+  clearDeletionError: () => set({ deletionError: null }),
 }));
