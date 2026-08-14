@@ -3,40 +3,54 @@ import type { PipelineStep } from "../types/pipeline";
 import { expandPipelineMacros } from "../utils/expandPipelineMacros";
 import type { PipelineGraph } from "../types/macro";
 
-// Blockly inputTypes.VALUE = 1 (value input connections)
 const INPUT_TYPE_VALUE = 1;
+const INPUT_TYPE_STATEMENT = 3;
+
+function extractStepChain(startBlock: Blockly.Block | null): PipelineStep[] {
+  const chain: PipelineStep[] = [];
+  let curr = startBlock;
+  while (curr) {
+    const params: Record<string, unknown> = {};
+    if (Array.isArray(curr.inputList)) {
+      curr.inputList.forEach((input) => {
+        input.fieldRow.forEach((field) => {
+          if (field.name) {
+            params[field.name] = field.getValue();
+          }
+        });
+        const connectedBlock = input.connection?.targetBlock
+          ? input.connection.targetBlock()
+          : null;
+        if (connectedBlock && (input.type as number) === INPUT_TYPE_VALUE) {
+          connectedBlock.inputList.forEach((childInput) => {
+            childInput.fieldRow.forEach((field) => {
+              if (field.name) {
+                params[field.name] = field.getValue();
+              }
+            });
+          });
+        } else if (connectedBlock && (input.type as number) === INPUT_TYPE_STATEMENT) {
+          const subChain = extractStepChain(connectedBlock);
+          if (input.name === "OP1") params["op1_branch"] = subChain;
+          else if (input.name === "OP2") params["op2_branch"] = subChain;
+          else if (input.name === "IF_BRANCH") params["if_branch"] = subChain;
+          else if (input.name === "ELSE_BRANCH") params["else_branch"] = subChain;
+          else params[input.name.toLowerCase()] = subChain;
+        }
+      });
+    }
+    chain.push({ block_id: curr.id, type: curr.type, params });
+    curr = typeof curr.getNextBlock === "function" ? curr.getNextBlock() : null;
+  }
+  return chain;
+}
 
 export function extractPipeline(workspace: Blockly.WorkspaceSvg): PipelineStep[] {
   const allBlocks = workspace.getTopBlocks(true);
   const readBlock = allBlocks.find((b) => b.type === "basic_readimage");
   if (!readBlock) return [];
 
-  const pipeline: PipelineStep[] = [];
-  let block: Blockly.Block | null = readBlock;
-  while (block) {
-    const params: Record<string, unknown> = {};
-    block.inputList.forEach((input) => {
-      input.fieldRow.forEach((field) => {
-        if (field.name) {
-          params[field.name] = field.getValue();
-        }
-      });
-      // Traverse input_value connections (e.g., border blocks plugged into applyborders)
-      const connectedBlock = input.connection?.targetBlock();
-      if (connectedBlock && (input.type as number) === INPUT_TYPE_VALUE) {
-        connectedBlock.inputList.forEach((childInput) => {
-          childInput.fieldRow.forEach((field) => {
-            if (field.name) {
-              params[field.name] = field.getValue();
-            }
-          });
-        });
-      }
-    });
-    pipeline.push({ block_id: block.id, type: block.type, params });
-    block = block.getNextBlock();
-  }
-  return pipeline;
+  return extractStepChain(readBlock);
 }
 
 /** Extract and unroll macros immediately before an execution request. */

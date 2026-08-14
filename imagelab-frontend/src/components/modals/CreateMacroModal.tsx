@@ -236,7 +236,7 @@ export default function CreateMacroModal({ selectedBlocks, onClose }: CreateMacr
                       />
 
                       {/* 🟢 DISPLAY CLEAN HUMAN LABEL HERE (NO RANDOM HASHES) */}
-                      <span className="text-sm font-medium text-gray-800">
+                      <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
                         {c.label ?? `${c.paramName} (${c.blockType})`}
                       </span>
                     </label>

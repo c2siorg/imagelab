@@ -231,3 +231,38 @@ def test_macro_expansion_and_step_inspection(client: TestClient, session: Sessio
     inspect_data = inspect_res.json()
     assert inspect_data["success"]
     assert inspect_data["type"] == "imageconvertions_grayimage"
+
+
+def test_control_flow_macro_pipeline_execution(client: TestClient, sample_image_b64: str):
+    execute_payload = {
+        "image": sample_image_b64,
+        "image_format": "png",
+        "pipeline": [
+            {
+                "type": "macro_blend",
+                "block_id": "blend_node",
+                "params": {
+                    "alpha": 0.5,
+                    "op1_branch": [{"type": "imageconvertions_grayimage"}],
+                    "op2_branch": [{"type": "blurring_applyblur", "params": {"widthSize": 5, "heightSize": 5}}],
+                },
+            },
+            {
+                "type": "macro_if_else",
+                "block_id": "if_else_node",
+                "params": {
+                    "metric": "mean_brightness",
+                    "comparator": ">",
+                    "threshold": 10.0,
+                    "if_branch": [{"type": "imageconvertions_grayimage"}],
+                    "else_branch": [],
+                },
+            },
+        ],
+    }
+
+    res = client.post("/api/v1/pipeline/executions", json=execute_payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is True
+    assert data["image"] is not None

@@ -15,6 +15,16 @@ class AppException(Exception):
         super().__init__(message)
 
 
+class PipelineExecutionError(Exception):
+    """Structured error for pipeline step execution failures."""
+
+    def __init__(self, step_id: str, step_type: str, user_friendly_message: str):
+        self.step_id = step_id
+        self.step_type = step_type
+        self.user_friendly_message = user_friendly_message
+        super().__init__(user_friendly_message)
+
+
 async def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:
     return JSONResponse(
         status_code=exc.status_code,

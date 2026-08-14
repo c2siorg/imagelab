@@ -1,7 +1,9 @@
 import logging
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import JSONResponse
 
+from app.exceptions import PipelineExecutionError
 from app.models.pipeline import PipelineRequest, PipelineResponse, StepInspectResponse
 from app.services.pipeline_executor import execute_pipeline, inspect_step
 
@@ -33,6 +35,17 @@ def create_execution(request: PipelineRequest):
     # asynchronous.
     try:
         return execute_pipeline(request)
+    except PipelineExecutionError as e:
+        logger.error(f"Pipeline execution error: {e}")
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error": "STEP_EXECUTION_FAILED",
+                "step_id": e.step_id,
+                "step_type": e.step_type,
+                "message": e.user_friendly_message,
+            },
+        )
     except Exception:
         logger.exception("Unexpected error during pipeline execution")
         raise HTTPException(status_code=500, detail="Internal pipeline error") from None

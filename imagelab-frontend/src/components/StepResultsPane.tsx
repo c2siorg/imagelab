@@ -292,7 +292,24 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error");
+      if (err instanceof Error) {
+        // Try to parse structured error from backend
+        try {
+          const errorData = JSON.parse(err.message);
+          if (errorData.error === "STEP_EXECUTION_FAILED") {
+            setError(
+              `Step execution failed in ${errorData.step_type}: ${errorData.message}`,
+              parseInt(errorData.step_id) || undefined,
+            );
+          } else {
+            setError(err.message);
+          }
+        } catch {
+          setError(err.message);
+        }
+      } else {
+        setError("Network error");
+      }
       setTiming(null);
     } finally {
       setExecuting(false);
@@ -370,7 +387,12 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
           )}
           {!step.success && (
             <div className="truncate text-[10px] text-red-500 dark:text-red-400">
-              {step.error ?? "Failed"}
+              {step.error
+                ? step.error
+                    .replace(/arithm\.cpp:\d+.*$/, "")
+                    .replace(/cv::Error:.*/, "")
+                    .trim() || "Failed"
+                : "Failed"}
             </div>
           )}
         </div>

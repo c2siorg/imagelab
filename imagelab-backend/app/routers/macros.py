@@ -81,6 +81,31 @@ def _get_macro_or_404(session: Session, macro_id: uuid.UUID) -> Pipeline:
     return macro
 
 
+def _extract_macro_ids_from_nodes(nodes: list[dict[str, Any]]) -> set[str]:
+    """Recursively extract all macro_id references from a list of graph nodes."""
+    macro_ids: set[str] = set()
+    for node in nodes:
+        node_type = node.get("type") or node.get("op")
+        params = node.get("params", {})
+
+        if node_type == "macro_ref":
+            macro_id = params.get("macro_id")
+            if macro_id:
+                macro_ids.add(macro_id)
+        elif node_type in ("macro_blend", "macro_if_else"):
+            # Recursively scan control-flow branches
+            op1_branch = params.get("op1_branch") or params.get("OP1") or []
+            op2_branch = params.get("op2_branch") or params.get("OP2") or []
+            if_branch = params.get("if_branch") or params.get("IF_BRANCH") or []
+            else_branch = params.get("else_branch") or params.get("ELSE_BRANCH") or []
+
+            for branch in (op1_branch, op2_branch, if_branch, else_branch):
+                if branch:
+                    macro_ids.update(_extract_macro_ids_from_nodes(branch))
+
+    return macro_ids
+
+
 def _check_macro_in_use(session: Session, macro_id: uuid.UUID) -> bool:
     """Return True if macro_id is referenced in any existing pipeline or macro's latest PipelineVersion."""
     macro_id_str = str(macro_id)
@@ -109,12 +134,9 @@ def _check_macro_in_use(session: Session, macro_id: uuid.UUID) -> bool:
             continue
         p_json = ver.pipeline_json or {}
         nodes = p_json.get("nodes", [])
-        for node in nodes:
-            node_type = node.get("type") or node.get("op")
-            if node_type == "macro_ref":
-                params = node.get("params", {})
-                if params.get("macro_id") == macro_id_str:
-                    return True
+        referenced_macro_ids = _extract_macro_ids_from_nodes(nodes)
+        if macro_id_str in referenced_macro_ids:
+            return True
     return False
 
 
