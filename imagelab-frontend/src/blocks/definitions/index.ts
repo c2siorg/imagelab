@@ -11,6 +11,7 @@ import { sobelDerivativesBlocks } from "./sobel-derivatives.blocks";
 import { transformationBlocks } from "./transformation.blocks";
 import { augmentationBlocks } from "./augmentation.blocks";
 import { segmentationBlocks } from "./segmentation.blocks";
+import { controlFlowBlocks, registerControlFlowBlocks } from "./controlFlow.blocks";
 
 function registerOddKernelValidator() {
   if (Blockly.Extensions.isRegistered("odd_kernel_validator")) return;
@@ -111,6 +112,7 @@ function extractDefaults(blockDef: unknown): Record<string, unknown> {
 export function registerAllBlocks() {
   registerReadImageExtension();
   registerOddKernelValidator();
+  registerControlFlowBlocks();
 
   const allBlockDefs = [
     ...basicBlocks,
@@ -124,6 +126,7 @@ export function registerAllBlocks() {
     ...transformationBlocks,
     ...augmentationBlocks,
     ...segmentationBlocks,
+    ...controlFlowBlocks,
   ];
 
   // Pre-compute defaults for each block type

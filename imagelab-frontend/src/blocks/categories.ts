@@ -148,4 +148,13 @@ export const categories: CategoryInfo[] = [
       { type: "transformation_laplacian", label: "Laplacian" },
     ],
   },
+  {
+    name: "Advanced control flow macros",
+    icon: "Workflow",
+    colour: "#7058a3",
+    blocks: [
+      { type: "macro_blend", label: "Parallel Blend" },
+      { type: "macro_if_else", label: "Conditional (If/Else)" },
+    ],
+  },
 ];

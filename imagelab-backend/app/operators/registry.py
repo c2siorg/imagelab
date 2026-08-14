@@ -1,3 +1,4 @@
+from app.operators.arithmetic.add_weighted import ArithmeticAddWeighted
 from app.operators.augmentation.gaussian_noise import GaussianNoise
 from app.operators.augmentation.salt_pepper_noise import SaltPepperNoise
 from app.operators.augmentation.sepia_filter import SepiaFilter
@@ -130,6 +131,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "segmentation_kmeans": KMeansSegmentation,
     "segmentation_meanshift": MeanShiftSegmentation,
     "laplacian": FilteringLaplacian,
+    "arithmetic_addweighted": ArithmeticAddWeighted,
 }
 
 

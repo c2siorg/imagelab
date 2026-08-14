@@ -5,11 +5,13 @@ from threading import RLock
 import cv2
 import numpy as np
 
+from app.exceptions import PipelineExecutionError
 from app.models.pipeline import (
     ImageAnalysis,
     ImageHistogram,
     PipelineRequest,
     PipelineResponse,
+    PipelineStep,
     PipelineTimings,
     StepResult,
     StepTiming,
@@ -24,6 +26,188 @@ MAX_EXECUTION_CACHE_ENTRIES = 25
 
 _EXECUTION_CACHE: dict[str, dict[str, object]] = {}
 _EXECUTION_CACHE_LOCK = RLock()
+
+
+def _evaluate_condition(image: np.ndarray, params: dict) -> bool:
+    metric_name = str(params.get("metric") or params.get("condition_metric") or "mean_brightness").lower()
+    comparator = str(params.get("comparator") or params.get("operator") or ">")
+    threshold = float(params.get("threshold", 0))
+
+    if metric_name == "mean_brightness":
+        val = float(cv2.mean(image)[0])
+    elif metric_name == "width":
+        val = float(image.shape[1])
+    elif metric_name == "height":
+        val = float(image.shape[0])
+    else:
+        val = float(cv2.mean(image)[0])
+
+    if comparator == ">":
+        return val > threshold
+    elif comparator == "<":
+        return val < threshold
+    elif comparator == "==":
+        return abs(val - threshold) < 1e-6
+    elif comparator == ">=":
+        return val >= threshold
+    elif comparator == "<=":
+        return val <= threshold
+    elif comparator == "!=":
+        return abs(val - threshold) >= 1e-6
+    return val > threshold
+
+
+def _run_sub_pipeline(steps: list, current_image: np.ndarray) -> np.ndarray:
+    img = current_image.copy()
+    for s in steps:
+        if isinstance(s, dict):
+            step_type = s.get("type", "")
+            step_params = s.get("params", {})
+            step_id = s.get("block_id", "")
+        else:
+            step_type = getattr(s, "type", "")
+            step_params = getattr(s, "params", {})
+            step_id = getattr(s, "block_id", "")
+
+        if step_type in NOOP_TYPES or not step_type:
+            continue
+
+        try:
+            if step_type == "macro_blend":
+                img = _execute_macro_blend(step_params, img)
+            elif step_type == "macro_if_else":
+                img = _execute_macro_if_else(step_params, img)
+            else:
+                op_cls = get_operator(step_type)
+                if op_cls is None:
+                    raise ValueError(f"Unknown operator '{step_type}'")
+                op = op_cls(step_params)
+                img = op.compute(img)
+        except ValueError as e:
+            # Convert ValueError to PipelineExecutionError with step context
+            raise PipelineExecutionError(
+                step_id=step_id or step_type,
+                step_type=step_type,
+                user_friendly_message=str(e),
+            ) from e
+    return img
+
+
+def _execute_macro_blend(params: dict, image: np.ndarray) -> np.ndarray:
+    alpha = float(params.get("alpha", 0.5))
+    beta = float(params.get("beta", 1.0 - alpha))
+
+    op1_steps = params.get("op1_branch") or params.get("OP1") or []
+    op2_steps = params.get("op2_branch") or params.get("OP2") or []
+
+    img1 = _run_sub_pipeline(op1_steps, image)
+    img2 = _run_sub_pipeline(op2_steps, image)
+
+    if img2.shape[:2] != img1.shape[:2]:
+        img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]), interpolation=cv2.INTER_AREA)
+
+    if img1.ndim != img2.ndim:
+        if img1.ndim == 2 and img2.ndim == 3:
+            img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+        elif img1.ndim == 3 and img2.ndim == 2:
+            img2 = cv2.cvtColor(img2, cv2.COLOR_GRAY2BGR)
+
+    try:
+        return cv2.addWeighted(img1, alpha, img2, beta, 0.0)
+    except Exception as err:
+        raise ValueError(
+            "Failed to blend branch outputs: mismatched image dimensions, channels, or data types."
+        ) from err
+
+
+def _execute_macro_if_else(params: dict, image: np.ndarray) -> np.ndarray:
+    cond = _evaluate_condition(image, params)
+    if_branch = params.get("if_branch") or params.get("IF_BRANCH") or []
+    else_branch = params.get("else_branch") or params.get("ELSE_BRANCH") or []
+    selected = if_branch if cond else else_branch
+    return _run_sub_pipeline(selected, image)
+
+
+def expand_macro_steps(steps: list[PipelineStep], session=None) -> list[PipelineStep]:
+    """
+    Recursively unrolls any macro steps in a flat list of PipelineSteps.
+    Supports macro_blend, macro_if_else, and DB-persisted macro_ref steps.
+    """
+    expanded: list[PipelineStep] = []
+    for step in steps:
+        if step.type == "macro_blend":
+            params = dict(step.params)
+            op1_branch = params.get("op1_branch") or params.get("OP1") or []
+            op2_branch = params.get("op2_branch") or params.get("OP2") or []
+
+            def _to_steps(raw_list):
+                res = []
+                for item in raw_list:
+                    if isinstance(item, PipelineStep):
+                        res.append(item)
+                    elif isinstance(item, dict):
+                        res.append(PipelineStep(**item))
+                return res
+
+            exp_op1 = expand_macro_steps(_to_steps(op1_branch), session=session)
+            exp_op2 = expand_macro_steps(_to_steps(op2_branch), session=session)
+            alpha = float(params.get("alpha", 0.5))
+            params["op1_branch"] = [s.model_dump() for s in exp_op1]
+            params["op2_branch"] = [s.model_dump() for s in exp_op2]
+            params["OP1"] = params["op1_branch"]
+            params["OP2"] = params["op2_branch"]
+            params["alpha"] = alpha
+            params["beta"] = 1.0 - alpha
+            expanded.append(PipelineStep(type=step.type, block_id=step.block_id, params=params))
+        elif step.type == "macro_if_else":
+            params = dict(step.params)
+            if_branch = params.get("if_branch") or params.get("IF_BRANCH") or []
+            else_branch = params.get("else_branch") or params.get("ELSE_BRANCH") or []
+
+            def _to_steps(raw_list):
+                res = []
+                for item in raw_list:
+                    if isinstance(item, PipelineStep):
+                        res.append(item)
+                    elif isinstance(item, dict):
+                        res.append(PipelineStep(**item))
+                return res
+
+            exp_if = expand_macro_steps(_to_steps(if_branch), session=session)
+            exp_else = expand_macro_steps(_to_steps(else_branch), session=session)
+            params["if_branch"] = [s.model_dump() for s in exp_if]
+            params["else_branch"] = [s.model_dump() for s in exp_else]
+            params["IF_BRANCH"] = params["if_branch"]
+            params["ELSE_BRANCH"] = params["else_branch"]
+            expanded.append(PipelineStep(type=step.type, block_id=step.block_id, params=params))
+        elif step.type == "macro_ref" or (step.params.get("macro_id") and step.type.startswith("macro")):
+            if session is not None:
+                import uuid
+
+                from app.services.graph_engine import prepare_pipeline
+
+                macro_id_str = step.params.get("macro_id")
+                if not macro_id_str:
+                    raise ValueError(f"Step {step.block_id} is a macro reference but missing 'macro_id' parameter.")
+                macro_id = uuid.UUID(str(macro_id_str))
+                sub_steps = prepare_pipeline(session, macro_id, input_channels=3)
+                # Recursively expand nested macros inside the sub-steps
+                expanded_sub_steps = expand_macro_steps(sub_steps, session=session)
+                prefix = step.block_id or f"macro_{macro_id}"
+                for sub_step in expanded_sub_steps:
+                    new_block_id = f"{prefix}:{sub_step.block_id}" if sub_step.block_id else prefix
+                    expanded.append(
+                        PipelineStep(
+                            type=sub_step.type,
+                            block_id=new_block_id,
+                            params=sub_step.params,
+                        )
+                    )
+            else:
+                expanded.append(step)
+        else:
+            expanded.append(step)
+    return expanded
 
 
 # Thread-safety: this function is safe to call concurrently from FastAPI's
@@ -62,34 +246,40 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
         if step.type in NOOP_TYPES:
             continue
 
-        operator_cls = get_operator(step.type)
-        if operator_cls is None:
-            t_fail = time.perf_counter()
-            step_results.append(
-                StepResult(
-                    index=i + 1,
-                    block_id=step.block_id,
-                    type=step.type,
-                    success=False,
-                    image_format=request.image_format,
-                    error=f"Unknown operator '{step.type}'",
-                )
-            )
-            _store_execution(execution_id, full_images)
-            return PipelineResponse(
-                success=False,
-                execution_id=execution_id,
-                error=f"Unknown operator '{step.type}' at step {i + 1}",
-                step=i + 1,
-                error_block_id=step.block_id,
-                timings=PipelineTimings(total_ms=(t_fail - t_start_total) * 1000, steps=step_timings),
-                step_results=step_results,
-            )
-
         try:
             t_step_start = time.perf_counter()
-            operator = operator_cls(step.params)
-            image = operator.compute(image)
+            if step.type == "macro_blend":
+                image = _execute_macro_blend(step.params, image)
+            elif step.type == "macro_if_else":
+                image = _execute_macro_if_else(step.params, image)
+            else:
+                operator_cls = get_operator(step.type)
+                if operator_cls is None:
+                    t_fail = time.perf_counter()
+                    step_results.append(
+                        StepResult(
+                            index=i + 1,
+                            block_id=step.block_id,
+                            type=step.type,
+                            success=False,
+                            image_format=request.image_format,
+                            error=f"Unknown operator '{step.type}'",
+                        )
+                    )
+                    _store_execution(execution_id, full_images)
+                    return PipelineResponse(
+                        success=False,
+                        execution_id=execution_id,
+                        error=f"Unknown operator '{step.type}' at step {i + 1}",
+                        step=i + 1,
+                        error_block_id=step.block_id,
+                        timings=PipelineTimings(total_ms=(t_fail - t_start_total) * 1000, steps=step_timings),
+                        step_results=step_results,
+                    )
+
+                operator = operator_cls(step.params)
+                image = operator.compute(image)
+
             t_step_end = time.perf_counter()
             timing_ms = (t_step_end - t_step_start) * 1000
             step_timings.append(StepTiming(step=i + 1, operator_type=step.type, duration_ms=timing_ms))
@@ -115,6 +305,27 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
                     has_full_image=True,
                 )
             )
+        except ValueError as e:
+            # Convert ValueError (from operators) to PipelineExecutionError
+            t_fail = time.perf_counter()
+            step_id = step.block_id or str(i + 1)
+            error_msg = str(e)
+            step_results.append(
+                StepResult(
+                    index=i + 1,
+                    block_id=step.block_id,
+                    type=step.type,
+                    success=False,
+                    image_format=request.image_format,
+                    error=error_msg,
+                )
+            )
+            _store_execution(execution_id, full_images)
+            raise PipelineExecutionError(
+                step_id=step_id,
+                step_type=step.type,
+                user_friendly_message=error_msg,
+            ) from e
         except Exception as e:
             t_fail = time.perf_counter()
             step_results.append(

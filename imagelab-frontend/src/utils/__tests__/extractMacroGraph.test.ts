@@ -234,4 +234,70 @@ describe("extractMacroGraph", () => {
     expect(getSelectedBlocks(null)).toEqual([]);
     expect(getSelectedBlocks(mockWs)).toEqual([]);
   });
+
+  it("extracts macro_blend block statement branches and parameters cleanly", () => {
+    const child1 = createMockBlock("c1", "imageconvertions_grayimage");
+    const child2 = createMockBlock("c2", "blurring_applyblur");
+
+    const blendBlock = createMockBlock("blend1", "macro_blend", [
+      createMockInput(undefined, [createMockField("alpha", 0.7)]),
+      createMockInput("OP1", [], { type: 3, connected: child1 }),
+      createMockInput("OP2", [], { type: 3, connected: child2 }),
+    ]);
+
+    const downstreamBlock = createMockBlock("down1", "filtering_cannyedge");
+    (blendBlock as unknown as { getNextBlock: () => MockBlock | null }).getNextBlock = () =>
+      downstreamBlock;
+
+    const graph = extractMacroGraph([
+      blendBlock as unknown as Blockly.Block,
+      downstreamBlock as unknown as Blockly.Block,
+    ]);
+
+    expect(graph.nodes).toHaveLength(2);
+
+    const blendNode = graph.nodes[0];
+    expect(blendNode?.type).toBe("macro_blend");
+    expect(blendNode?.params?.alpha).toBe(0.7);
+
+    const op1Branch = (blendNode?.params?.op1_branch ?? []) as MockBlock[];
+    const op2Branch = (blendNode?.params?.op2_branch ?? []) as MockBlock[];
+
+    expect(op1Branch).toBeDefined();
+    expect(op2Branch).toBeDefined();
+    expect(op1Branch[0]?.type).toBe("imageconvertions_grayimage");
+    expect(op2Branch[0]?.type).toBe("blurring_applyblur");
+  });
+
+  it("extracts macro_if_else block statement branches and parameters cleanly", () => {
+    const ifChild = createMockBlock("ic1", "imageconvertions_grayimage");
+    const elseChild = createMockBlock("ec1", "blurring_applyblur");
+
+    const ifElseBlock = createMockBlock("ifelse1", "macro_if_else", [
+      createMockInput(undefined, [
+        createMockField("metric", "mean_brightness"),
+        createMockField("comparator", ">"),
+        createMockField("threshold", 128),
+      ]),
+      createMockInput("IF_BRANCH", [], { type: 3, connected: ifChild }),
+      createMockInput("ELSE_BRANCH", [], { type: 3, connected: elseChild }),
+    ]);
+
+    const downstreamBlock = createMockBlock("down2", "filtering_cannyedge");
+    (ifElseBlock as unknown as { getNextBlock: () => MockBlock | null }).getNextBlock = () =>
+      downstreamBlock;
+
+    const graph = extractMacroGraph([
+      ifElseBlock as unknown as Blockly.Block,
+      downstreamBlock as unknown as Blockly.Block,
+    ]);
+
+    expect(graph.nodes).toHaveLength(2);
+    expect(graph.nodes[0]!.type).toBe("macro_if_else");
+    expect(graph.nodes[0]!.params!.metric).toBe("mean_brightness");
+    expect(graph.nodes[0]!.params!.comparator).toBe(">");
+    expect(graph.nodes[0]!.params!.threshold).toBe(128);
+    expect(graph.nodes[0]!.params!.if_branch).toBeDefined();
+    expect(graph.nodes[0]!.params!.else_branch).toBeDefined();
+  });
 });

@@ -195,3 +195,63 @@ def test_calculate_histogram_normal_image_no_downsample():
     # For a completely black 100x100 BGR image, the pixel sum should be 100 * 100 = 10000
     assert sum(hist.luminance) == 10000
     assert sum(hist.red) == 10000
+
+
+def test_macro_blend_execution_and_unrolling(make_request):
+    steps = [
+        PipelineStep(
+            type="macro_blend",
+            block_id="blend_1",
+            params={
+                "alpha": 0.5,
+                "op1_branch": [{"type": "imageconvertions_grayimage"}],
+                "op2_branch": [{"type": "blurring_applyblur", "params": {"widthSize": 3, "heightSize": 3}}],
+            },
+        )
+    ]
+
+    expanded = pipeline_executor.expand_macro_steps(steps)
+    assert len(expanded) == 1
+    assert expanded[0].type == "macro_blend"
+    assert expanded[0].params["alpha"] == 0.5
+    assert expanded[0].params["beta"] == 0.5
+
+    res = execute_pipeline(make_request(steps))
+    assert res.success is True
+    assert res.image is not None
+    assert len(res.step_results) == 1
+
+
+def test_macro_if_else_execution_branch_routing(make_request):
+    black_img = base64.b64encode(pipeline_executor.encode_image_bytes(np.zeros((50, 50, 3), dtype=np.uint8))).decode()
+    white_img = base64.b64encode(
+        pipeline_executor.encode_image_bytes(np.full((50, 50, 3), 255, dtype=np.uint8))
+    ).decode()
+
+    steps = [
+        PipelineStep(
+            type="macro_if_else",
+            block_id="if_else_1",
+            params={
+                "metric": "mean_brightness",
+                "comparator": ">",
+                "threshold": 100.0,
+                "if_branch": [{"type": "imageconvertions_grayimage"}],
+                "else_branch": [{"type": "blurring_applyblur", "params": {"widthSize": 3, "heightSize": 3}}],
+            },
+        )
+    ]
+
+    # White image -> mean > 100 is True -> executes if_branch (grayimage)
+    req_white = PipelineRequest(image=white_img, pipeline=steps)
+    res_white = execute_pipeline(req_white)
+    assert res_white.success is True
+    out_white = decode_base64_image(res_white.image)
+    assert out_white.ndim == 2 or (out_white.ndim == 3 and out_white.shape[2] == 1)
+
+    # Black image -> mean > 100 is False -> executes else_branch (applyblur)
+    req_black = PipelineRequest(image=black_img, pipeline=steps)
+    res_black = execute_pipeline(req_black)
+    assert res_black.success is True
+    out_black = decode_base64_image(res_black.image)
+    assert out_black.ndim == 3 and out_black.shape[2] == 3

@@ -126,6 +126,48 @@ export function getBlocksBetween(
   );
 }
 
+const INPUT_TYPE_STATEMENT = 3;
+
+function extractStatementBranch(startBlock: Blockly.Block | null): Array<Record<string, unknown>> {
+  const branch: Array<Record<string, unknown>> = [];
+  let curr = startBlock;
+  while (curr) {
+    const childParams: Record<string, unknown> = {};
+    if (Array.isArray(curr.inputList)) {
+      curr.inputList.forEach((inItem) => {
+        if (Array.isArray(inItem.fieldRow)) {
+          inItem.fieldRow.forEach((f) => {
+            const fname = f.name ?? "";
+            if (fname && !STATIC_FIELD_NAMES.has(fname)) {
+              childParams[fname] =
+                typeof f.getValue === "function" ? f.getValue() : (f as ExtendedField).value;
+            }
+          });
+        }
+        if ((inItem.type as number) === INPUT_TYPE_STATEMENT && inItem.connection?.targetBlock) {
+          const subTarget = inItem.connection.targetBlock();
+          if (subTarget) {
+            const subBranch = extractStatementBranch(subTarget);
+            if (inItem.name === "OP1") childParams["op1_branch"] = subBranch;
+            else if (inItem.name === "OP2") childParams["op2_branch"] = subBranch;
+            else if (inItem.name === "IF_BRANCH") childParams["if_branch"] = subBranch;
+            else if (inItem.name === "ELSE_BRANCH") childParams["else_branch"] = subBranch;
+            else childParams[inItem.name ? inItem.name.toLowerCase() : "branch"] = subBranch;
+          }
+        }
+      });
+    }
+    branch.push({
+      id: curr.id,
+      type: curr.type,
+      op: curr.type,
+      params: childParams,
+    });
+    curr = typeof curr.getNextBlock === "function" ? curr.getNextBlock() : null;
+  }
+  return branch;
+}
+
 export function extractMacroGraph(selectedBlocks: Blockly.Block[]): PipelineGraph {
   const includedBlocks = filterMacroBlocks(selectedBlocks);
   if (!includedBlocks || includedBlocks.length < 2) {
@@ -188,6 +230,21 @@ export function extractMacroGraph(selectedBlocks: Blockly.Block[]): PipelineGrap
           if (selectedIds.has(connected.id)) {
             // Directed edge from connected block to current block on this input port
             addEdge(connected.id, block.id, input.name || null);
+          } else if ((input.type as number) === INPUT_TYPE_STATEMENT) {
+            const statementBranch = extractStatementBranch(connected);
+            if (input.name === "OP1") {
+              params["op1_branch"] = statementBranch;
+              params["OP1"] = statementBranch;
+            } else if (input.name === "OP2") {
+              params["op2_branch"] = statementBranch;
+              params["OP2"] = statementBranch;
+            } else if (input.name === "IF_BRANCH") {
+              params["if_branch"] = statementBranch;
+              params["IF_BRANCH"] = statementBranch;
+            } else if (input.name === "ELSE_BRANCH") {
+              params["else_branch"] = statementBranch;
+              params["ELSE_BRANCH"] = statementBranch;
+            }
           } else if (
             (input.type as number) === INPUT_TYPE_VALUE &&
             Array.isArray(connected.inputList)

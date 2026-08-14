@@ -256,7 +256,24 @@ export default function Toolbar({ workspace }: ToolbarProps) {
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error");
+      if (err instanceof Error) {
+        // Try to parse structured error from backend
+        try {
+          const errorData = JSON.parse(err.message);
+          if (errorData.error === "STEP_EXECUTION_FAILED") {
+            setError(
+              `Step execution failed in ${errorData.step_type}: ${errorData.message}`,
+              parseInt(errorData.step_id) || undefined,
+            );
+          } else {
+            setError(err.message);
+          }
+        } catch {
+          setError(err.message);
+        }
+      } else {
+        setError("Network error");
+      }
       setTiming(null);
     } finally {
       setExecuting(false);
