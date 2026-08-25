@@ -11,11 +11,11 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { createBatchJob, getBatchJobStatus, getBatchJobDownloadUrl } from "../api/batch";
-import type { PipelineStep } from "../types/pipeline";
+import type { PipelineGraph } from "../types/macro";
 import type { BatchJobSummary } from "../types/batch";
 
 interface BatchProcessingModalProps {
-  pipeline: PipelineStep[];
+  graph: PipelineGraph;
   onClose: () => void;
 }
 
@@ -27,7 +27,7 @@ const formatSize = (bytes: number) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
 
-export default function BatchProcessingModal({ pipeline, onClose }: BatchProcessingModalProps) {
+export default function BatchProcessingModal({ graph, onClose }: BatchProcessingModalProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [imageFormat, setImageFormat] = useState<string>("png");
   const [isDragOver, setIsDragOver] = useState(false);
@@ -130,7 +130,7 @@ export default function BatchProcessingModal({ pipeline, onClose }: BatchProcess
     setIsSubmitting(true);
     setError(null);
     try {
-      const response = await createBatchJob(files, pipeline, imageFormat);
+      const response = await createBatchJob(files, graph, imageFormat);
       setJobId(response.job_id);
       // Initialize layout summary state
       setSummary({

@@ -3,6 +3,7 @@ export interface GraphNode {
   type?: string;
   op?: string;
   params?: Record<string, unknown>;
+  branches?: Record<string, PipelineGraph>;
 }
 
 export interface GraphEdge {

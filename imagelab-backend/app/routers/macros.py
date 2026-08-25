@@ -88,20 +88,15 @@ def _extract_macro_ids_from_nodes(nodes: list[dict[str, Any]]) -> set[str]:
         node_type = node.get("type") or node.get("op")
         params = node.get("params", {})
 
-        if node_type == "macro_ref":
-            macro_id = params.get("macro_id")
+        if node_type == "macro_ref" or (
+            node_type and node_type.startswith("macro_") and node_type not in {"macro_blend", "macro_if_else"}
+        ):
+            macro_id = params.get("macro_id") if node_type == "macro_ref" else node_type.removeprefix("macro_")
             if macro_id:
                 macro_ids.add(macro_id)
-        elif node_type in ("macro_blend", "macro_if_else"):
-            # Recursively scan control-flow branches
-            op1_branch = params.get("op1_branch") or params.get("OP1") or []
-            op2_branch = params.get("op2_branch") or params.get("OP2") or []
-            if_branch = params.get("if_branch") or params.get("IF_BRANCH") or []
-            else_branch = params.get("else_branch") or params.get("ELSE_BRANCH") or []
-
-            for branch in (op1_branch, op2_branch, if_branch, else_branch):
-                if branch:
-                    macro_ids.update(_extract_macro_ids_from_nodes(branch))
+        for branch in node.get("branches", {}).values():
+            if isinstance(branch, dict):
+                macro_ids.update(_extract_macro_ids_from_nodes(branch.get("nodes", [])))
 
     return macro_ids
 

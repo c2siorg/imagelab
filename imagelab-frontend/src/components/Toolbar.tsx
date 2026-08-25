@@ -18,8 +18,8 @@ import {
   X,
 } from "lucide-react";
 import { usePipelineStore } from "../store/pipelineStore";
-import { executePipeline } from "../api/pipeline";
-import { extractExecutablePipeline } from "../hooks/usePipeline";
+import { executePipeline, PipelineApiError } from "../api/pipeline";
+import { extractExecutableGraph } from "../hooks/usePipeline";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { useStepInspection } from "../hooks/useStepInspection";
 import { getSelectedBlocks, getBlocksBetween } from "../utils/extractMacroGraph";
@@ -212,8 +212,8 @@ export default function Toolbar({ workspace }: ToolbarProps) {
   const handleRun = async () => {
     if (!workspace || !originalImage) return;
 
-    const pipeline = extractExecutablePipeline(workspace);
-    if (pipeline.length === 0) {
+    const graph = extractExecutableGraph(workspace);
+    if (graph.nodes.length === 0) {
       setError('No pipeline found. Add a "Read Image" block and connect operations.');
       return;
     }
@@ -232,7 +232,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
       const response = await executePipeline({
         image: originalImage,
         image_format: imageFormat,
-        pipeline,
+        graph,
       });
 
       setTiming(response.timings ?? null);
@@ -256,21 +256,10 @@ export default function Toolbar({ workspace }: ToolbarProps) {
         }
       }
     } catch (err) {
-      if (err instanceof Error) {
-        // Try to parse structured error from backend
-        try {
-          const errorData = JSON.parse(err.message);
-          if (errorData.error === "STEP_EXECUTION_FAILED") {
-            setError(
-              `Step execution failed in ${errorData.step_type}: ${errorData.message}`,
-              parseInt(errorData.step_id) || undefined,
-            );
-          } else {
-            setError(err.message);
-          }
-        } catch {
-          setError(err.message);
-        }
+      if (err instanceof PipelineApiError) {
+        setError(`Step execution failed in ${err.detail.step_type}: ${err.detail.message}`);
+      } else if (err instanceof Error) {
+        setError(err.message);
       } else {
         setError("Network error");
       }
@@ -595,7 +584,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
 
       {showBatchModal && workspace && (
         <BatchProcessingModal
-          pipeline={extractExecutablePipeline(workspace)}
+          graph={extractExecutableGraph(workspace)}
           onClose={() => setShowBatchModal(false)}
         />
       )}

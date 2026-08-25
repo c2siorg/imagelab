@@ -4,6 +4,7 @@ from threading import RLock
 
 import cv2
 import numpy as np
+from sqlmodel import Session
 
 from app.exceptions import PipelineExecutionError
 from app.models.pipeline import (
@@ -57,26 +58,34 @@ def _evaluate_condition(image: np.ndarray, params: dict) -> bool:
     return val > threshold
 
 
-def _run_sub_pipeline(steps: list, current_image: np.ndarray) -> np.ndarray:
+# In _run_sub_pipeline inside app/services/pipeline_executor.py:
+def _run_sub_pipeline(steps: list[PipelineStep | dict], current_image: np.ndarray) -> np.ndarray:
     img = current_image.copy()
-    for s in steps:
-        if isinstance(s, dict):
-            step_type = s.get("type", "")
-            step_params = s.get("params", {})
-            step_id = s.get("block_id", "")
+    for raw_s in steps:
+        if isinstance(raw_s, PipelineStep):
+            s = raw_s
+        elif isinstance(raw_s, dict):
+            s = PipelineStep(
+                type=raw_s.get("type", ""),
+                block_id=raw_s.get("block_id") or raw_s.get("id"),
+                params=raw_s.get("params", {}),
+                branches=raw_s.get("branches", {}),
+            )
         else:
-            step_type = getattr(s, "type", "")
-            step_params = getattr(s, "params", {})
-            step_id = getattr(s, "block_id", "")
+            continue
+
+        step_type = s.type
+        step_params = s.params
+        step_id = s.block_id
 
         if step_type in NOOP_TYPES or not step_type:
             continue
 
         try:
             if step_type == "macro_blend":
-                img = _execute_macro_blend(step_params, img)
+                img = _execute_macro_blend(s, img)
             elif step_type == "macro_if_else":
-                img = _execute_macro_if_else(step_params, img)
+                img = _execute_macro_if_else(s, img)
             else:
                 op_cls = get_operator(step_type)
                 if op_cls is None:
@@ -84,7 +93,6 @@ def _run_sub_pipeline(steps: list, current_image: np.ndarray) -> np.ndarray:
                 op = op_cls(step_params)
                 img = op.compute(img)
         except ValueError as e:
-            # Convert ValueError to PipelineExecutionError with step context
             raise PipelineExecutionError(
                 step_id=step_id or step_type,
                 step_type=step_type,
@@ -93,15 +101,23 @@ def _run_sub_pipeline(steps: list, current_image: np.ndarray) -> np.ndarray:
     return img
 
 
-def _execute_macro_blend(params: dict, image: np.ndarray) -> np.ndarray:
+def _execute_macro_blend(step: PipelineStep, image: np.ndarray) -> np.ndarray:
+    branches = dict(step.branches)
+    if "op1_branch" in step.params:
+        branches["left"] = step.params["op1_branch"]
+    if "op2_branch" in step.params:
+        branches["right"] = step.params["op2_branch"]
+
+    params = dict(step.params)
     alpha = float(params.get("alpha", 0.5))
     beta = float(params.get("beta", 1.0 - alpha))
+    params["alpha"] = alpha
+    params["beta"] = beta
 
-    op1_steps = params.get("op1_branch") or params.get("OP1") or []
-    op2_steps = params.get("op2_branch") or params.get("OP2") or []
+    step_with_branches = step.model_copy(update={"branches": branches, "params": params})
 
-    img1 = _run_sub_pipeline(op1_steps, image)
-    img2 = _run_sub_pipeline(op2_steps, image)
+    img1 = _run_sub_pipeline(step_with_branches.branches.get("left", []), image)
+    img2 = _run_sub_pipeline(step_with_branches.branches.get("right", []), image)
 
     if img2.shape[:2] != img1.shape[:2]:
         img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]), interpolation=cv2.INTER_AREA)
@@ -112,6 +128,11 @@ def _execute_macro_blend(params: dict, image: np.ndarray) -> np.ndarray:
         elif img1.ndim == 3 and img2.ndim == 2:
             img2 = cv2.cvtColor(img2, cv2.COLOR_GRAY2BGR)
 
+    if img2.dtype != img1.dtype:
+        img2 = img2.astype(img1.dtype)
+    img1 = np.ascontiguousarray(img1)
+    img2 = np.ascontiguousarray(img2)
+
     try:
         return cv2.addWeighted(img1, alpha, img2, beta, 0.0)
     except Exception as err:
@@ -120,109 +141,20 @@ def _execute_macro_blend(params: dict, image: np.ndarray) -> np.ndarray:
         ) from err
 
 
-def _execute_macro_if_else(params: dict, image: np.ndarray) -> np.ndarray:
-    cond = _evaluate_condition(image, params)
-    if_branch = params.get("if_branch") or params.get("IF_BRANCH") or []
-    else_branch = params.get("else_branch") or params.get("ELSE_BRANCH") or []
-    selected = if_branch if cond else else_branch
+def _execute_macro_if_else(step: PipelineStep, image: np.ndarray) -> np.ndarray:
+    branches = dict(step.branches)
+    if "if_branch" in step.params:
+        branches["then"] = step.params["if_branch"]
+    if "else_branch" in step.params:
+        branches["else"] = step.params["else_branch"]
+
+    step_with_branches = step.model_copy(update={"branches": branches})
+    cond = _evaluate_condition(image, step_with_branches.params)
+    selected = step_with_branches.branches.get("then", []) if cond else step_with_branches.branches.get("else", [])
     return _run_sub_pipeline(selected, image)
 
 
-def expand_macro_steps(steps: list[PipelineStep], session=None) -> list[PipelineStep]:
-    """
-    Recursively unrolls any macro steps in a flat list of PipelineSteps.
-    Supports macro_blend, macro_if_else, and DB-persisted macro_ref steps.
-    """
-    expanded: list[PipelineStep] = []
-    for step in steps:
-        if step.type == "macro_blend":
-            params = dict(step.params)
-            op1_branch = params.get("op1_branch") or params.get("OP1") or []
-            op2_branch = params.get("op2_branch") or params.get("OP2") or []
-
-            def _to_steps(raw_list):
-                res = []
-                for item in raw_list:
-                    if isinstance(item, PipelineStep):
-                        res.append(item)
-                    elif isinstance(item, dict):
-                        res.append(PipelineStep(**item))
-                return res
-
-            exp_op1 = expand_macro_steps(_to_steps(op1_branch), session=session)
-            exp_op2 = expand_macro_steps(_to_steps(op2_branch), session=session)
-            alpha = float(params.get("alpha", 0.5))
-            params["op1_branch"] = [s.model_dump() for s in exp_op1]
-            params["op2_branch"] = [s.model_dump() for s in exp_op2]
-            params["OP1"] = params["op1_branch"]
-            params["OP2"] = params["op2_branch"]
-            params["alpha"] = alpha
-            params["beta"] = 1.0 - alpha
-            expanded.append(PipelineStep(type=step.type, block_id=step.block_id, params=params))
-        elif step.type == "macro_if_else":
-            params = dict(step.params)
-            if_branch = params.get("if_branch") or params.get("IF_BRANCH") or []
-            else_branch = params.get("else_branch") or params.get("ELSE_BRANCH") or []
-
-            def _to_steps(raw_list):
-                res = []
-                for item in raw_list:
-                    if isinstance(item, PipelineStep):
-                        res.append(item)
-                    elif isinstance(item, dict):
-                        res.append(PipelineStep(**item))
-                return res
-
-            exp_if = expand_macro_steps(_to_steps(if_branch), session=session)
-            exp_else = expand_macro_steps(_to_steps(else_branch), session=session)
-            params["if_branch"] = [s.model_dump() for s in exp_if]
-            params["else_branch"] = [s.model_dump() for s in exp_else]
-            params["IF_BRANCH"] = params["if_branch"]
-            params["ELSE_BRANCH"] = params["else_branch"]
-            expanded.append(PipelineStep(type=step.type, block_id=step.block_id, params=params))
-        elif step.type == "macro_ref" or (step.params.get("macro_id") and step.type.startswith("macro")):
-            if session is not None:
-                import uuid
-
-                from app.services.graph_engine import prepare_pipeline
-
-                macro_id_str = step.params.get("macro_id")
-                if not macro_id_str:
-                    raise ValueError(f"Step {step.block_id} is a macro reference but missing 'macro_id' parameter.")
-                macro_id = uuid.UUID(str(macro_id_str))
-                sub_steps = prepare_pipeline(session, macro_id, input_channels=3)
-                # Recursively expand nested macros inside the sub-steps
-                expanded_sub_steps = expand_macro_steps(sub_steps, session=session)
-                prefix = step.block_id or f"macro_{macro_id}"
-                for sub_step in expanded_sub_steps:
-                    new_block_id = f"{prefix}:{sub_step.block_id}" if sub_step.block_id else prefix
-                    expanded.append(
-                        PipelineStep(
-                            type=sub_step.type,
-                            block_id=new_block_id,
-                            params=sub_step.params,
-                        )
-                    )
-            else:
-                expanded.append(step)
-        else:
-            expanded.append(step)
-    return expanded
-
-
-# Thread-safety: this function is safe to call concurrently from FastAPI's
-# threadpool. All processing state (image array, operator instances, encoded
-# output) is local to each invocation. The module-level NOOP_TYPES set and
-# OPERATOR_REGISTRY dict are read-only after import and never mutated.
 def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
-    """
-    Execute the image-processing pipeline described by *request*.
-
-    Returns a PipelineResponse that always includes a ``timings`` field
-    populated with every step that completed before the function returned,
-    even when the response indicates failure.  This allows callers to
-    inspect partial execution progress on error.
-    """
     t_start_total = time.perf_counter()
     execution_id = uuid.uuid4().hex
     step_timings: list[StepTiming] = []
@@ -249,9 +181,9 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
         try:
             t_step_start = time.perf_counter()
             if step.type == "macro_blend":
-                image = _execute_macro_blend(step.params, image)
+                image = _execute_macro_blend(step, image)
             elif step.type == "macro_if_else":
-                image = _execute_macro_if_else(step.params, image)
+                image = _execute_macro_if_else(step, image)
             else:
                 operator_cls = get_operator(step.type)
                 if operator_cls is None:
@@ -306,7 +238,6 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
                 )
             )
         except ValueError as e:
-            # Convert ValueError (from operators) to PipelineExecutionError
             t_fail = time.perf_counter()
             step_id = step.block_id or str(i + 1)
             error_msg = str(e)
@@ -403,7 +334,6 @@ def inspect_step(execution_id: str, block_id: str):
             return None
         step = steps.get(block_id)
         if step is None:
-            # Fallback for parent macro block_id matching (e.g., 'm1' matching 'm1:gray')
             matching_keys = [k for k in steps if k.startswith(f"{block_id}:")]
             if matching_keys:
                 last_key = max(
@@ -473,8 +403,6 @@ def _histogram_counts(channel: np.ndarray) -> list[int]:
 
 def calculate_histogram(image: np.ndarray) -> ImageHistogram:
     bins = list(range(256))
-
-    # Downsample fallback for very large images (max dimension > 2048)
     height, width = image.shape[:2]
     largest_side = max(width, height)
     HISTOGRAM_MAX_SIZE = 2048
@@ -532,3 +460,33 @@ def _evict_expired_executions() -> None:
         ]
         for execution_id in expired:
             _EXECUTION_CACHE.pop(execution_id, None)
+
+
+def expand_macro_steps(steps: list[PipelineStep], session: Session | None = None) -> list[PipelineStep]:
+    """Legacy helper wrapper for expanded step resolution."""
+    from app.services.graph_engine import _coerce_graph, compile_graph
+
+    raw_nodes = []
+    for idx, step in enumerate(steps):
+        s = step if isinstance(step, PipelineStep) else PipelineStep(**step)
+        params = dict(s.params)
+
+        # Populate legacy default beta parameter for macro_blend if omitted
+        if s.type == "macro_blend" and "beta" not in params:
+            alpha = float(params.get("alpha", 0.5))
+            params["beta"] = 1.0 - alpha
+
+        branches = {}
+        for b_name, b_steps in s.branches.items():
+            branches[b_name] = [b.model_dump() if hasattr(b, "model_dump") else b for b in b_steps]
+        raw_nodes.append(
+            {
+                "id": s.block_id or str(idx),
+                "type": s.type,
+                "params": params,
+                "branches": branches,
+            }
+        )
+
+    graph = _coerce_graph({"nodes": raw_nodes, "edges": []})
+    return compile_graph(graph, session=session, input_channels=3)

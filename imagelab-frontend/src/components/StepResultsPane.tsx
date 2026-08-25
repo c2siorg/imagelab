@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as Blockly from "blockly";
 import { ChevronDown, ChevronRight, ImageDown, Loader2, RefreshCw } from "lucide-react";
-import { executePipeline } from "../api/pipeline";
-import { extractExecutablePipeline } from "../hooks/usePipeline";
+import { executePipeline, PipelineApiError } from "../api/pipeline";
+import { extractExecutableGraph } from "../hooks/usePipeline";
 import { useStepInspection } from "../hooks/useStepInspection";
 import { usePipelineStore } from "../store/pipelineStore";
 import { useMacroStore } from "../store/useMacroStore";
@@ -251,8 +251,8 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
   const handleRefresh = async () => {
     if (!workspace || !originalImage) return;
 
-    const pipeline = extractExecutablePipeline(workspace);
-    if (pipeline.length === 0) {
+    const graph = extractExecutableGraph(workspace);
+    if (graph.nodes.length === 0) {
       setError('No pipeline found. Add a "Read Image" block and connect operations.');
       return;
     }
@@ -268,7 +268,7 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
       const response = await executePipeline({
         image: originalImage,
         image_format: imageFormat,
-        pipeline,
+        graph,
       });
 
       setTiming(response.timings ?? null);
@@ -292,21 +292,10 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
         }
       }
     } catch (err) {
-      if (err instanceof Error) {
-        // Try to parse structured error from backend
-        try {
-          const errorData = JSON.parse(err.message);
-          if (errorData.error === "STEP_EXECUTION_FAILED") {
-            setError(
-              `Step execution failed in ${errorData.step_type}: ${errorData.message}`,
-              parseInt(errorData.step_id) || undefined,
-            );
-          } else {
-            setError(err.message);
-          }
-        } catch {
-          setError(err.message);
-        }
+      if (err instanceof PipelineApiError) {
+        setError(`Step execution failed in ${err.detail.step_type}: ${err.detail.message}`);
+      } else if (err instanceof Error) {
+        setError(err.message);
       } else {
         setError("Network error");
       }

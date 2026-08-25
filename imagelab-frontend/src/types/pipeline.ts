@@ -5,14 +5,14 @@ export interface PipelineStep {
 }
 
 /** Pipeline steps as stored in the persistence API (`pipeline_json` field). */
-export interface PersistedPipelineJson {
-  steps: PipelineStep[];
-}
+export type PersistedPipelineJson = PipelineGraph | { steps: PipelineStep[] };
 
 export interface PipelineRequest {
   image: string;
   image_format: string;
-  pipeline: PipelineStep[];
+  graph?: PipelineGraph;
+  /** Legacy API contract for already-saved linear pipelines. */
+  pipeline?: PipelineStep[];
 }
 
 export interface StepTiming {
@@ -81,3 +81,4 @@ export interface StepInspectResponse {
   analysis: ImageAnalysis;
   histogram: ImageHistogram;
 }
+import type { PipelineGraph } from "./macro";

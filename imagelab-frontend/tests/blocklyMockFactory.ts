@@ -3,6 +3,8 @@
  *  kept here with an explicit reference rather than imported at runtime. */
 export const INPUT_TYPE_VALUE = 1;
 
+let blockIdCounter = 0;
+
 export type MockField = {
   name?: string;
   getValue: () => unknown;
@@ -35,6 +37,7 @@ export function input(
 }
 
 export type MockBlock = {
+  id: string;
   type: string;
   inputList: MockInput[];
   getNextBlock: () => MockBlock | null;
@@ -45,7 +48,7 @@ export function block(
   inputList: MockInput[] = [],
   next: MockBlock | null = null,
 ): MockBlock {
-  return { type, inputList, getNextBlock: () => next };
+  return { id: `mock-block-${blockIdCounter++}`, type, inputList, getNextBlock: () => next };
 }
 
 export type MockWorkspace = {

@@ -1,16 +1,31 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
+
+from app.models.graph import PipelineGraph
 
 
 class PipelineStep(BaseModel):
     type: str
     block_id: str | None = None
-    params: dict = {}
+    params: dict = Field(default_factory=dict)
+    branches: dict[str, list["PipelineStep"]] = Field(default_factory=dict)
 
 
 class PipelineRequest(BaseModel):
     image: str
     image_format: str = "png"
-    pipeline: list[PipelineStep]
+    graph: PipelineGraph | None = None
+    # Keep default None so Pydantic catches when the key is completely missing in raw JSON
+    pipeline: list[PipelineStep] | None = None
+
+    @model_validator(mode="after")
+    def validate_payload_presence(self):
+        # 1. If 'pipeline' key was completely missing and no 'graph' was given, raise ValueError (HTTP 422)
+        if self.pipeline is None and self.graph is None:
+            raise ValueError("Field 'pipeline' or 'graph' is required.")
+        # 2. If 'pipeline' key was explicitly provided as missing/None, initialize to [] for execution
+        if self.pipeline is None:
+            self.pipeline = []
+        return self
 
 
 class StepTiming(BaseModel):

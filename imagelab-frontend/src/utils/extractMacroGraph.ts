@@ -128,11 +128,20 @@ export function getBlocksBetween(
 
 const INPUT_TYPE_STATEMENT = 3;
 
-function extractStatementBranch(startBlock: Blockly.Block | null): Array<Record<string, unknown>> {
-  const branch: Array<Record<string, unknown>> = [];
+const CONTROL_BRANCH_NAME: Record<string, Record<string, string>> = {
+  macro_blend: { OP1: "left", OP2: "right" },
+  macro_if_else: { IF_BRANCH: "then", ELSE_BRANCH: "else" },
+};
+
+/** Serialize a Blockly statement stack to the same graph contract as the root. */
+function extractStatementBranch(startBlock: Blockly.Block | null): PipelineGraph {
+  const nodes: GraphNode[] = [];
+  const edges: GraphEdge[] = [];
   let curr = startBlock;
+  let previousId: string | null = null;
   while (curr) {
     const childParams: Record<string, unknown> = {};
+    const childBranches: Record<string, PipelineGraph> = {};
     if (Array.isArray(curr.inputList)) {
       curr.inputList.forEach((inItem) => {
         if (Array.isArray(inItem.fieldRow)) {
@@ -148,29 +157,35 @@ function extractStatementBranch(startBlock: Blockly.Block | null): Array<Record<
           const subTarget = inItem.connection.targetBlock();
           if (subTarget) {
             const subBranch = extractStatementBranch(subTarget);
-            if (inItem.name === "OP1") childParams["op1_branch"] = subBranch;
-            else if (inItem.name === "OP2") childParams["op2_branch"] = subBranch;
-            else if (inItem.name === "IF_BRANCH") childParams["if_branch"] = subBranch;
-            else if (inItem.name === "ELSE_BRANCH") childParams["else_branch"] = subBranch;
-            else childParams[inItem.name ? inItem.name.toLowerCase() : "branch"] = subBranch;
+            const branchName = CONTROL_BRANCH_NAME[curr.type]?.[inItem.name ?? ""];
+            if (branchName) {
+              childBranches[branchName] = subBranch;
+            }
           }
         }
       });
     }
-    branch.push({
+    nodes.push({
       id: curr.id,
       type: curr.type,
       op: curr.type,
       params: childParams,
+      ...(Object.keys(childBranches).length > 0 ? { branches: childBranches } : {}),
     });
+    if (previousId) edges.push({ from: previousId, to: curr.id });
+    previousId = curr.id;
     curr = typeof curr.getNextBlock === "function" ? curr.getNextBlock() : null;
   }
-  return branch;
+  return { nodes, edges };
 }
 
-export function extractMacroGraph(selectedBlocks: Blockly.Block[]): PipelineGraph {
-  const includedBlocks = filterMacroBlocks(selectedBlocks);
-  if (!includedBlocks || includedBlocks.length < 2) {
+export function extractMacroGraph(
+  selectedBlocks: Blockly.Block[],
+  allowSingle = false,
+  includeExcluded = false,
+): PipelineGraph {
+  const includedBlocks = includeExcluded ? selectedBlocks : filterMacroBlocks(selectedBlocks);
+  if (!includedBlocks || includedBlocks.length < (allowSingle ? 1 : 2)) {
     throw new Error("At least two blocks must be selected to create a macro");
   }
 
@@ -208,6 +223,7 @@ export function extractMacroGraph(selectedBlocks: Blockly.Block[]): PipelineGrap
   // 1. Build Nodes and extract edges from all possible connection types
   for (const block of includedBlocks) {
     const params: Record<string, unknown> = {};
+    const branches: Record<string, PipelineGraph> = {};
 
     if (Array.isArray(block.inputList)) {
       block.inputList.forEach((input) => {
@@ -215,7 +231,10 @@ export function extractMacroGraph(selectedBlocks: Blockly.Block[]): PipelineGrap
         if (Array.isArray(input.fieldRow)) {
           input.fieldRow.forEach((field) => {
             const fieldName = field.name ?? "";
-            if (isSerializableField(fieldName)) {
+            if (
+              isSerializableField(fieldName) ||
+              (includeExcluded && isExcludedMacroBlock(block))
+            ) {
               params[fieldName] =
                 typeof field.getValue === "function"
                   ? field.getValue()
@@ -232,19 +251,8 @@ export function extractMacroGraph(selectedBlocks: Blockly.Block[]): PipelineGrap
             addEdge(connected.id, block.id, input.name || null);
           } else if ((input.type as number) === INPUT_TYPE_STATEMENT) {
             const statementBranch = extractStatementBranch(connected);
-            if (input.name === "OP1") {
-              params["op1_branch"] = statementBranch;
-              params["OP1"] = statementBranch;
-            } else if (input.name === "OP2") {
-              params["op2_branch"] = statementBranch;
-              params["OP2"] = statementBranch;
-            } else if (input.name === "IF_BRANCH") {
-              params["if_branch"] = statementBranch;
-              params["IF_BRANCH"] = statementBranch;
-            } else if (input.name === "ELSE_BRANCH") {
-              params["else_branch"] = statementBranch;
-              params["ELSE_BRANCH"] = statementBranch;
-            }
+            const branchName = CONTROL_BRANCH_NAME[block.type]?.[input.name ?? ""];
+            if (branchName) branches[branchName] = statementBranch;
           } else if (
             (input.type as number) === INPUT_TYPE_VALUE &&
             Array.isArray(connected.inputList)
@@ -308,6 +316,7 @@ export function extractMacroGraph(selectedBlocks: Blockly.Block[]): PipelineGrap
       type: block.type,
       op: block.type,
       params,
+      ...(Object.keys(branches).length > 0 ? { branches } : {}),
     });
   }
 
@@ -359,6 +368,21 @@ export function extractMacroGraph(selectedBlocks: Blockly.Block[]): PipelineGrap
   }
 
   return { nodes, edges };
+}
+
+/** The one workspace-to-graph serializer used for execution and persistence. */
+export function extractWorkspaceGraph(workspace: Blockly.WorkspaceSvg): PipelineGraph {
+  const root = workspace
+    .getTopBlocks(true)
+    .find((block) => EXCLUDED_BLOCK_TYPE_SET.has(block.type));
+  if (!root) return { nodes: [], edges: [] };
+  const blocks: Blockly.Block[] = [];
+  let current: Blockly.Block | null = root;
+  while (current) {
+    blocks.push(current);
+    current = typeof current.getNextBlock === "function" ? current.getNextBlock() : null;
+  }
+  return extractMacroGraph(blocks, true, true);
 }
 export function getCleanBlockDisplayName(block: Blockly.Block): string {
   // 1. Check if the block has a human-readable title field on the canvas

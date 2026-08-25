@@ -25,6 +25,9 @@ class GraphNode(BaseModel):
     type: str | None = None
     op: str | None = None
     params: dict[str, Any] = Field(default_factory=dict)
+    # Control-flow nodes own nested graphs.  Blockly input names are deliberately
+    # not represented here: the UI serializer maps them to canonical names.
+    branches: dict[str, "PipelineGraph"] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def validate_type_or_op(self) -> "GraphNode":

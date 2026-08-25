@@ -260,13 +260,11 @@ describe("extractMacroGraph", () => {
     expect(blendNode?.type).toBe("macro_blend");
     expect(blendNode?.params?.alpha).toBe(0.7);
 
-    const op1Branch = (blendNode?.params?.op1_branch ?? []) as MockBlock[];
-    const op2Branch = (blendNode?.params?.op2_branch ?? []) as MockBlock[];
-
-    expect(op1Branch).toBeDefined();
-    expect(op2Branch).toBeDefined();
-    expect(op1Branch[0]?.type).toBe("imageconvertions_grayimage");
-    expect(op2Branch[0]?.type).toBe("blurring_applyblur");
+    expect(blendNode?.branches).toBeDefined();
+    expect(blendNode?.branches?.left).toBeDefined();
+    expect(blendNode?.branches?.right).toBeDefined();
+    expect(blendNode?.branches?.left?.nodes[0]?.type).toBe("imageconvertions_grayimage");
+    expect(blendNode?.branches?.right?.nodes[0]?.type).toBe("blurring_applyblur");
   });
 
   it("extracts macro_if_else block statement branches and parameters cleanly", () => {
@@ -297,7 +295,8 @@ describe("extractMacroGraph", () => {
     expect(graph.nodes[0]!.params!.metric).toBe("mean_brightness");
     expect(graph.nodes[0]!.params!.comparator).toBe(">");
     expect(graph.nodes[0]!.params!.threshold).toBe(128);
-    expect(graph.nodes[0]!.params!.if_branch).toBeDefined();
-    expect(graph.nodes[0]!.params!.else_branch).toBeDefined();
+    expect(graph.nodes[0]!.branches).toBeDefined();
+    expect(graph.nodes[0]!.branches!.then).toBeDefined();
+    expect(graph.nodes[0]!.branches!.else).toBeDefined();
   });
 });

@@ -33,15 +33,18 @@ vi.mock("../src/api/batch", () => ({
 // ---------------------------------------------------------------------------
 // Fixtures
 // ---------------------------------------------------------------------------
-const mockPipeline = [
-  { type: "basic_readimage", params: { filename_label: "test.png" } },
-];
+const mockGraph = {
+  nodes: [
+    { id: "node1", type: "basic_readimage", op: "basic_readimage", params: { filename_label: "test.png" } },
+  ],
+  edges: [],
+};
 const mockOnClose = vi.fn();
 
 const renderModal = () =>
   render(
     React.createElement(BatchProcessingModal, {
-      pipeline: mockPipeline,
+      graph: mockGraph,
       onClose: mockOnClose,
     }),
   );
@@ -266,7 +269,7 @@ describe("BatchProcessingModal Component Suite", () => {
     });
     expect(createBatchJob).toHaveBeenCalledWith(
       [file1, file2],
-      mockPipeline,
+      mockGraph,
       "png",
     );
 
@@ -406,7 +409,7 @@ describe("BatchProcessingModal Component Suite", () => {
       status: "pending",
       total_files: 1,
     });
-    vi.mocked(getBatchJobStatus).mockRejectedValueOnce(
+    vi.mocked(getBatchJobStatus).mockRejectedValue(
       new Error("Network connection lost mid-polling"),
     );
 
@@ -415,7 +418,7 @@ describe("BatchProcessingModal Component Suite", () => {
         screen.getByRole("button", { name: /Process 1 Images/i }),
       );
     });
-    // Flush: poll() fires → getBatchJobStatus rejects → setError
+    // Flush: createBatchJob resolves → setJobId → useEffect fires → poll() → getBatchJobStatus rejects → setError
     await flushPromises();
 
     expect(
@@ -424,8 +427,9 @@ describe("BatchProcessingModal Component Suite", () => {
   });
 
   // ── 8. Reset to initial state ─────────────────────────────────────────────
-  // No fake timers — waitFor works normally.
+  // Uses fake timers to control polling
   it("resets component when 'New Batch' is clicked", async () => {
+    vi.useFakeTimers();
     const { container } = renderModal();
     const fileInput = container.querySelector(
       'input[type="file"]',
@@ -469,11 +473,12 @@ describe("BatchProcessingModal Component Suite", () => {
         screen.getByRole("button", { name: /Process 1 Images/i }),
       );
     });
-    await waitFor(() => {
-      expect(
-        screen.getByText("Batch Run Completed Successfully"),
-      ).toBeDefined();
-    });
+    // Flush: createBatchJob resolves → setJobId → useEffect fires → poll() → getBatchJobStatus resolves "completed"
+    await flushPromises();
+
+    expect(
+      screen.getByText("Batch Run Completed Successfully"),
+    ).toBeDefined();
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /New Batch/i }));
@@ -488,8 +493,9 @@ describe("BatchProcessingModal Component Suite", () => {
   });
 
   // ── 9. ZIP download ───────────────────────────────────────────────────────
-  // No fake timers — waitFor works normally.
+  // Uses fake timers to control polling
   it("triggers fetch download for ZIP when Download ZIP is clicked", async () => {
+    vi.useFakeTimers();
     const { container } = renderModal();
     const fileInput = container.querySelector(
       'input[type="file"]',
@@ -533,11 +539,12 @@ describe("BatchProcessingModal Component Suite", () => {
         screen.getByRole("button", { name: /Process 1 Images/i }),
       );
     });
-    await waitFor(() => {
-      expect(
-        screen.getByText("Batch Run Completed Successfully"),
-      ).toBeDefined();
-    });
+    // Flush: createBatchJob resolves → setJobId → useEffect fires → poll() → getBatchJobStatus resolves "completed"
+    await flushPromises();
+
+    expect(
+      screen.getByText("Batch Run Completed Successfully"),
+    ).toBeDefined();
 
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
