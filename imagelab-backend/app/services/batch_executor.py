@@ -7,16 +7,13 @@ import os
 import time
 import zipfile
 
-from app.models.pipeline import PipelineRequest, PipelineStep
+from app.database import engine
+from app.models.graph import PipelineGraph
+from app.models.pipeline import PipelineRequest
+from app.services.graph_engine import compile_graph
 from app.services.pipeline_executor import execute_pipeline
 
 logger = logging.getLogger(__name__)
-
-
-class MacroExpansionError(Exception):
-    """Raised when macro expansion fails during batch processing."""
-
-    pass
 
 
 JOBS_DIR = os.path.abspath("jobs")
@@ -34,7 +31,7 @@ def write_summary_atomic(job_id: str, summary_data: dict):
     os.replace(temp_path, target_path)
 
 
-async def process_single_image(job_id: str, filename: str, pipeline: list[PipelineStep], image_format: str) -> dict:
+async def process_single_image(job_id: str, filename: str, graph: PipelineGraph, image_format: str) -> dict:
     async with semaphore:
         try:
 
@@ -45,21 +42,27 @@ async def process_single_image(job_id: str, filename: str, pipeline: list[Pipeli
 
                 image_b64 = base64.b64encode(image_bytes).decode("utf-8")
 
-                exec_pipeline = pipeline
-                if any(step.type == "macro_ref" or (step.params and step.params.get("macro_id")) for step in pipeline):
-                    from sqlmodel import Session
+                from sqlmodel import Session
 
-                    from app.database import engine
-                    from app.services.graph_engine import expand_macro_steps
+                from app.models.graph import PipelineGraph
+                from app.services.graph_engine import _coerce_graph
+                from app.utils.image import decode_base64_image
 
-                    with Session(engine) as session:
-                        try:
-                            exec_pipeline = expand_macro_steps(pipeline, session)
-                        except Exception as err:
-                            logger.exception("Failed macro expansion in batch execution")
-                            raise MacroExpansionError(f"Failed to expand macro in pipeline: {err}") from err
-
-                req = PipelineRequest(image=image_b64, image_format=image_format, pipeline=exec_pipeline)
+                image = decode_base64_image(image_b64)
+                input_channels = 1 if image.ndim == 2 else image.shape[2]
+                with Session(engine) as session:
+                    # Handle both PipelineGraph and list (empty pipeline) cases
+                    if isinstance(graph, PipelineGraph):
+                        graph_dict = {
+                            "nodes": [node.model_dump() for node in graph.nodes],
+                            "edges": [edge.model_dump() for edge in graph.edges],
+                        }
+                        coerced_graph = _coerce_graph(graph_dict)
+                        plan = compile_graph(coerced_graph, session, input_channels)
+                    else:
+                        # Empty pipeline case
+                        plan = []
+                req = PipelineRequest(image=image_b64, image_format=image_format, pipeline=plan)
                 return execute_pipeline(req)
 
             response = await asyncio.to_thread(read_and_execute)
@@ -92,14 +95,6 @@ async def process_single_image(job_id: str, filename: str, pipeline: list[Pipeli
                     "output_filename": None,
                     "error": response.error or "Unknown pipeline execution error",
                 }
-        except MacroExpansionError as e:
-            logger.exception(f"Macro expansion error processing image {filename} in job {job_id}")
-            return {
-                "filename": filename,
-                "success": False,
-                "output_filename": None,
-                "error": f"Macro expansion failed: {e}",
-            }
         except Exception as e:
             logger.exception(f"Error processing image {filename} in job {job_id}")
             return {
@@ -110,7 +105,7 @@ async def process_single_image(job_id: str, filename: str, pipeline: list[Pipeli
             }
 
 
-async def run_batch_job(job_id: str, filenames: list[str], pipeline: list[PipelineStep], image_format: str):
+async def run_batch_job(job_id: str, filenames: list[str], graph: PipelineGraph, image_format: str):
     t_start = time.time()
     summary = {
         "job_id": job_id,
@@ -126,7 +121,7 @@ async def run_batch_job(job_id: str, filenames: list[str], pipeline: list[Pipeli
     }
     await asyncio.to_thread(write_summary_atomic, job_id, summary)
 
-    tasks = [process_single_image(job_id, fname, pipeline, image_format) for fname in filenames]
+    tasks = [process_single_image(job_id, fname, graph, image_format) for fname in filenames]
     success_count = 0
     failure_count = 0
     results = []

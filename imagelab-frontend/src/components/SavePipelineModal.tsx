@@ -3,7 +3,7 @@ import * as Blockly from "blockly";
 import { X, Loader2, Save } from "lucide-react";
 import { usePipelineStore } from "../store/pipelineStore";
 import { createPipeline, createSharedVersion, createVersion } from "../api/persistence";
-import { extractPipeline } from "../hooks/usePipeline";
+import { extractExecutableGraph } from "../hooks/usePipeline";
 
 interface SavePipelineModalProps {
   workspace: Blockly.WorkspaceSvg | null;
@@ -46,7 +46,7 @@ export default function SavePipelineModal({ workspace, onClose }: SavePipelineMo
     setError(null);
 
     const workspace_json = Blockly.serialization.workspaces.save(workspace);
-    const pipeline_json = { steps: extractPipeline(workspace) };
+    const pipeline_json = extractExecutableGraph(workspace);
 
     try {
       if (currentPipelineId) {

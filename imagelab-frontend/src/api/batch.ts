@@ -1,11 +1,11 @@
 import type { BatchJobResponse, BatchJobSummary } from "../types/batch";
-import type { PipelineStep } from "../types/pipeline";
+import type { PipelineGraph } from "../types/macro";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4100";
 
 export async function createBatchJob(
   files: File[],
-  pipeline: PipelineStep[],
+  pipeline: PipelineGraph,
   imageFormat: string = "png",
 ): Promise<BatchJobResponse> {
   const formData = new FormData();

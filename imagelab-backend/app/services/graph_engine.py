@@ -1,24 +1,20 @@
+"""The sole compiler boundary for pipeline and macro graphs."""
+
 import uuid
 
 from sqlmodel import Session, select
 
-from app.models.graph import GraphCycleError, PipelineGraph, topological_sort
+from app.models.graph import GraphCycleError, GraphNode, PipelineGraph, topological_sort
 from app.models.persistence import PipelineVersion
 from app.models.pipeline import PipelineRequest, PipelineResponse, PipelineStep
-from app.services.pipeline_executor import execute_pipeline
 from app.utils.image import decode_base64_image
 
 
 class GraphTypeError(ValueError):
-    """Exception raised when a port type/channel mismatch is detected in the pipeline graph."""
-
     pass
 
 
-# Expected input channels per port for specific operators
-# None indicates the default/unnamed port
 OPERATOR_PORT_SPECS: dict[str, dict[str | None, list[int]]] = {
-    # Conversions
     "imageconvertions_grayimage": {"image": [3, 4], None: [3, 4]},
     "imageconvertions_colortobinary": {"image": [3, 4], None: [3, 4]},
     "imageconvertions_graytobinary": {"image": [1], None: [1]},
@@ -29,16 +25,12 @@ OPERATOR_PORT_SPECS: dict[str, dict[str | None, list[int]]] = {
     "imageconvertions_labtobgr": {"image": [3], None: [3]},
     "imageconvertions_bgrtoycrcb": {"image": [3, 4], None: [3, 4]},
     "imageconvertions_ycrcbtobgr": {"image": [3], None: [3]},
-    # Blurring / Thresholding
     "thresholding_adaptivethreshold": {"image": [1], None: [1]},
     "thresholding_otsuthreshold": {"image": [1], None: [1]},
-    # Custom nodes in tests (e.g. merge / blend)
     "merge_images": {"image": [3, 4], "mask": [1]},
     "blend_images": {"image": [3, 4], "mask": [1]},
 }
-
-# Specific channel count outputs for operators
-OPERATOR_OUTPUT_CHANNELS: dict[str, int] = {
+OPERATOR_OUTPUT_CHANNELS = {
     "imageconvertions_grayimage": 1,
     "imageconvertions_colortobinary": 1,
     "imageconvertions_graytobinary": 1,
@@ -50,169 +42,275 @@ OPERATOR_OUTPUT_CHANNELS: dict[str, int] = {
     "segmentation_watershed": 3,
     "transformation_distance": 1,
 }
+CONTROL_BRANCHES = {"macro_blend": ("left", "right"), "macro_if_else": ("then", "else")}
 
 
-def expand_all_macros(
-    graph: PipelineGraph, session: Session, active_macro_ids: list[uuid.UUID] = None
-) -> PipelineGraph:
-    """
-    Recursively expands macro_ref nodes inside the graph by replacing them
-    with the corresponding sub-graphs loaded from the database.
-    """
-    if active_macro_ids is None:
-        active_macro_ids = []
+def _node_type(node: GraphNode) -> str:
+    return node.type or node.op or ""
 
-    # Find the first macro node
-    macro_nodes = [n for n in graph.nodes if n.type == "macro_ref" or n.op == "macro_ref"]
-    if not macro_nodes:
-        return graph
 
-    node = macro_nodes[0]
-    macro_id_str = node.params.get("macro_id")
-    if not macro_id_str:
-        raise ValueError(f"Node {node.id} is a macro_ref but missing 'macro_id' parameter.")
+def _coerce_graph(payload: dict) -> PipelineGraph:
+    """Accept legacy persisted ``{steps: [...]}`` linear pipeline versions."""
+    if "nodes" in payload:
+        # Convert PipelineStep objects to dict format if needed
+        nodes_data = []
+        for idx, node in enumerate(payload["nodes"]):
+            if isinstance(node, PipelineStep):
+                nodes_data.append(
+                    {
+                        "id": node.block_id or str(idx),
+                        "type": node.type,
+                        "params": node.params,
+                        "branches": node.branches,
+                    }
+                )
+            else:
+                # Ensure nodes have IDs
+                if isinstance(node, dict) and "id" not in node:
+                    node = dict(node, id=str(idx))
+                nodes_data.append(node)
 
-    macro_id = uuid.UUID(macro_id_str)
+        # Legacy fallback: map old param branch names to new branch structure
+        graph = PipelineGraph.model_validate({"nodes": nodes_data, "edges": payload.get("edges", [])})
+        nodes = []
+        for node in graph.nodes:
+            params = dict(node.params)
+            branches = dict(node.branches)
+            # Map legacy param branch names to branch structure
+            if "op1_branch" in params:
+                branches["left"] = params.pop("op1_branch")
+            if "op2_branch" in params:
+                branches["right"] = params.pop("op2_branch")
+            if "if_branch" in params:
+                branches["then"] = params.pop("if_branch")
+            if "else_branch" in params:
+                branches["else"] = params.pop("else_branch")
+            nodes.append(node.model_copy(update={"params": params, "branches": branches}))
+        return graph.model_copy(update={"nodes": nodes})
+    raw_steps = payload.get("steps", [])
+    steps = [PipelineStep.model_validate(step) for step in raw_steps]
+    return PipelineGraph(
+        nodes=[
+            {"id": step.block_id or str(index), "type": step.type, "params": step.params}
+            for index, step in enumerate(steps)
+        ],
+        edges=[
+            {"from": steps[index].block_id or str(index), "to": steps[index + 1].block_id or str(index + 1)}
+            for index in range(len(steps) - 1)
+        ],
+    )
 
-    # Check for cyclic macro nesting
-    if macro_id in active_macro_ids:
-        cycle_path = [str(mid) for mid in active_macro_ids] + [str(macro_id)]
-        raise GraphCycleError(cycle_path)
 
-    # Load macro version from DB
-    version = session.exec(
-        select(PipelineVersion)
-        .where(PipelineVersion.pipeline_id == macro_id)
-        .order_by(PipelineVersion.version_number.desc())
-        .limit(1)
-    ).first()
-    if not version:
-        raise ValueError(f"Macro pipeline {macro_id} not found in database.")
+def _macro_id(node: GraphNode) -> str | None:
+    node_type = _node_type(node)
+    if node_type == "macro_ref":
+        value = node.params.get("macro_id")
+        return str(value) if value else None
+    if node_type.startswith("macro_") and node_type not in CONTROL_BRANCHES:
+        return node_type.removeprefix("macro_")
+    return None
 
-    macro_graph = PipelineGraph.model_validate(version.pipeline_json)
 
-    # Recursively expand the macro graph itself
-    expanded_sub = expand_all_macros(macro_graph, session, active_macro_ids + [macro_id])
+def _namespace_graph(graph: PipelineGraph, prefix: str) -> PipelineGraph:
+    nodes = []
+    for node in graph.nodes:
+        # Handle branch values that might be lists or PipelineGraph
+        namespaced_branches = {}
+        for name, branch in node.branches.items():
+            if isinstance(branch, list):
+                # Convert list to PipelineGraph and namespace it
+                branch_graph = _coerce_graph({"nodes": branch, "edges": []})
+                namespaced_branches[name] = _namespace_graph(branch_graph, prefix)
+            elif isinstance(branch, PipelineGraph):
+                namespaced_branches[name] = _namespace_graph(branch, prefix)
+            else:
+                namespaced_branches[name] = branch
+        nodes.append(node.model_copy(update={"id": f"{prefix}:{node.id}", "branches": namespaced_branches}))
+    return PipelineGraph(
+        nodes=nodes,
+        edges=[
+            edge.model_copy(update={"from_node": f"{prefix}:{edge.from_node}", "to_node": f"{prefix}:{edge.to_node}"})
+            for edge in graph.edges
+        ],
+    )
 
-    # Prefix all nodes in the sub-graph with the macro node's ID
-    m_id = node.id
-    new_nodes = []
-    for sub_node in expanded_sub.nodes:
-        new_nodes.append(sub_node.model_copy(update={"id": f"{m_id}:{sub_node.id}"}))
 
-    remaining_nodes = [n for n in graph.nodes if n.id != m_id] + new_nodes
+def _apply_exposed_values(graph: PipelineGraph, values: dict) -> PipelineGraph:
+    nodes = []
+    for node in graph.nodes:
+        params = dict(node.params)
+        prefix = f"{node.id}__"
+        for key, value in values.items():
+            if key.startswith(prefix):
+                params[key[len(prefix) :]] = value
+        # Handle branch values that might be lists or PipelineGraph
+        applied_branches = {}
+        for name, branch in node.branches.items():
+            if isinstance(branch, list):
+                # Convert list to PipelineGraph and apply values
+                branch_graph = _coerce_graph({"nodes": branch, "edges": []})
+                applied_branches[name] = _apply_exposed_values(branch_graph, values)
+            elif isinstance(branch, PipelineGraph):
+                applied_branches[name] = _apply_exposed_values(branch, values)
+            else:
+                applied_branches[name] = branch
+        nodes.append(node.model_copy(update={"params": params, "branches": applied_branches}))
+    return graph.model_copy(update={"nodes": nodes})
 
-    # Port matching
-    sub_inputs = [n.id for n in expanded_sub.nodes if n.type == "macro_input" or n.op == "macro_input"]
-    sub_outputs = [n.id for n in expanded_sub.nodes if n.type == "macro_output" or n.op == "macro_output"]
 
-    sub_inputs_sorted = sorted(sub_inputs)
-    sub_outputs_sorted = sorted(sub_outputs)
-    all_sub_nodes_sorted = sorted([n.id for n in expanded_sub.nodes])
+def _expand_graph(graph: PipelineGraph, session: Session, active: list[uuid.UUID] | None = None) -> PipelineGraph:
+    active = active or []
+    expanded_nodes = []
+    expanded_edges = list(graph.edges)
+    for original in graph.nodes:
+        # Handle branch values that might be lists (legacy format) or PipelineGraph
+        # In _expand_graph inside app/services/graph_engine.py:
+        expanded_branches = {}
+        for name, branch in original.branches.items():
+            if isinstance(branch, list):
+                branch_graph = _coerce_graph({"nodes": branch, "edges": []})
+                expanded_branches[name] = _expand_graph(branch_graph, session, active)
+            elif isinstance(branch, PipelineGraph):
+                expanded_branches[name] = _expand_graph(branch, session, active)
+            elif isinstance(branch, dict):
+                branch_graph = _coerce_graph(branch)
+                expanded_branches[name] = _expand_graph(branch_graph, session, active)
+            else:
+                # Fallback or pass-through for primitive branch parameters
+                expanded_branches[name] = branch
 
-    new_edges = []
-    for edge in graph.edges:
-        if edge.from_node != m_id and edge.to_node != m_id:
-            new_edges.append(edge)
+        node = original.model_copy(update={"branches": expanded_branches})
+        macro_id_text = _macro_id(node)
+        if not macro_id_text:
+            expanded_nodes.append(node)
             continue
-
-        # Remap edge entering the macro
-        if edge.to_node == m_id:
-            target_port = edge.input_port
-            if target_port and target_port in all_sub_nodes_sorted:
-                target_id = f"{m_id}:{target_port}"
-            elif sub_inputs_sorted:
-                if target_port and target_port in sub_inputs_sorted:
-                    target_id = f"{m_id}:{target_port}"
-                else:
-                    target_id = f"{m_id}:{sub_inputs_sorted[0]}"
-            elif all_sub_nodes_sorted:
-                target_id = f"{m_id}:{all_sub_nodes_sorted[0]}"
-            else:
-                continue
-            new_edges.append(edge.model_copy(update={"to_node": target_id}))
-
-        # Remap edge exiting the macro
-        if edge.from_node == m_id:
-            if sub_outputs_sorted:
-                source_id = f"{m_id}:{sub_outputs_sorted[0]}"
-            elif all_sub_nodes_sorted:
-                source_id = f"{m_id}:{all_sub_nodes_sorted[-1]}"
-            else:
-                continue
-            new_edges.append(edge.model_copy(update={"from_node": source_id}))
-
-    # Add sub-graph edges (prefixed)
-    for sub_edge in expanded_sub.edges:
-        new_edges.append(
-            sub_edge.model_copy(
-                update={"from_node": f"{m_id}:{sub_edge.from_node}", "to_node": f"{m_id}:{sub_edge.to_node}"}
-            )
+        # Skip UUID parsing for macro_input and macro_output nodes
+        node_type = _node_type(node)
+        if node_type in {"macro_input", "macro_output"}:
+            expanded_nodes.append(node)
+            continue
+        try:
+            macro_id = uuid.UUID(macro_id_text)
+        except ValueError as exc:
+            raise ValueError(f"Node {node.id} has invalid macro id '{macro_id_text}'.") from exc
+        if macro_id in active:
+            raise GraphCycleError([*(str(item) for item in active), str(macro_id)])
+        version = session.exec(
+            select(PipelineVersion)
+            .where(PipelineVersion.pipeline_id == macro_id)
+            .order_by(PipelineVersion.version_number.desc())
+            .limit(1)
+        ).first()
+        if not version:
+            raise ValueError(f"Macro pipeline {macro_id} not found.")
+        subgraph = _namespace_graph(
+            _expand_graph(
+                _apply_exposed_values(_coerce_graph(version.pipeline_json), node.params), session, [*active, macro_id]
+            ),
+            node.id,
         )
+        incoming = [edge for edge in expanded_edges if edge.to_node == node.id]
+        outgoing = [edge for edge in expanded_edges if edge.from_node == node.id]
+        expanded_edges = [edge for edge in expanded_edges if edge.to_node != node.id and edge.from_node != node.id]
+        sources = [
+            candidate.id
+            for candidate in subgraph.nodes
+            if not any(edge.to_node == candidate.id for edge in subgraph.edges)
+        ]
+        sinks = [
+            candidate.id
+            for candidate in subgraph.nodes
+            if not any(edge.from_node == candidate.id for edge in subgraph.edges)
+        ]
 
-    intermediate_graph = PipelineGraph(nodes=remaining_nodes, edges=new_edges)
-
-    # Continue expanding remaining macros
-    return expand_all_macros(intermediate_graph, session, active_macro_ids)
-
-
-def type_integrity_check(graph: PipelineGraph, input_channels: int) -> None:
-    """
-    Validates port compatibility across the fully expanded graph.
-    Raises GraphTypeError if any channel mismatch is detected.
-    """
-    topo_order = topological_sort(graph)
-    node_map = {n.id: n for n in graph.nodes}
-    node_output_channels = {}
-
-    for node_id in topo_order:
-        node = node_map[node_id]
-        node_type = node.type or node.op
-
-        # Find incoming edges to this node
-        incoming = [e for e in graph.edges if e.to_node == node_id]
-
-        port_channels = {}
-        if not incoming:
-            # Source node - receives the input image channels
-            primary_channels = input_channels
-            port_channels[None] = input_channels
-        else:
-            primary_channels = None
+        # Reconnect incoming edges to primary macro input source (prevents Cartesian product fan-out)
+        primary_source = sources[0] if sources else None
+        if primary_source:
             for edge in incoming:
-                parent_ch = node_output_channels[edge.from_node]
-                port_channels[edge.input_port] = parent_ch
-                if edge.input_port in (None, "image", "input"):
-                    primary_channels = parent_ch
+                expanded_edges.append(edge.model_copy(update={"to_node": primary_source}))
 
-            if primary_channels is None:
-                primary_channels = list(port_channels.values())[0]
+        # Reconnect outgoing edges from primary macro output sink (prevents Cartesian product fan-out)
+        primary_sink = sinks[0] if sinks else None
+        if primary_sink:
+            for edge in outgoing:
+                expanded_edges.append(edge.model_copy(update={"from_node": primary_sink}))
 
-        # Validate port compatibility
-        spec = OPERATOR_PORT_SPECS.get(node_type)
-        if spec:
-            for port_name, parent_ch in port_channels.items():
-                allowed = spec.get(port_name) or spec.get(None)
-                if allowed and parent_ch not in allowed:
-                    raise GraphTypeError(
-                        f"Type mismatch on node '{node_id}' ({node_type}), port '{port_name}': "
-                        f"expected channels in {allowed}, got {parent_ch} channels."
-                    )
+        expanded_edges.extend(subgraph.edges)
+        expanded_nodes.extend(subgraph.nodes)
+    return PipelineGraph(nodes=expanded_nodes, edges=expanded_edges)
 
-        # Propagate output channels
-        out_ch = OPERATOR_OUTPUT_CHANNELS.get(node_type)
-        if out_ch is None:
-            out_ch = primary_channels
 
-        node_output_channels[node_id] = out_ch
+def _validate_graph(graph: PipelineGraph, input_channels: int) -> dict[str, int]:
+    graph.validate_no_cycles()
+    outputs: dict[str, int] = {}
+    nodes = {node.id: node for node in graph.nodes}
+    for node_id in topological_sort(graph):
+        node = nodes[node_id]
+        node_type = _node_type(node)
+        incoming = [edge for edge in graph.edges if edge.to_node == node_id]
+        ports = {edge.input_port: outputs[edge.from_node] for edge in incoming}
+        primary = next(
+            (channels for port, channels in ports.items() if port in (None, "image", "input")),
+            input_channels if not incoming else next(iter(ports.values())),
+        )
+        for port, channels in ports.items():
+            allowed = OPERATOR_PORT_SPECS.get(node_type, {}).get(port) or OPERATOR_PORT_SPECS.get(node_type, {}).get(
+                None
+            )
+            if allowed and channels not in allowed:
+                raise GraphTypeError(
+                    f"Type mismatch on node '{node_id}' ({node_type}), port '{port}': "
+                    f"expected channels in {allowed}, got {channels} channels."
+                )
+        if node_type in CONTROL_BRANCHES:
+            required = CONTROL_BRANCHES[node_type]
+            if set(node.branches) != set(required):
+                raise GraphTypeError(f"Control node '{node_id}' requires branches {required}.")
+            # Handle branch values that might be lists or PipelineGraph
+            branch_outputs = []
+            for name in required:
+                branch = node.branches.get(name)
+                if isinstance(branch, list):
+                    # Convert list to PipelineGraph and validate it
+                    branch_graph = _coerce_graph({"nodes": branch, "edges": []})
+                    branch_outputs.append(_validate_graph(branch_graph, primary))
+                elif isinstance(branch, PipelineGraph):
+                    branch_outputs.append(_validate_graph(branch, primary))
+                else:
+                    branch_outputs.append(primary)
+            channel_values = [
+                next(reversed(result.values()), primary) if result else primary for result in branch_outputs
+            ]
+            outputs[node_id] = channel_values[0] if node_type == "macro_if_else" else max(channel_values)
+        else:
+            outputs[node_id] = OPERATOR_OUTPUT_CHANNELS.get(node_type, primary)
+    return outputs
+
+
+def compile_graph(graph: PipelineGraph, session: Session | None = None, input_channels: int = 3) -> list[PipelineStep]:
+    expanded = _expand_graph(graph, session) if session is not None else graph
+    _validate_graph(expanded, input_channels)
+    node_map = {node.id: node for node in expanded.nodes}
+    steps = []
+    for node_id in topological_sort(expanded):
+        node = node_map[node_id]
+        node_type = _node_type(node)
+        if node_type in {"macro_input", "macro_output"}:
+            continue
+        compiled_branches = {}
+        for name, branch in node.branches.items():
+            if isinstance(branch, list):
+                branch_graph = _coerce_graph({"nodes": branch, "edges": []})
+                compiled_branches[name] = compile_graph(branch_graph, session, input_channels)
+            elif isinstance(branch, PipelineGraph):
+                compiled_branches[name] = compile_graph(branch, session, input_channels)
+            else:
+                compiled_branches[name] = branch
+        steps.append(PipelineStep(type=node_type, block_id=node.id, params=node.params, branches=compiled_branches))
+    return steps
 
 
 def prepare_pipeline(session: Session, pipeline_id: uuid.UUID, input_channels: int) -> list[PipelineStep]:
-    """
-    Loads, expands, cycle-checks, topo-sorts, type-checks a pipeline graph,
-    and returns the compiled list of PipelineSteps.
-    """
-    # 1. Load pipeline graph from DB
     version = session.exec(
         select(PipelineVersion)
         .where(PipelineVersion.pipeline_id == pipeline_id)
@@ -220,92 +318,26 @@ def prepare_pipeline(session: Session, pipeline_id: uuid.UUID, input_channels: i
         .limit(1)
     ).first()
     if not version:
-        raise ValueError(f"Pipeline {pipeline_id} not found in database.")
-
-    graph = PipelineGraph.model_validate(version.pipeline_json)
-
-    # 2. Recursively expand macros
-    expanded_graph = expand_all_macros(graph, session)
-
-    # 3. Run cycle check on the fully expanded graph
-    expanded_graph.validate_no_cycles()
-
-    # 4. Run type-integrity check
-    type_integrity_check(expanded_graph, input_channels)
-
-    # 5. Run topo sort to compile execution order
-    topo_order = topological_sort(expanded_graph)
-
-    # 6. Map sorted nodes to flat PipelineSteps
-    node_map = {n.id: n for n in expanded_graph.nodes}
-    steps = []
-    for node_id in topo_order:
-        node = node_map[node_id]
-        # Skip macro placeholders or input/output portal nodes during execution
-        if node.type in ("macro_input", "macro_output") or node.op in ("macro_input", "macro_output"):
-            continue
-        steps.append(PipelineStep(type=node.type or node.op or "", block_id=node.id, params=node.params))
-
-    return steps
+        raise ValueError(f"Pipeline {pipeline_id} not found.")
+    return compile_graph(_coerce_graph(version.pipeline_json), session, input_channels)
 
 
 def execute_graph_pipeline(session: Session, pipeline_id: uuid.UUID, request: PipelineRequest) -> PipelineResponse:
-    """
-    Executes a pipeline graph by compiling it to flat steps and delegating
-    to the sequential PipelineExecutor.
-    """
-    # Determine channel count from request image
+    """Compatibility service API: compile here, then delegate the plan to the executor."""
     try:
         image = decode_base64_image(request.image)
-        input_channels = 1 if image.ndim == 2 else image.shape[2]
-    except Exception as e:
-        return PipelineResponse(
-            success=False,
-            error=f"Failed to decode image: {e}",
-            step_results=[],
-        )
+        channels = 1 if image.ndim == 2 else image.shape[2]
+        request.pipeline = prepare_pipeline(session, pipeline_id, channels)
+    except Exception as exc:
+        return PipelineResponse(success=False, error=f"Graph preparation error: {exc}", step_results=[])
+    from app.services.pipeline_executor import execute_pipeline
 
-    # Compile DAG to flat steps list
-    try:
-        steps = prepare_pipeline(session, pipeline_id, input_channels)
-    except GraphCycleError as e:
-        return PipelineResponse(
-            success=False,
-            error=str(e),
-            step_results=[],
-        )
-    except GraphTypeError as e:
-        return PipelineResponse(
-            success=False,
-            error=str(e),
-            step_results=[],
-        )
-    except Exception as e:
-        return PipelineResponse(
-            success=False,
-            error=f"Graph preparation error: {e}",
-            step_results=[],
-        )
-
-    # Inject steps into request and execute using PipelineExecutor
-    request.pipeline = steps
     return execute_pipeline(request)
 
 
-def validate_macro_graph(graph: PipelineGraph, session: Session, macro_id: uuid.UUID | None = None) -> PipelineGraph:
-    """
-    Validates a macro graph for structure correctness, cycle detection, and cyclic nesting.
-    """
+def validate_macro_graph(
+    graph: PipelineGraph, session: Session | None = None, macro_id: uuid.UUID | None = None
+) -> PipelineGraph:
     graph.validate_no_cycles()
-    active_macro_ids = [macro_id] if macro_id else []
-    expand_all_macros(graph, session, active_macro_ids=active_macro_ids)
+    _expand_graph(graph, session, [macro_id] if macro_id else [])
     return graph
-
-
-def expand_macro_steps(steps: list[PipelineStep], session: Session) -> list[PipelineStep]:
-    """
-    Recursively unrolls any macro_ref, macro_blend, or macro_if_else steps in a list of PipelineSteps.
-    """
-    from app.services.pipeline_executor import expand_macro_steps as _expand_macro_steps
-
-    return _expand_macro_steps(steps, session=session)
