@@ -120,7 +120,7 @@ export const conversionsBlocks = [
       },
       { type: "input_dummy" },
       { type: "field_number", name: "thresholdValue", value: 0, min: 0 },
-      { type: "field_number", name: "maxValue", value: 0, min: 0 },
+      { type: "field_number", name: "maxValue", value: 255, min: 0 },
     ],
     inputsInline: false,
     previousStatement: null,

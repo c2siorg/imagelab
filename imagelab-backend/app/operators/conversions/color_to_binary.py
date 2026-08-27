@@ -14,7 +14,7 @@ class ColorToBinary(BaseOperator):
         threshold_type_name = self.params.get("thresholdType", "threshold_binary")
         threshold_type = THRESHOLD_TYPES.get(threshold_type_name, cv2.THRESH_BINARY)
         threshold_value = float(self.params.get("thresholdValue", 0))
-        max_value = float(self.params.get("maxValue", 0))
+        max_value = float(self.params.get("maxValue", 255))
 
         if len(image.shape) == 3 and image.shape[2] == 4:
             gray = cv2.cvtColor(image, cv2.COLOR_BGRA2GRAY)
