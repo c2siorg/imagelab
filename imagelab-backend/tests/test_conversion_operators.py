@@ -84,21 +84,23 @@ class TestGrayToBinary:
 
     def test_color_bgr_input_produces_grayscale_output(self):
         """BGR images should be converted to grayscale before thresholding — not produce 3-channel binary."""
-        color = np.full((100, 100, 3), 128, dtype=np.uint8)
-        color[50:, :] = [200, 200, 200]
+        # Values straddle the default threshold (127) so the split is observable
+        color = np.full((100, 100, 3), 50, dtype=np.uint8)  # below threshold -> 0
+        color[50:, :] = [200, 200, 200]  # above threshold -> 255
         result = GrayToBinary({}).compute(color)
         assert result.dtype == np.uint8
         assert result.ndim == 2, f"Expected 2D grayscale output for BGR input, got shape {result.shape}"
-        assert set(np.unique(result)).issubset({0, 255})
+        assert set(np.unique(result)) == {0, 255}
 
     def test_color_bgra_input_produces_grayscale_output(self):
         """BGRA images should be converted to grayscale before thresholding — not produce 4-channel binary."""
-        bgra = np.full((100, 100, 4), 128, dtype=np.uint8)
-        bgra[50:, :] = [200, 200, 200, 255]
+        # Values straddle the default threshold (127) so the split is observable
+        bgra = np.full((100, 100, 4), 50, dtype=np.uint8)  # below threshold -> 0
+        bgra[50:, :] = [200, 200, 200, 255]  # above threshold -> 255
         result = GrayToBinary({}).compute(bgra)
         assert result.dtype == np.uint8
         assert result.ndim == 2, f"Expected 2D grayscale output for BGRA input, got shape {result.shape}"
-        assert set(np.unique(result)).issubset({0, 255})
+        assert set(np.unique(result)) == {0, 255}
 
 
 # ColorToBinary
@@ -130,6 +132,14 @@ class TestColorToBinary:
     def test_output_is_uint8(self, color_image):
         result = ColorToBinary({"thresholdValue": 127, "maxValue": 255}).compute(color_image)
         assert result.dtype == np.uint8
+
+    def test_default_params_produce_non_black_output(self):
+        # Regression for #182: maxValue defaulted to 0, so every thresholded pixel
+        # was written as 0 and the whole output came back black.
+        img = np.zeros((100, 100, 3), dtype=np.uint8)
+        img[50:, :] = 200  # above the default threshold of 0 -> 255
+        result = ColorToBinary({}).compute(img)
+        assert set(np.unique(result)) == {0, 255}
 
 
 # ColorMaps
