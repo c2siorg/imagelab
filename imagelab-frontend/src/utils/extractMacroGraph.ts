@@ -157,7 +157,8 @@ function extractStatementBranch(startBlock: Blockly.Block | null): PipelineGraph
           const subTarget = inItem.connection.targetBlock();
           if (subTarget) {
             const subBranch = extractStatementBranch(subTarget);
-            const branchName = CONTROL_BRANCH_NAME[curr.type]?.[inItem.name ?? ""];
+            // Fallback to an empty string if curr or type is missing
+            const branchName = CONTROL_BRANCH_NAME[curr?.type ?? ""]?.[inItem.name ?? ""];
             if (branchName) {
               childBranches[branchName] = subBranch;
             }
