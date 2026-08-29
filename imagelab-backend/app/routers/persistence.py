@@ -171,7 +171,7 @@ def _get_active_share(session: Session, token: str) -> PipelineShare:
         if expires_at.tzinfo is None:
             expires_at = expires_at.replace(tzinfo=UTC)
         if expires_at < datetime.now(UTC):
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=INVALID_SHARE_DETAIL)
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Share token has expired")
 
     return share
 

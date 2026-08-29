@@ -446,8 +446,8 @@ def test_expired_edit_share_cannot_create_version(client):
         f"/api/share/{token}/versions",
         json={"workspace_json": {}, "pipeline_json": {}},
     )
-    assert edit_res.status_code == 404
-    assert edit_res.json()["detail"] == "Invalid or expired share link"
+    assert edit_res.status_code == 403
+    assert edit_res.json()["detail"] == "Share token has expired"
 
 
 def test_invalid_share_permission_is_rejected(client):
@@ -477,15 +477,15 @@ def test_share_obfuscation_and_expiry(client):
     )
     expired_token = res.json()["token"]
 
-    # 3. Lookup expired share token - should return 404 with generic message
+    # 3. Lookup expired share token - should return 403
     res = client.get(f"/api/share/{expired_token}")
-    assert res.status_code == 404
-    assert res.json()["detail"] == "Invalid or expired share link"
+    assert res.status_code == 403
+    assert res.json()["detail"] == "Share token has expired"
 
-    # 4. Try to clone expired share token - should return 404 with generic message
+    # 4. Try to clone expired share token - should return 403
     res = client.post(f"/api/share/{expired_token}/clone", json={})
-    assert res.status_code == 404
-    assert res.json()["detail"] == "Invalid or expired share link"
+    assert res.status_code == 403
+    assert res.json()["detail"] == "Share token has expired"
 
     # 5. Lookup non-existent token - should return 404 with identical message (obfuscation)
     res = client.get("/api/share/non-existent-token-12345")

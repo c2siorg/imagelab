@@ -25,6 +25,20 @@ class PipelineExecutionError(Exception):
         super().__init__(user_friendly_message)
 
 
+class MacroDepthLimitExceeded(AppException, ValueError):
+    """Raised when macro expansion depth exceeds maximum allowed limit (10)."""
+
+    def __init__(self, message: str = "Macro expansion depth limit exceeded (> 10)"):
+        super().__init__(message=message, status_code=400)
+
+
+class MemoryLimitExceededException(AppException, ValueError):
+    """Raised when image processing memory usage exceeds configured threshold."""
+
+    def __init__(self, message: str = "Memory limit exceeded during image processing"):
+        super().__init__(message=message, status_code=400)
+
+
 async def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:
     return JSONResponse(
         status_code=exc.status_code,

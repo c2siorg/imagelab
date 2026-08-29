@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 from sqlmodel import Session
 
-from app.exceptions import PipelineExecutionError
+from app.exceptions import MemoryLimitExceededException, PipelineExecutionError
 from app.models.pipeline import (
     ImageAnalysis,
     ImageHistogram,
@@ -24,6 +24,15 @@ NOOP_TYPES = {"basic_readimage", "basic_writeimage", "border_for_all", "border_e
 THUMBNAIL_MAX_SIZE = 128
 EXECUTION_CACHE_TTL_SECONDS = 30 * 60
 MAX_EXECUTION_CACHE_ENTRIES = 25
+MAX_IMAGE_MEMORY_BYTES = 50 * 1024 * 1024  # 50 MB default threshold
+
+
+def check_memory_limit(image: np.ndarray, max_bytes: int = MAX_IMAGE_MEMORY_BYTES) -> None:
+    if image is not None and image.nbytes > max_bytes:
+        raise MemoryLimitExceededException(
+            f"Image memory footprint ({image.nbytes} bytes) exceeds memory limit threshold of {max_bytes} bytes."
+        )
+
 
 _EXECUTION_CACHE: dict[str, dict[str, object]] = {}
 _EXECUTION_CACHE_LOCK = RLock()
@@ -163,7 +172,10 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
 
     try:
         image = decode_base64_image(request.image)
+        check_memory_limit(image)
     except Exception as e:
+        if isinstance(e, MemoryLimitExceededException):
+            raise
         t_fail = time.perf_counter()
         return PipelineResponse(
             success=False,
@@ -211,6 +223,8 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
 
                 operator = operator_cls(step.params)
                 image = operator.compute(image)
+
+            check_memory_limit(image)
 
             t_step_end = time.perf_counter()
             timing_ms = (t_step_end - t_step_start) * 1000
