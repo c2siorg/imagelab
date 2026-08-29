@@ -4,10 +4,13 @@ import uuid
 
 from sqlmodel import Session, select
 
+from app.exceptions import MacroDepthLimitExceeded
 from app.models.graph import GraphCycleError, GraphNode, PipelineGraph, topological_sort
 from app.models.persistence import PipelineVersion
 from app.models.pipeline import PipelineRequest, PipelineResponse, PipelineStep
 from app.utils.image import decode_base64_image
+
+MAX_MACRO_DEPTH = 10
 
 
 class GraphTypeError(ValueError):
@@ -193,6 +196,8 @@ def _expand_graph(graph: PipelineGraph, session: Session, active: list[uuid.UUID
             macro_id = uuid.UUID(macro_id_text)
         except ValueError as exc:
             raise ValueError(f"Node {node.id} has invalid macro id '{macro_id_text}'.") from exc
+        if len(active) >= MAX_MACRO_DEPTH:
+            raise MacroDepthLimitExceeded(f"Macro expansion depth limit of {MAX_MACRO_DEPTH} exceeded.")
         if macro_id in active:
             raise GraphCycleError([*(str(item) for item in active), str(macro_id)])
         version = session.exec(
