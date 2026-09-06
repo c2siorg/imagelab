@@ -4,6 +4,7 @@ import { X, Loader2, FolderOpen, Trash2, Search } from "lucide-react";
 import { usePipelineStore } from "../store/pipelineStore";
 import { listPipelines, getPipelineLatest, deletePipeline } from "../api/persistence";
 import type { Pipeline } from "../api/persistence";
+import ConfirmDialog from "./ConfirmDialog";
 
 interface LoadPipelineModalProps {
   workspace: Blockly.WorkspaceSvg | null;
@@ -17,6 +18,10 @@ export default function LoadPipelineModal({ workspace, onClose }: LoadPipelineMo
   const [isLoading, setIsLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showLoadConfirm, setShowLoadConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pendingPipeline, setPendingPipeline] = useState<Pipeline | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const fetchPipelines = async () => {
     setIsLoading(true);
@@ -48,10 +53,16 @@ export default function LoadPipelineModal({ workspace, onClose }: LoadPipelineMo
 
     const existingBlocks = workspace.getAllBlocks(false);
     if (existingBlocks.length > 0) {
-      if (!window.confirm("Loading a pipeline will replace your current workspace. Continue?")) {
-        return;
-      }
+      setPendingPipeline(pipeline);
+      setShowLoadConfirm(true);
+      return;
     }
+
+    await performLoad(pipeline);
+  };
+
+  const performLoad = async (pipeline: Pipeline) => {
+    if (!workspace) return;
 
     setActionId(pipeline.id);
     setError(null);
@@ -86,26 +97,37 @@ export default function LoadPipelineModal({ workspace, onClose }: LoadPipelineMo
     }
   };
 
-  const handleDelete = async (pipelineId: string) => {
-    if (
-      !window.confirm("Are you sure you want to delete this pipeline and all its version history?")
-    ) {
-      return;
+  const confirmLoad = async () => {
+    setShowLoadConfirm(false);
+    if (pendingPipeline) {
+      await performLoad(pendingPipeline);
+      setPendingPipeline(null);
     }
+  };
 
-    setActionId(pipelineId);
+  const handleDelete = async (pipelineId: string) => {
+    setPendingDeleteId(pipelineId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    setShowDeleteConfirm(false);
+    if (!pendingDeleteId) return;
+
+    setActionId(pendingDeleteId);
     setError(null);
 
     try {
-      await deletePipeline(pipelineId);
-      setPipelines((prev) => prev.filter((p) => p.id !== pipelineId));
-      if (currentPipelineId === pipelineId) {
+      await deletePipeline(pendingDeleteId);
+      setPipelines((prev) => prev.filter((p) => p.id !== pendingDeleteId));
+      if (currentPipelineId === pendingDeleteId) {
         setCurrentPipeline(null, null, null);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete pipeline");
     } finally {
       setActionId(null);
+      setPendingDeleteId(null);
     }
   };
 
@@ -222,6 +244,33 @@ export default function LoadPipelineModal({ workspace, onClose }: LoadPipelineMo
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showLoadConfirm}
+        title="Replace Workspace"
+        message="Loading a pipeline will replace your current workspace. Continue?"
+        confirmLabel="Load"
+        cancelLabel="Cancel"
+        onConfirm={confirmLoad}
+        onCancel={() => {
+          setShowLoadConfirm(false);
+          setPendingPipeline(null);
+        }}
+      />
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Delete Pipeline"
+        message="Are you sure you want to delete this pipeline and all its version history?"
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="destructive"
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setPendingDeleteId(null);
+        }}
+      />
     </div>
   );
 }

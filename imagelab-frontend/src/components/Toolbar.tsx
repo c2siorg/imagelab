@@ -30,6 +30,7 @@ import LoadPipelineModal from "./LoadPipelineModal";
 import VersionHistoryModal from "./VersionHistoryModal";
 import BatchProcessingModal from "./BatchProcessingModal";
 import CreateMacroModal from "./modals/CreateMacroModal";
+import ConfirmDialog from "./ConfirmDialog";
 
 /** Three-phase selection state for 2-click macro range picking. */
 type SelectionPhase = "idle" | "selecting" | "waitingForEnd";
@@ -80,6 +81,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
   const [showVersionModal, setShowVersionModal] = useState(false);
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [showCreateMacroModal, setShowCreateMacroModal] = useState(false);
+  const [showNewWorkspaceConfirm, setShowNewWorkspaceConfirm] = useState(false);
 
   // ── Fallback single-click selection (used outside range-selection mode) ────
   const [selectedBlocks, setSelectedBlocks] = useState<Blockly.Block[]>([]);
@@ -184,14 +186,16 @@ export default function Toolbar({ workspace }: ToolbarProps) {
   }, [workspace, selectionPhase, startBlock]);
 
   const handleNew = () => {
-    if (!window.confirm("This will clear all blocks and the uploaded image. Continue?")) {
-      return;
-    }
+    setShowNewWorkspaceConfirm(true);
+  };
+
+  const confirmNewWorkspace = () => {
     reset();
     clearShareContext();
     if (workspace) {
       workspace.clear();
     }
+    setShowNewWorkspaceConfirm(false);
   };
 
   const handleDownload = () => {
@@ -599,6 +603,16 @@ export default function Toolbar({ workspace }: ToolbarProps) {
           }}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={showNewWorkspaceConfirm}
+        title="Clear Workspace"
+        message="This will clear all blocks and the uploaded image. Continue?"
+        confirmLabel="Clear"
+        cancelLabel="Cancel"
+        onConfirm={confirmNewWorkspace}
+        onCancel={() => setShowNewWorkspaceConfirm(false)}
+      />
     </>
   );
 }
