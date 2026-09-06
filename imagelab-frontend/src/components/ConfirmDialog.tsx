@@ -64,9 +64,7 @@ export default function ConfirmDialog({
         {/* Header */}
         <div
           className={`flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700 ${
-            isDestructive
-              ? "bg-red-50 dark:bg-red-950/20"
-              : "bg-gray-50 dark:bg-gray-800/50"
+            isDestructive ? "bg-red-50 dark:bg-red-950/20" : "bg-gray-50 dark:bg-gray-800/50"
           }`}
         >
           <div className="flex items-center gap-2">
@@ -91,10 +89,7 @@ export default function ConfirmDialog({
 
         {/* Content */}
         <div className="p-5">
-          <p
-            id="confirm-dialog-message"
-            className="text-sm text-gray-600 dark:text-gray-300"
-          >
+          <p id="confirm-dialog-message" className="text-sm text-gray-600 dark:text-gray-300">
             {message}
           </p>
         </div>
