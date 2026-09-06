@@ -498,8 +498,7 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       },
       {
         name: "Thickness",
-        description:
-          "Thickness of the bounding box lines in pixels. Range: 1 to 10. Default: 2.",
+        description: "Thickness of the bounding box lines in pixels. Range: 1 to 10. Default: 2.",
       },
       {
         name: "Draw Face Boxes",

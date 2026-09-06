@@ -5,7 +5,14 @@ export const detectionBlocks = [
       "Detect smiles %1 Scale factor %2 %3 Min neighbors %4 %5 Min width %6 %7 Min height %8 %9 Box color %10 %11 Thickness %12 %13 Draw face boxes %14",
     args0: [
       { type: "input_dummy" },
-      { type: "field_number", name: "scaleFactor", value: 1.1, min: 1.01, max: 2.0, precision: 0.01 },
+      {
+        type: "field_number",
+        name: "scaleFactor",
+        value: 1.1,
+        min: 1.01,
+        max: 2.0,
+        precision: 0.01,
+      },
       { type: "input_dummy" },
       { type: "field_number", name: "minNeighbors", value: 5, min: 1, max: 20 },
       { type: "input_dummy" },
