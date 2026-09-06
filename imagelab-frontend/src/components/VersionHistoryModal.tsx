@@ -4,6 +4,7 @@ import { X, Loader2, History, RotateCcw } from "lucide-react";
 import { usePipelineStore } from "../store/pipelineStore";
 import { listVersions, restoreVersion } from "../api/persistence";
 import type { VersionSummary } from "../api/persistence";
+import ConfirmDialog from "./ConfirmDialog";
 
 interface VersionHistoryModalProps {
   workspace: Blockly.WorkspaceSvg | null;
@@ -17,6 +18,8 @@ export default function VersionHistoryModal({ workspace, onClose }: VersionHisto
   const [isLoading, setIsLoading] = useState(true);
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
+  const [pendingVersion, setPendingVersion] = useState<VersionSummary | null>(null);
 
   const fetchVersions = useCallback(async () => {
     if (!currentPipelineId) {
@@ -50,19 +53,19 @@ export default function VersionHistoryModal({ workspace, onClose }: VersionHisto
   const handleRestore = async (version: VersionSummary) => {
     if (!workspace || !currentPipelineId) return;
 
-    if (
-      !window.confirm(
-        `Are you sure you want to restore Version ${version.version_number}? This will replace your current workspace and create a new version of the pipeline.`,
-      )
-    ) {
-      return;
-    }
+    setPendingVersion(version);
+    setShowRestoreConfirm(true);
+  };
 
-    setRestoringId(version.id);
+  const confirmRestore = async () => {
+    setShowRestoreConfirm(false);
+    if (!workspace || !currentPipelineId || !pendingVersion) return;
+
+    setRestoringId(pendingVersion.id);
     setError(null);
 
     try {
-      const result = await restoreVersion(currentPipelineId, version.version_number);
+      const result = await restoreVersion(currentPipelineId, pendingVersion.version_number);
 
       // Load workspace state into Blockly
       const snapshot = Blockly.serialization.workspaces.save(workspace);
@@ -87,6 +90,7 @@ export default function VersionHistoryModal({ workspace, onClose }: VersionHisto
       setError(err instanceof Error ? err.message : "Failed to restore version");
     } finally {
       setRestoringId(null);
+      setPendingVersion(null);
     }
   };
 
@@ -187,6 +191,23 @@ export default function VersionHistoryModal({ workspace, onClose }: VersionHisto
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showRestoreConfirm}
+        title="Restore Version"
+        message={
+          pendingVersion
+            ? `Are you sure you want to restore Version ${pendingVersion.version_number}? This will replace your current workspace and create a new version of the pipeline.`
+            : ""
+        }
+        confirmLabel="Restore"
+        cancelLabel="Cancel"
+        onConfirm={confirmRestore}
+        onCancel={() => {
+          setShowRestoreConfirm(false);
+          setPendingVersion(null);
+        }}
+      />
     </div>
   );
 }
