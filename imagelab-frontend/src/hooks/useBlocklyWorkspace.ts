@@ -5,7 +5,7 @@ import "@blockly/field-colour";
 import "@blockly/field-slider";
 import { WorkspaceSearch } from "@blockly/plugin-workspace-search";
 import { usePipelineStore } from "../store/pipelineStore";
-import { useMacroStore } from "../store/useMacroStore";
+import { useMacroStore, registerMacroBlocksFromDefinitions } from "../store/useMacroStore";
 import { imagelabTheme, imagelabThemeDark } from "../blocks/theme";
 import { SINGLETON_BLOCK_TYPES } from "../utils/blockLimits";
 import { loadPersistedImageState } from "./imagePersistence";
@@ -65,6 +65,11 @@ export function useBlocklyWorkspace({
 
     Blockly.config.snapRadius = 48;
     Blockly.config.connectingSnapRadius = 68;
+
+    // Register macro blocks from localStorage cache BEFORE workspace injection
+    // This ensures macro blocks are recognized during workspace restoration
+    const cachedMacros = useMacroStore.getState().macros;
+    registerMacroBlocksFromDefinitions(cachedMacros);
 
     const ws = Blockly.inject(containerRef.current, {
       readOnly,

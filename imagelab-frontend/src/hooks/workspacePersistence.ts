@@ -1,5 +1,8 @@
+import type { MacroDefinition } from "../types/macro";
+
 export const WORKSPACE_STORAGE_KEY = "imagelab.pipeline.workspace.v1";
 export const ACTIVE_PIPELINE_STORAGE_KEY = "imagelab.pipeline.active.v1";
+export const MACRO_STORAGE_KEY = "imagelab.macros.v1";
 export const WORKSPACE_STORAGE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 type PersistedPayload<T> = {
@@ -112,6 +115,81 @@ export function saveActivePipeline(
 export function clearPersistedActivePipeline(
   storage: Storage = localStorage,
   key = ACTIVE_PIPELINE_STORAGE_KEY,
+): void {
+  storage.removeItem(key);
+}
+
+// Macro persistence functions
+
+function isValidMacroDefinition(data: unknown): data is MacroDefinition {
+  if (!data || typeof data !== "object") return false;
+  const candidate = data as Partial<MacroDefinition>;
+  return (
+    typeof candidate.id === "string" &&
+    candidate.id.length > 0 &&
+    typeof candidate.name === "string" &&
+    candidate.name.length > 0 &&
+    candidate.graph !== undefined &&
+    typeof candidate.graph === "object" &&
+    Array.isArray(candidate.graph.nodes) &&
+    Array.isArray(candidate.graph.edges)
+  );
+}
+
+export function loadPersistedMacros(
+  storage: Storage = localStorage,
+  key = MACRO_STORAGE_KEY,
+): MacroDefinition[] {
+  const raw = storage.getItem(key);
+  if (!raw) return [];
+
+  try {
+    const payload = JSON.parse(raw) as PersistedPayload<unknown>;
+    if (
+      typeof payload.expiresAt !== "number" ||
+      Date.now() > payload.expiresAt ||
+      !Array.isArray(payload.data)
+    ) {
+      storage.removeItem(key);
+      return [];
+    }
+
+    // Validate each macro definition
+    const validMacros = (payload.data as unknown[]).filter(isValidMacroDefinition);
+    if (validMacros.length !== payload.data.length) {
+      console.warn("[ImageLab] Some macros failed validation and were filtered out");
+    }
+    return validMacros;
+  } catch (err) {
+    console.warn("[ImageLab] Failed to load persisted macros:", err);
+    storage.removeItem(key);
+    return [];
+  }
+}
+
+export function savePersistedMacros(
+  macros: MacroDefinition[],
+  storage: Storage = localStorage,
+  key = MACRO_STORAGE_KEY,
+  ttlMs = WORKSPACE_STORAGE_TTL_MS,
+): boolean {
+  const payload = {
+    expiresAt: Date.now() + ttlMs,
+    data: macros,
+  };
+
+  try {
+    storage.setItem(key, JSON.stringify(payload));
+    return true;
+  } catch (err) {
+    console.warn("[ImageLab] Could not persist macros:", err);
+    return false;
+  }
+}
+
+export function clearPersistedMacros(
+  storage: Storage = localStorage,
+  key = MACRO_STORAGE_KEY,
 ): void {
   storage.removeItem(key);
 }

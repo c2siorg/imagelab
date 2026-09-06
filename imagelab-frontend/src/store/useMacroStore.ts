@@ -9,6 +9,10 @@ import type {
 } from "../types/macro";
 import { registerMacroBlock, refreshMacroBlockInstances } from "../blocks/macroBlock";
 import { safeDeleteMacro } from "../utils/macroDeletionGuards";
+import {
+  loadPersistedMacros,
+  savePersistedMacros,
+} from "../hooks/workspacePersistence";
 
 function definitionFromVersion(macro: MacroVersion): MacroDefinition {
   return {
@@ -25,6 +29,16 @@ function definitionFromVersion(macro: MacroVersion): MacroDefinition {
     created_at: macro.created_at,
     updated_at: macro.updated_at,
   };
+}
+
+/**
+ * Register all macro blocks from definitions for Blockly workspace initialization.
+ * This should be called before workspace restoration to ensure macro blocks are recognized.
+ */
+export function registerMacroBlocksFromDefinitions(definitions: MacroDefinition[]): void {
+  for (const definition of definitions) {
+    registerMacroBlock(definition);
+  }
 }
 
 export interface MacroState {
@@ -48,7 +62,15 @@ export interface MacroState {
 }
 
 export const useMacroStore = create<MacroState>((set, get) => ({
-  macros: [],
+  // Synchronously initialize from localStorage cache for instant availability
+  // Use try-catch to handle environments where localStorage is not available (e.g., tests)
+  macros: (() => {
+    try {
+      return loadPersistedMacros();
+    } catch {
+      return [];
+    }
+  })(),
   selectedMacro: null,
   isLoading: false,
   error: null,
@@ -59,9 +81,14 @@ export const useMacroStore = create<MacroState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const macroVersions = await macroApi.fetchMacros();
-      set({ macros: macroVersions.map(definitionFromVersion), isLoading: false });
+      const definitions = macroVersions.map(definitionFromVersion);
+      set({ macros: definitions, isLoading: false });
+      // Update localStorage cache with fresh backend data
+      savePersistedMacros(definitions);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to load macros";
+      console.warn("[ImageLab] Backend macro load failed, using localStorage cache:", message);
+      // Keep existing macros from localStorage, just set error state
       set({ error: message, isLoading: false });
     }
   },
@@ -90,6 +117,8 @@ export const useMacroStore = create<MacroState>((set, get) => ({
       const created = await macroApi.createMacro(payload);
       await get().loadMacros();
       set({ selectedMacro: created, isLoading: false });
+      // Update localStorage cache after successful creation
+      savePersistedMacros(get().macros);
       return created;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to create macro";
@@ -104,6 +133,8 @@ export const useMacroStore = create<MacroState>((set, get) => ({
       const updated = await macroApi.updateMacro(id, payload);
       await get().loadMacros();
       set({ selectedMacro: updated, isLoading: false });
+      // Update localStorage cache after successful update
+      savePersistedMacros(get().macros);
       return updated;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : `Failed to update macro ${id}`;
@@ -141,6 +172,8 @@ export const useMacroStore = create<MacroState>((set, get) => ({
         selectedMacro: updated,
         isLoading: false,
       }));
+      // Update localStorage cache after successful update
+      savePersistedMacros(get().macros);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : `Failed to update macro ${macroId}`;
       set({ error: message, isLoading: false });
@@ -165,6 +198,8 @@ export const useMacroStore = create<MacroState>((set, get) => ({
       }
       await get().loadMacros();
       set({ isLoading: false });
+      // Update localStorage cache after successful deletion
+      savePersistedMacros(get().macros);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : `Failed to delete macro ${id}`;
       set({ deletionError: message, isLoading: false });
