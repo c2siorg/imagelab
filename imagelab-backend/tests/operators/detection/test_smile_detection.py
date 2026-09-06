@@ -70,9 +70,9 @@ def test_does_not_mutate_input():
     image = make_blank_image(channels=3)
     original = image.copy()
     op = make_operator({})
-    
+
     _ = op.compute(image)
-    
+
     np.testing.assert_array_equal(image, original)
 
 
@@ -95,7 +95,7 @@ def test_invalid_parameters_raise(param_name, invalid_value, error_match):
     """Invalid parameter values should raise ValueError with descriptive message."""
     params = {param_name: invalid_value}
     op = make_operator(params)
-    
+
     with pytest.raises(ValueError, match=error_match):
         op.compute(make_blank_image())
 
@@ -105,7 +105,7 @@ def test_unsupported_image_shape_raises():
     # 5-channel image is not supported
     image = np.zeros((100, 100, 5), dtype=np.uint8)
     op = make_operator({})
-    
+
     with pytest.raises(ValueError, match="Unsupported image shape"):
         op.compute(image)
 
@@ -114,10 +114,10 @@ def test_grayscale_2d_image():
     """2D grayscale images (H, W) should be processed correctly."""
     image = make_blank_image(channels=1).squeeze()
     assert len(image.shape) == 2  # Ensure it's 2D
-    
+
     op = make_operator({})
     result = op.compute(image.copy())
-    
+
     # Output should be BGR (3 channels) for colored boxes
     assert result.shape == (200, 200, 3)
     assert result.dtype == np.uint8
@@ -139,7 +139,7 @@ def test_different_box_colors():
     """Different box colors should be accepted without error."""
     colors = ["#FF0000", "#00FF00", "#0000FF", "#FFFF00"]
     image = make_blank_image(channels=3)
-    
+
     for color in colors:
         op = make_operator({"rgbcolors_input": color})
         result = op.compute(image.copy())
@@ -149,12 +149,12 @@ def test_different_box_colors():
 def test_draw_face_boxes_parameter():
     """drawFaceBoxes parameter should be accepted (True/False)."""
     image = make_blank_image(channels=3)
-    
+
     # Test with False (default)
     op_false = make_operator({"drawFaceBoxes": False})
     result_false = op_false.compute(image.copy())
     assert result_false.shape == image.shape
-    
+
     # Test with True
     op_true = make_operator({"drawFaceBoxes": True})
     result_true = op_true.compute(image.copy())
@@ -166,9 +166,9 @@ def test_float_images_normalized():
     # Create float image in [0, 1] range
     image = np.ones((100, 100, 3), dtype=np.float32) * 0.5
     op = make_operator({})
-    
+
     result = op.compute(image.copy())
-    
+
     # Result should be uint8
     assert result.dtype == np.uint8
     assert result.shape == (100, 100, 3)
@@ -179,9 +179,9 @@ def test_uint16_images_converted():
     # Create uint16 image
     image = np.ones((100, 100, 3), dtype=np.uint16) * 32768
     op = make_operator({})
-    
+
     result = op.compute(image.copy())
-    
+
     # Result should be uint8
     assert result.dtype == np.uint8
     assert result.shape == (100, 100, 3)
