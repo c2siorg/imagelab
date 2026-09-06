@@ -11,6 +11,7 @@ import { sobelDerivativesBlocks } from "./sobel-derivatives.blocks";
 import { transformationBlocks } from "./transformation.blocks";
 import { augmentationBlocks } from "./augmentation.blocks";
 import { segmentationBlocks } from "./segmentation.blocks";
+import { detectionBlocks } from "./detection.blocks";
 import { controlFlowBlocks, registerControlFlowBlocks } from "./controlFlow.blocks";
 
 function registerOddKernelValidator() {
@@ -126,6 +127,7 @@ export function registerAllBlocks() {
     ...transformationBlocks,
     ...augmentationBlocks,
     ...segmentationBlocks,
+    ...detectionBlocks,
     ...controlFlowBlocks,
   ];
 

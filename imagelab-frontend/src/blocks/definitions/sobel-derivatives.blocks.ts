@@ -1,6 +1,6 @@
 export const sobelDerivativesBlocks = [
   {
-    type: "sobelderivatives_soblederivate",
+    type: "sobelderivatives_sobelderivative",
     message0: "Apply %1 sobel derivative",
     args0: [
       {
@@ -20,7 +20,7 @@ export const sobelDerivativesBlocks = [
       "Detect edges using Sobel derivative (first order) - Applies the Sobel operator to detect edges in the image. The 'type' parameter specifies the direction of the derivative: 'Horizontal' detects vertical edges, 'Vertical' detects horizontal edges, and 'Both' detects edges in both directions using the L2 gradient magnitude. The output is always a uint8 image.",
   },
   {
-    type: "sobelderivatives_scharrderivate",
+    type: "sobelderivatives_scharrderivative",
     message0: "Apply %1 scharr derivative",
     args0: [
       {

@@ -130,12 +130,20 @@ export const categories: CategoryInfo[] = [
     ],
   },
   {
+    name: "Detection",
+    icon: "ScanFace",
+    colour: "#9575CD",
+    blocks: [
+      { type: "detection_smiledetection", label: "Smile Detection" },
+    ],
+  },
+  {
     name: "Sobel Derivatives",
     icon: "Scan",
     colour: "#E57373",
     blocks: [
-      { type: "sobelderivatives_soblederivate", label: "Sobel Derivative" },
-      { type: "sobelderivatives_scharrderivate", label: "Scharr Derivative" },
+      { type: "sobelderivatives_sobelderivative", label: "Sobel Derivative" },
+      { type: "sobelderivatives_scharrderivative", label: "Scharr Derivative" },
       { type: "sobelderivatives_prewittoperator", label: "Prewitt Operator" },
     ],
   },

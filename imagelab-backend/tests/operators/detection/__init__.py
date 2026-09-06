@@ -1,0 +1,1 @@
+# Detection operator tests

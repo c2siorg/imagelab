@@ -23,6 +23,7 @@ from app.operators.conversions.hsv_to_bgr import HsvToBgr
 from app.operators.conversions.invert_image import InvertImage
 from app.operators.conversions.lab_to_bgr import LabToBgr
 from app.operators.conversions.ycrcb_to_bgr import YcrcbToBgr
+from app.operators.detection.smile_detection import SmileDetection
 from app.operators.drawing.draw_arrow_line import DrawArrowLine
 from app.operators.drawing.draw_circle import DrawCircle
 from app.operators.drawing.draw_ellipse import DrawEllipse
@@ -114,14 +115,16 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "augmentation_sepiafilter": SepiaFilter,
     "filtering_gaborfilter": GaborFilter,
     "filtering_contourdetection": ContourDetection,
+    # Detection
+    "detection_smiledetection": SmileDetection,
     # Thresholding
     "thresholding_applythreshold": ApplyThreshold,
     "thresholding_adaptivethreshold": AdaptiveThreshold,
     "thresholding_applyborders": ApplyBorders,
     "thresholding_otsuthreshold": OtsuThreshold,
     # Sobel Derivatives
-    "sobelderivatives_soblederivate": SobelDerivative,
-    "sobelderivatives_scharrderivate": ScharrDerivative,
+    "sobelderivatives_sobelderivative": SobelDerivative,
+    "sobelderivatives_scharrderivative": ScharrDerivative,
     "sobelderivatives_prewittoperator": PrewittOperator,
     # Transformation
     "transformation_distance": DistanceTransform,
