@@ -58,7 +58,7 @@ async def process_single_image(job_id: str, filename: str, graph: PipelineGraph,
                             "edges": [edge.model_dump() for edge in graph.edges],
                         }
                         coerced_graph = _coerce_graph(graph_dict)
-                        plan = compile_graph(coerced_graph, session, input_channels)
+                        plan = compile_graph(coerced_graph, session, input_channels, [])
                     else:
                         # Empty pipeline case
                         plan = []

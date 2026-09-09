@@ -6,11 +6,175 @@ import { extractExecutableGraph } from "../hooks/usePipeline";
 import { useStepInspection } from "../hooks/useStepInspection";
 import { usePipelineStore } from "../store/pipelineStore";
 import { useMacroStore } from "../store/useMacroStore";
-import type { StepResult } from "../types/pipeline";
+import type { StepResult, MacroStackFrame } from "../types/pipeline";
 import ImageModal from "./Preview/ImageModal";
 
 interface StepResultsPaneProps {
   workspace: Blockly.WorkspaceSvg | null;
+}
+
+interface MacroNode {
+  id: string;
+  name: string;
+  children: Map<string, MacroNode>;
+  steps: StepResult[];
+  firstIndex: number;
+}
+
+/**
+ * Builds a recursive tree structure from step results based on their macro_stack.
+ * Tracks the minimum step index to maintain chronological rendering order.
+ */
+function buildMacroTree(steps: StepResult[]): Map<string, MacroNode> {
+  const root = new Map<string, MacroNode>();
+
+  for (const step of steps) {
+    if (!step.macro_stack || step.macro_stack.length === 0) {
+      continue;
+    }
+
+    let currentLevel = root;
+    for (let i = 0; i < step.macro_stack.length; i++) {
+      const frame = step.macro_stack[i];
+      const frameId = frame.id;
+
+      if (!currentLevel.has(frameId)) {
+        currentLevel.set(frameId, {
+          id: frameId,
+          name: frame.name,
+          children: new Map(),
+          steps: [],
+          firstIndex: step.index,
+        });
+      }
+
+      const node = currentLevel.get(frameId)!;
+      node.firstIndex = Math.min(node.firstIndex, step.index);
+
+      if (i === step.macro_stack.length - 1) {
+        node.steps.push(step);
+      } else {
+        currentLevel = node.children;
+      }
+    }
+  }
+
+  return root;
+}
+
+interface MacroGroupCardProps {
+  node: MacroNode;
+  depth: number;
+  isCollapsed: boolean;
+  onToggleCollapse: (id: string) => void;
+  renderStepCard: (step: StepResult, isMacroChild: boolean) => React.ReactNode;
+  getMacroDisplayName: (macroBlockId: string, macroStack?: MacroStackFrame[]) => string;
+}
+
+function MacroGroupCard({
+  node,
+  depth,
+  isCollapsed,
+  onToggleCollapse,
+  renderStepCard,
+  getMacroDisplayName,
+}: MacroGroupCardProps) {
+  const getDepthStyles = (d: number) => {
+    const baseStyles =
+      "flex items-center gap-2 flex-shrink-0 p-1.5 rounded-lg border transition-all";
+
+    if (d === 0) {
+      return `${baseStyles} ${
+        !isCollapsed
+          ? "border-indigo-200 bg-indigo-50/40 dark:border-indigo-800/60 dark:bg-indigo-950/30"
+          : "border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/30"
+      }`;
+    } else if (d === 1) {
+      return `${baseStyles} ${
+        !isCollapsed
+          ? "border-purple-200 bg-purple-50/40 dark:border-purple-800/60 dark:bg-purple-950/30"
+          : "border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/30"
+      }`;
+    } else if (d === 2) {
+      return `${baseStyles} ${
+        !isCollapsed
+          ? "border-pink-200 bg-pink-50/40 dark:border-pink-800/60 dark:bg-pink-950/30"
+          : "border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/30"
+      }`;
+    } else {
+      return `${baseStyles} ${
+        !isCollapsed
+          ? "border-slate-200 bg-slate-50/40 dark:border-slate-800/60 dark:bg-slate-950/30"
+          : "border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/30"
+      }`;
+    }
+  };
+
+  const getButtonStyles = (d: number) => {
+    const baseStyles =
+      "h-40 px-3 flex flex-col items-center justify-center gap-2 border rounded-md transition-colors flex-shrink-0";
+
+    if (d === 0) {
+      return `${baseStyles} border-indigo-200 dark:border-indigo-700/60 bg-indigo-50/80 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300`;
+    } else if (d === 1) {
+      return `${baseStyles} border-purple-200 dark:border-purple-700/60 bg-purple-50/80 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300`;
+    } else if (d === 2) {
+      return `${baseStyles} border-pink-200 dark:border-pink-700/60 bg-pink-50/80 dark:bg-pink-900/30 hover:bg-pink-100 dark:hover:bg-pink-900/50 text-pink-700 dark:text-pink-300`;
+    } else {
+      return `${baseStyles} border-slate-200 dark:border-slate-700/60 bg-slate-50/80 dark:bg-slate-900/30 hover:bg-slate-100 dark:hover:bg-slate-900/50 text-slate-700 dark:text-slate-300`;
+    }
+  };
+
+  const macroName = getMacroDisplayName(node.id, [{ id: node.id, name: node.name }]);
+  const hasChildren = node.children.size > 0;
+
+  const countTotalSteps = (n: MacroNode): number => {
+    let total = n.steps.length;
+    for (const child of n.children.values()) {
+      total += countTotalSteps(child);
+    }
+    return total;
+  };
+  const totalSteps = countTotalSteps(node);
+
+  return (
+    <div className={getDepthStyles(depth)}>
+      <button
+        type="button"
+        onClick={() => onToggleCollapse(node.id)}
+        className={getButtonStyles(depth)}
+        title={`${macroName} (${totalSteps} steps). Click to toggle expansion.`}
+      >
+        <div className="flex items-center gap-1 font-semibold text-xs">
+          {isCollapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
+          <span className="truncate max-w-[90px]">{macroName}</span>
+        </div>
+        <span className="rounded bg-white/60 dark:bg-black/30 px-2 py-0.5 text-[10px] font-medium">
+          {totalSteps} {totalSteps === 1 ? "step" : "steps"}
+          {hasChildren &&
+            ` + ${node.children.size} ${node.children.size === 1 ? "group" : "groups"}`}
+        </span>
+      </button>
+
+      {!isCollapsed && (
+        <div className="flex items-center gap-2.5 pl-1 pr-1">
+          {Array.from(node.children.entries()).map(([childId, childNode]) => (
+            <MacroGroupCard
+              key={childId}
+              node={childNode}
+              depth={depth + 1}
+              isCollapsed={false}
+              onToggleCollapse={onToggleCollapse}
+              renderStepCard={renderStepCard}
+              getMacroDisplayName={getMacroDisplayName}
+            />
+          ))}
+
+          {node.steps.map((step) => renderStepCard(step, true))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function getStepLabel(operatorType: string): string {
@@ -22,58 +186,10 @@ function getCardKey(step: StepResult): string {
   return step.block_id ?? String(step.index);
 }
 
-function getMacroParentId(
-  blockId: string | undefined,
-  workspace: Blockly.WorkspaceSvg | null,
-): string | null {
-  if (!blockId || !workspace) return null;
+type FilmstripItem =
+  | { type: "step"; step: StepResult; index: number }
+  | { type: "macro"; id: string; node: MacroNode; index: number };
 
-  const colonIndex = blockId.indexOf(":");
-  if (colonIndex === -1) return null;
-
-  const candidateParentId = blockId.slice(0, colonIndex);
-  const parentBlock = workspace.getBlockById(candidateParentId);
-  if (parentBlock && (parentBlock.type.startsWith("macro_") || "macroName" in parentBlock)) {
-    return candidateParentId;
-  }
-
-  // Not a macro step — just a standard block whose random ID contained a colon!
-  return null;
-}
-
-type InlineItem =
-  | { kind: "step"; step: StepResult }
-  | { kind: "macro"; macroBlockId: string; steps: StepResult[] };
-
-/**
- * Groups step results into a single horizontal sequence.
- * Macro internal steps get grouped under their parent macro block ID
- * and placed inline at the exact spot where the macro executed.
- */
-function organizeStepsInline(
-  steps: StepResult[],
-  workspace: Blockly.WorkspaceSvg | null,
-): InlineItem[] {
-  const items: InlineItem[] = [];
-  const processedMacros = new Map<string, StepResult[]>();
-
-  for (const step of steps) {
-    const parentId = getMacroParentId(step.block_id || "", workspace);
-
-    if (parentId) {
-      if (!processedMacros.has(parentId)) {
-        const group: StepResult[] = [];
-        processedMacros.set(parentId, group);
-        items.push({ kind: "macro", macroBlockId: parentId, steps: group });
-      }
-      processedMacros.get(parentId)!.push(step);
-    } else {
-      items.push({ kind: "step", step });
-    }
-  }
-
-  return items;
-}
 export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
   const {
     originalImage,
@@ -99,26 +215,56 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
   const { macros } = useMacroStore();
   const cardRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const clickTimeoutRef = useRef<number | null>(null);
+  const prevSelectedBlockIdRef = useRef<string | null>(null);
   const [modalImageSrc, setModalImageSrc] = useState<string | null>(null);
   const [collapsedMacros, setCollapsedMacros] = useState<Set<string>>(new Set());
   const inspectStep = useStepInspection();
-
-  // Organize steps inline horizontally
-  const inlineItems = useMemo(
-    () => organizeStepsInline(stepResults, workspace),
-    [stepResults, workspace],
-  );
 
   const finalStep = useMemo(
     () => [...stepResults].reverse().find((step) => step.success),
     [stepResults],
   );
 
-  const activeMacroBlockIds = useMemo(() => {
-    return inlineItems
-      .filter((item): item is Extract<InlineItem, { kind: "macro" }> => item.kind === "macro")
-      .map((item) => item.macroBlockId);
-  }, [inlineItems]);
+  /**
+   * Sorts top-level steps and root macro cards sequentially by execution step index.
+   */
+  const { filmstripItems, activeMacroBlockIds } = useMemo(() => {
+    const topLevelSteps: StepResult[] = [];
+    const macroSteps: StepResult[] = [];
+
+    for (const step of stepResults) {
+      if (step.macro_stack && step.macro_stack.length > 0) {
+        macroSteps.push(step);
+      } else {
+        topLevelSteps.push(step);
+      }
+    }
+
+    const macroTree = buildMacroTree(macroSteps);
+    const macroIds: string[] = [];
+
+    function collectIds(nodes: Map<string, MacroNode>) {
+      for (const [id, node] of nodes.entries()) {
+        macroIds.push(id);
+        collectIds(node.children);
+      }
+    }
+    collectIds(macroTree);
+
+    const items: FilmstripItem[] = [];
+
+    for (const step of topLevelSteps) {
+      items.push({ type: "step", step, index: step.index });
+    }
+
+    for (const [id, node] of macroTree.entries()) {
+      items.push({ type: "macro", id, node, index: node.firstIndex });
+    }
+
+    items.sort((a, b) => a.index - b.index);
+
+    return { filmstripItems: items, activeMacroBlockIds: macroIds };
+  }, [stepResults]);
 
   useEffect(() => {
     const activeKey =
@@ -139,13 +285,12 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
     };
   }, []);
 
-  // Initialize all detected macro blocks as collapsed by default
   useEffect(() => {
     setCollapsedMacros((prev) => {
       const next = new Set(prev);
       for (const id of activeMacroBlockIds) {
         if (!next.has(id)) {
-          next.add(id); // Default to collapsed
+          next.add(id);
         }
       }
       return next;
@@ -164,10 +309,21 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
     });
   };
 
-  // Resolves the block instance back to its Macro template name on the canvas
-  const getMacroDisplayName = (macroBlockId: string): string => {
-    let resolvedName = "Macro";
+  const getMacroDisplayName = (macroBlockId: string, macroStack?: MacroStackFrame[]): string => {
+    if (macroStack && macroStack.length > 0) {
+      const topLevelMacro = macroStack[0];
+      if (topLevelMacro.name && topLevelMacro.name !== topLevelMacro.id) {
+        if (topLevelMacro.name.startsWith("macro_")) {
+          const matched = macros.find((m) => m.id === topLevelMacro.name.replace(/^macro_/, ""));
+          if (matched) {
+            return matched.name;
+          }
+        }
+        return topLevelMacro.name;
+      }
+    }
 
+    let resolvedName = "Macro";
     if (workspace) {
       const block = workspace.getBlockById(macroBlockId);
       if (block) {
@@ -191,7 +347,6 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
             resolvedName = "Nested Macro";
           }
         } else {
-          // Standard block fallback
           resolvedName = block.type
             .replace(
               /^(geometric_|filtering_|morphological_|color_|edge_|transform_|drawing_|basic_|op_)/,
@@ -205,26 +360,72 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
     }
     return resolvedName;
   };
+
+  /**
+   * Clears previous block highlights and triggers native workspace.centerOnBlock()
+   * and Blockly selection.
+   */
   const selectWorkspaceBlock = (step: StepResult) => {
-    if (step.block_id && workspace) {
-      const block = workspace.getBlockById(step.block_id);
-      if (block) {
-        workspace.centerOnBlock(step.block_id);
-        Blockly.common.setSelected(block);
+    if (!workspace) return;
+
+    // Clear previous selection & highlight
+    const prevBlockId = prevSelectedBlockIdRef.current;
+    if (prevBlockId) {
+      const prevBlock = workspace.getBlockById(prevBlockId);
+      if (
+        prevBlock &&
+        typeof (prevBlock as unknown as { unselect?: () => void }).unselect === "function"
+      ) {
+        (prevBlock as unknown as { unselect: () => void }).unselect();
       }
+    }
+    workspace.highlightBlock(null);
+
+    let targetBlock: Blockly.BlockSvg | null = null;
+
+    // Resolve target block using exact ID, macro_stack traversal, or colon splitting
+    if (step.block_id) {
+      targetBlock = workspace.getBlockById(step.block_id) as Blockly.BlockSvg | null;
+    }
+
+    if (!targetBlock && step.macro_stack && step.macro_stack.length > 0) {
+      for (let i = step.macro_stack.length - 1; i >= 0; i--) {
+        const frameId = step.macro_stack[i].id;
+        targetBlock = workspace.getBlockById(frameId) as Blockly.BlockSvg | null;
+        if (targetBlock) break;
+      }
+    }
+
+    if (!targetBlock && step.block_id && step.block_id.includes(":")) {
+      const candidateId = step.block_id.split(":")[0];
+      targetBlock = workspace.getBlockById(candidateId) as Blockly.BlockSvg | null;
+    }
+
+    if (targetBlock) {
+      // Center canvas on block and apply Blockly selection
+      workspace.centerOnBlock(targetBlock.id);
+
+      if (Blockly.common && typeof Blockly.common.setSelected === "function") {
+        Blockly.common.setSelected(targetBlock);
+      } else if (typeof (targetBlock as unknown as { select?: () => void }).select === "function") {
+        (targetBlock as unknown as { select: () => void }).select();
+      }
+
+      workspace.highlightBlock(targetBlock.id);
+      prevSelectedBlockIdRef.current = targetBlock.id;
+    } else {
+      prevSelectedBlockIdRef.current = null;
     }
   };
 
   const handleStepClick = async (step: StepResult) => {
-    const inspection = inspectStep(step);
     selectWorkspaceBlock(step);
-    await inspection;
+    await inspectStep(step);
   };
 
   const handleStepDoubleClick = async (step: StepResult) => {
-    const inspection = inspectStep(step);
     selectWorkspaceBlock(step);
-    const inspected = await inspection;
+    const inspected = await inspectStep(step);
     if (inspected) {
       setModalImageSrc(`data:image/${inspected.image_format};base64,${inspected.image}`);
     }
@@ -389,45 +590,6 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
     );
   };
 
-  const renderInlineMacro = (macroBlockId: string, steps: StepResult[]) => {
-    const isCollapsed = collapsedMacros.has(macroBlockId);
-    const macroName = getMacroDisplayName(macroBlockId);
-
-    return (
-      <div
-        key={macroBlockId}
-        className={`flex items-center gap-2 flex-shrink-0 p-1 rounded-lg border transition-all ${
-          !isCollapsed
-            ? "border-indigo-200 bg-indigo-50/30 dark:border-indigo-800/50 dark:bg-indigo-950/20"
-            : "border-transparent"
-        }`}
-      >
-        {/* Card-sized Inline Toggle Button with Chevron Arrow */}
-        <button
-          type="button"
-          onClick={() => toggleMacroCollapse(macroBlockId)}
-          className="h-40 px-3 flex flex-col items-center justify-center gap-2 border border-indigo-200 dark:border-indigo-700/60 bg-indigo-50/50 dark:bg-indigo-900/20 hover:bg-indigo-100/70 dark:hover:bg-indigo-900/40 rounded-md transition-colors text-indigo-700 dark:text-indigo-300"
-          title={`${macroName} (${steps.length} steps). Click to toggle expansion.`}
-        >
-          <div className="flex items-center gap-1 font-semibold text-xs">
-            {isCollapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
-            <span className="truncate max-w-[90px]">{macroName}</span>
-          </div>
-          <span className="rounded bg-indigo-100 dark:bg-indigo-800/60 px-2 py-0.5 text-[10px] text-indigo-800 dark:text-indigo-200 font-medium">
-            {steps.length} {steps.length === 1 ? "step" : "steps"}
-          </span>
-        </button>
-
-        {/* Expands inner steps horizontally to the right */}
-        {!isCollapsed && (
-          <div className="flex items-center gap-2.5 pl-1 pr-1">
-            {steps.map((step) => renderStepCard(step, true))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <div className="h-full bg-white dark:bg-gray-800 overflow-auto">
       {workspaceDirty && (
@@ -449,13 +611,24 @@ export default function StepResultsPane({ workspace }: StepResultsPaneProps) {
         </div>
       )}
 
-      {/* HORIZONTAL FILMSTRIP */}
+      {/* CHRONOLOGICAL FILMSTRIP (Ordered by Step Index) */}
       <div className="flex items-center gap-3 px-3 py-3 min-w-max">
-        {inlineItems.map((item) =>
-          item.kind === "step"
-            ? renderStepCard(item.step)
-            : renderInlineMacro(item.macroBlockId, item.steps),
-        )}
+        {filmstripItems.map((item) => {
+          if (item.type === "step") {
+            return renderStepCard(item.step, false);
+          }
+          return (
+            <MacroGroupCard
+              key={item.id}
+              node={item.node}
+              depth={0}
+              isCollapsed={collapsedMacros.has(item.id)}
+              onToggleCollapse={toggleMacroCollapse}
+              renderStepCard={renderStepCard}
+              getMacroDisplayName={getMacroDisplayName}
+            />
+          );
+        })}
       </div>
 
       {modalImageSrc && (
