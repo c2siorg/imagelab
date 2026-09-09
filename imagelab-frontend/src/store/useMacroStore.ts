@@ -9,10 +9,7 @@ import type {
 } from "../types/macro";
 import { registerMacroBlock, refreshMacroBlockInstances } from "../blocks/macroBlock";
 import { safeDeleteMacro } from "../utils/macroDeletionGuards";
-import {
-  loadPersistedMacros,
-  savePersistedMacros,
-} from "../hooks/workspacePersistence";
+import { loadPersistedMacros, savePersistedMacros } from "../hooks/workspacePersistence";
 
 function definitionFromVersion(macro: MacroVersion): MacroDefinition {
   return {

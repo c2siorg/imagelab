@@ -1,6 +1,7 @@
 import time
 import uuid
 from threading import RLock
+from urllib.parse import unquote
 
 import cv2
 import numpy as np
@@ -208,6 +209,7 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
                             success=False,
                             image_format=request.image_format,
                             error=f"Unknown operator '{step.type}'",
+                            macro_stack=getattr(step, "macro_stack", []),
                         )
                     )
                     _store_execution(execution_id, full_images)
@@ -249,6 +251,7 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
                     image_format=request.image_format,
                     timing_ms=timing_ms,
                     has_full_image=True,
+                    macro_stack=getattr(step, "macro_stack", []),
                 )
             )
         except ValueError as e:
@@ -263,6 +266,7 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
                     success=False,
                     image_format=request.image_format,
                     error=error_msg,
+                    macro_stack=getattr(step, "macro_stack", []),
                 )
             )
             _store_execution(execution_id, full_images)
@@ -281,6 +285,7 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
                     success=False,
                     image_format=request.image_format,
                     error=f"{type(e).__name__}: {e}",
+                    macro_stack=getattr(step, "macro_stack", []),
                 )
             )
             _store_execution(execution_id, full_images)
@@ -339,6 +344,9 @@ def encode_thumbnail_base64(image: np.ndarray, fmt: str = "png") -> str:
 
 def inspect_step(execution_id: str, block_id: str):
     _evict_expired_executions()
+    # Decode URL-encoded block_id
+    decoded_block_id = unquote(block_id)
+
     with _EXECUTION_CACHE_LOCK:
         cached = _EXECUTION_CACHE.get(execution_id)
         if not cached:
@@ -346,15 +354,29 @@ def inspect_step(execution_id: str, block_id: str):
         steps = cached["steps"]
         if not isinstance(steps, dict):
             return None
-        step = steps.get(block_id)
+
+        # Tier 1: Exact match with decoded ID
+        step = steps.get(decoded_block_id)
+
+        # Tier 2: Exact match with original ID (if different)
+        if step is None and decoded_block_id != block_id:
+            step = steps.get(block_id)
+
+        # Tier 3: Fallback to leaf ID (last segment after colon)
+        if step is None and ":" in decoded_block_id:
+            leaf_id = decoded_block_id.split(":")[-1]
+            step = steps.get(leaf_id)
+
+        # Tier 4: Suffix match for namespaced IDs
         if step is None:
-            matching_keys = [k for k in steps if k.startswith(f"{block_id}:")]
+            matching_keys = [k for k in steps if k.endswith(f":{decoded_block_id}")]
             if matching_keys:
                 last_key = max(
                     matching_keys,
                     key=lambda k: int(steps[k]["index"]) if isinstance(steps[k], dict) and "index" in steps[k] else 0,
                 )
                 step = steps[last_key]
+
         if not isinstance(step, dict):
             return None
         cached["last_accessed_at"] = time.time()

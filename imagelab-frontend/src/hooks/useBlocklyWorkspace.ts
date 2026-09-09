@@ -9,7 +9,6 @@ import { useMacroStore, registerMacroBlocksFromDefinitions } from "../store/useM
 import { imagelabTheme, imagelabThemeDark } from "../blocks/theme";
 import { SINGLETON_BLOCK_TYPES } from "../utils/blockLimits";
 import { loadPersistedImageState } from "./imagePersistence";
-import { useStepInspection } from "./useStepInspection";
 import {
   clearPersistedWorkspace,
   loadPersistedWorkspaceState,
@@ -21,7 +20,6 @@ const SAVE_DEBOUNCE_MS = 500;
 const SNAP_RADIUS = 48;
 const CONNECTING_SNAP_RADIUS = 68;
 
-// Apply global Blockly configuration once at module load
 Blockly.config.snapRadius = SNAP_RADIUS;
 Blockly.config.connectingSnapRadius = CONNECTING_SNAP_RADIUS;
 
@@ -52,9 +50,7 @@ export function useBlocklyWorkspace({
   const setActiveStep = usePipelineStore((s) => s.setActiveStep);
   const setWorkspaceDirty = usePipelineStore((s) => s.setWorkspaceDirty);
   const updateBlockStats = usePipelineStore((s) => s.updateBlockStats);
-  const inspectStep = useStepInspection();
 
-  // Swap Blockly theme when dark mode changes
   useEffect(() => {
     if (!workspaceRef.current) return;
     workspaceRef.current.setTheme(isDark ? imagelabThemeDark : imagelabTheme);
@@ -66,8 +62,6 @@ export function useBlocklyWorkspace({
     Blockly.config.snapRadius = 48;
     Blockly.config.connectingSnapRadius = 68;
 
-    // Register macro blocks from localStorage cache BEFORE workspace injection
-    // This ensures macro blocks are recognized during workspace restoration
     const cachedMacros = useMacroStore.getState().macros;
     registerMacroBlocksFromDefinitions(cachedMacros);
 
@@ -76,7 +70,7 @@ export function useBlocklyWorkspace({
       move: {
         scrollbars: true,
         drag: true,
-        wheel: false,
+        wheel: true,
       },
       trashcan: true,
       renderer: "zelos",
@@ -91,13 +85,13 @@ export function useBlocklyWorkspace({
         controls: true,
         wheel: true,
         startScale: 1.0,
-        maxScale: 3,
+        maxScale: 3.0,
         minScale: 0.3,
         scaleSpeed: 1.2,
+        pinch: true,
       },
     });
 
-    // Load persisted workspace state if available and valid
     const persistedState = loadPersistedWorkspaceState<WorkspaceState>();
     if (persistedState) {
       try {
@@ -122,6 +116,8 @@ export function useBlocklyWorkspace({
           const block = ws.getBlockById(selectedEvent.newElementId);
           if (block) {
             setSelectedBlock(block.type, block.tooltip as string);
+
+            // Only trigger inspect on manual canvas block clicks to avoid interfering with step card selection
             const matchingStep = usePipelineStore
               .getState()
               .stepResults.find((step) => step.block_id === block.id);
@@ -132,8 +128,6 @@ export function useBlocklyWorkspace({
                 state.activeStepIndex === matchingStep.index;
               if (state.isInspectingStep || (isCurrentStep && state.activeStepAnalysis)) {
                 setActiveStep(matchingStep.block_id ?? null, matchingStep.index);
-              } else {
-                void inspectStep(matchingStep);
               }
             }
           }
@@ -178,31 +172,26 @@ export function useBlocklyWorkspace({
 
     workspaceRef.current = ws;
     setWorkspace(ws);
-    // Directly set workspace reference in macro store for deletion guards and canvas sync
     useMacroStore.getState().setWorkspace(ws);
+
+    // Ensure initial SVG metrics calculation
     Blockly.svgResize(ws);
+
     if (containerRef.current && typeof ResizeObserver !== "undefined") {
       const observer = new ResizeObserver(() => {
-        Blockly.svgResize(ws);
+        if (workspaceRef.current) {
+          Blockly.svgResize(workspaceRef.current);
+        }
       });
       observer.observe(containerRef.current);
       resizeObserverRef.current = observer;
     }
-    updateBlockStats(ws); // Initial stats calculation if any blocks loaded
-  }, [
-    isDark,
-    inspectStep,
-    readOnly,
-    setActiveStep,
-    setSelectedBlock,
-    setWorkspaceDirty,
-    updateBlockStats,
-  ]);
+    updateBlockStats(ws);
+  }, [isDark, readOnly, setActiveStep, setSelectedBlock, setWorkspaceDirty, updateBlockStats]);
 
   useEffect(() => {
     initWorkspace();
     return () => {
-      // Cleanup on unmount: dispose workspace and clear any pending save timeout
       if (resizeObserverRef.current) {
         resizeObserverRef.current.disconnect();
         resizeObserverRef.current = null;
@@ -217,7 +206,6 @@ export function useBlocklyWorkspace({
         workspaceRef.current.dispose();
         workspaceRef.current = null;
         setWorkspace(null);
-        // Directly clear workspace reference in macro store
         useMacroStore.getState().setWorkspace(null);
       }
     };

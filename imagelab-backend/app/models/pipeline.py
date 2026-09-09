@@ -8,6 +8,7 @@ class PipelineStep(BaseModel):
     block_id: str | None = None
     params: dict = Field(default_factory=dict)
     branches: dict[str, list["PipelineStep"]] = Field(default_factory=dict)
+    macro_stack: list[dict[str, str]] = Field(default_factory=list)
 
 
 class PipelineRequest(BaseModel):
@@ -49,6 +50,7 @@ class StepResult(BaseModel):
     timing_ms: float | None = None
     has_full_image: bool = False
     error: str | None = None
+    macro_stack: list[dict[str, str]] = Field(default_factory=list)
 
 
 class ImageAnalysis(BaseModel):

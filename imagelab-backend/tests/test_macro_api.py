@@ -223,10 +223,10 @@ def test_macro_expansion_and_step_inspection(client: TestClient, session: Sessio
     assert "m1_node:gray_step" in block_ids
     assert "canny_step" in block_ids
 
-    # 4. Inspect macro step via parent block_id "m1_node"
+    # 4. Inspect macro step via the expanded block_id "m1_node:gray_step"
     inspect_res = client.get(
         f"/api/v1/pipeline/executions/{exec_res.execution_id}/steps/inspect",
-        params={"block_id": "m1_node"},
+        params={"block_id": "m1_node:gray_step"},
     )
     assert inspect_res.status_code == 200
     inspect_data = inspect_res.json()
