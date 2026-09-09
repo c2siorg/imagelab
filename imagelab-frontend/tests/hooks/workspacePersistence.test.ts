@@ -2,13 +2,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ACTIVE_PIPELINE_STORAGE_KEY,
   WORKSPACE_STORAGE_KEY,
+  MACRO_STORAGE_KEY,
   clearPersistedActivePipeline,
   clearPersistedWorkspace,
+  clearPersistedMacros,
   loadPersistedActivePipeline,
   loadPersistedWorkspaceState,
+  loadPersistedMacros,
   saveActivePipeline,
   saveWorkspaceState,
+  savePersistedMacros,
 } from "../../src/hooks/workspacePersistence";
+import type { MacroDefinition } from "../../src/types/macro";
 
 class LocalStorageMock implements Storage {
   public readonly store = new Map<string, string>();
@@ -215,5 +220,89 @@ describe("active pipeline persistence", () => {
 
     clearPersistedActivePipeline(storage);
     expect(storage.getItem(ACTIVE_PIPELINE_STORAGE_KEY)).toBeNull();
+  });
+});
+
+describe("macro persistence", () => {
+  let storage: LocalStorageMock;
+
+  beforeEach(() => {
+    storage = new LocalStorageMock();
+  });
+
+  const createMockMacro = (id: string): MacroDefinition => ({
+    id,
+    name: `Macro ${id}`,
+    graph: {
+      nodes: [{ id: "node-1", type: "basic_gaussianblur", params: {} }],
+      edges: [],
+    },
+    exposedParams: [],
+  });
+
+  it("saves and loads macro definitions", () => {
+    const macros = [createMockMacro("macro-1"), createMockMacro("macro-2")];
+    savePersistedMacros(macros, storage);
+
+    const loaded = loadPersistedMacros(storage);
+    expect(loaded).toEqual(macros);
+  });
+
+  it("returns empty array for expired macro entries", () => {
+    const macros = [createMockMacro("macro-1")];
+    savePersistedMacros(macros, storage, MACRO_STORAGE_KEY, -1);
+
+    const loaded = loadPersistedMacros(storage);
+    expect(loaded).toEqual([]);
+    expect(storage.getItem(MACRO_STORAGE_KEY)).toBeNull();
+  });
+
+  it("returns empty array for malformed JSON", () => {
+    storage.setItem(MACRO_STORAGE_KEY, "{not-json");
+
+    const loaded = loadPersistedMacros(storage);
+    expect(loaded).toEqual([]);
+    expect(storage.getItem(MACRO_STORAGE_KEY)).toBeNull();
+  });
+
+  it("filters out invalid macro definitions", () => {
+    const validMacro = createMockMacro("valid-1");
+    const invalidMacro = { id: "invalid-1", name: "Invalid Macro" } as MacroDefinition;
+    const macros = [validMacro, invalidMacro];
+    savePersistedMacros(macros, storage);
+
+    const loaded = loadPersistedMacros(storage);
+    expect(loaded).toEqual([validMacro]);
+  });
+
+  it("handles missing data in payload", () => {
+    storage.setItem(
+      MACRO_STORAGE_KEY,
+      JSON.stringify({
+        expiresAt: Date.now() + 60_000,
+      }),
+    );
+
+    const loaded = loadPersistedMacros(storage);
+    expect(loaded).toEqual([]);
+  });
+
+  it("clears persisted macros", () => {
+    const macros = [createMockMacro("macro-1")];
+    savePersistedMacros(macros, storage);
+
+    clearPersistedMacros(storage);
+    expect(storage.getItem(MACRO_STORAGE_KEY)).toBeNull();
+  });
+
+  it("does not throw when localStorage throws QuotaExceededError", () => {
+    storage.throwOnSet = true;
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const macros = [createMockMacro("macro-1")];
+    expect(() => savePersistedMacros(macros, storage)).not.toThrow();
+    expect(savePersistedMacros(macros, storage)).toBe(false);
+
+    warnSpy.mockRestore();
   });
 });
