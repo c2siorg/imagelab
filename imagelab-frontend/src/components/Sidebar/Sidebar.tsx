@@ -33,7 +33,9 @@ export default function Sidebar({ workspace }: SidebarProps) {
   }, [loadMacros]);
 
   useEffect(() => {
+    // Refresh existing macro block instances and register any new macro blocks
     for (const macro of macros) {
+      registerMacroBlock(macro);
       refreshMacroBlockInstances(workspace, macro);
     }
   }, [macros, workspace]);
