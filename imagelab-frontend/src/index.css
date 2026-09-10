@@ -1,6 +1,8 @@
 @import "@fontsource-variable/inter";
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Inter Variable", system-ui, sans-serif;
 }

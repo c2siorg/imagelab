@@ -44,6 +44,7 @@ export const categories: CategoryInfo[] = [
       { type: "imageconvertions_graytobinary", label: "Gray to Binary" },
       { type: "imageconvertions_colormaps", label: "Color Maps" },
       { type: "imageconvertions_colortobinary", label: "Color to Binary" },
+      { type: "imageconvertions_histogramequalization", label: "Histogram Equalization" },
       { type: "imageconvertions_bgrtohsv", label: "BGR to HSV" },
       { type: "imageconvertions_hsvtobgr", label: "HSV to BGR" },
       { type: "imageconvertions_bgrtolab", label: "BGR to LAB" },
@@ -51,6 +52,7 @@ export const categories: CategoryInfo[] = [
       { type: "imageconvertions_bgrtoycrcb", label: "BGR to YCrCb" },
       { type: "imageconvertions_ycrcbtobgr", label: "YCrCb to BGR" },
       { type: "imageconvertions_invertimage", label: "Invert Image" },
+      { type: "imageconvertions_brightnessandcontrast", label: "Brightness and Contrast" },
     ],
   },
   {
@@ -134,6 +136,7 @@ export const categories: CategoryInfo[] = [
     blocks: [
       { type: "sobelderivatives_soblederivate", label: "Sobel Derivative" },
       { type: "sobelderivatives_scharrderivate", label: "Scharr Derivative" },
+      { type: "sobelderivatives_prewittoperator", label: "Prewitt Operator" },
     ],
   },
   {
@@ -143,6 +146,15 @@ export const categories: CategoryInfo[] = [
     blocks: [
       { type: "transformation_distance", label: "Distance Transform" },
       { type: "transformation_laplacian", label: "Laplacian" },
+    ],
+  },
+  {
+    name: "Advanced control flow macros",
+    icon: "Workflow",
+    colour: "#7058a3",
+    blocks: [
+      { type: "macro_blend", label: "Parallel Blend" },
+      { type: "macro_if_else", label: "Conditional (If/Else)" },
     ],
   },
 ];

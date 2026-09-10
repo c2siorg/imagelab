@@ -11,7 +11,7 @@ class DrawEllipse(BaseOperator):
         thickness = int(self.params.get("thickness", 2))
         height = int(self.params.get("height", 0))
         width = int(self.params.get("width", 0))
-        angle = int(self.params.get("angle", 90))
+        angle = int(self.params.get("angle", 0))
         color = hex_to_bgr(self.params.get("rgbcolors_input", "#2828cc"))
         cx = int(self.params.get("center_point_x", 0))
         cy = int(self.params.get("center_point_y", 0))

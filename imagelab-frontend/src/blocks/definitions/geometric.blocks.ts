@@ -36,8 +36,8 @@ export const geometricBlocks = [
     type: "geometric_scaleimage",
     message0: "Scale Image by %1 in X axis and by %2 in Y axis | Interpolation %3",
     args0: [
-      { type: "field_number", name: "fx", value: 1, min: 0 },
-      { type: "field_number", name: "fy", value: 1, min: 0 },
+      { type: "field_number", name: "fx", value: 1, min: 0.01, precision: 0.01 },
+      { type: "field_number", name: "fy", value: 1, min: 0.01, precision: 0.01 },
       {
         type: "field_dropdown",
         name: "interpolation",
@@ -96,11 +96,15 @@ export const geometricBlocks = [
   },
   {
     type: "geometric_affineimage",
-    message0: "Apply affine transformation",
+    message0: "Apply affine transformation translate x %1 translate y %2",
+    args0: [
+      { type: "field_number", name: "translate_x", value: 0 },
+      { type: "field_number", name: "translate_y", value: 0 },
+    ],
     previousStatement: null,
     nextStatement: null,
     style: "geometric_style",
     tooltip:
-      "Applies a fixed affine transformation (translate by 50, 100) - Transforms the image using a predefined affine transformation that translates the image by 50 pixels in the X direction and 100 pixels in the Y direction. This block is useful for demonstrating basic affine transformations, which can include translation, rotation, scaling, and shearing.",
+      "Applies an affine translation to the image - shifts every pixel by (translate_x, translate_y). Pixels that fall outside the original frame are clipped, and exposed areas are filled with black.",
   },
 ];

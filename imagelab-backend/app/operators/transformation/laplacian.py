@@ -21,4 +21,4 @@ class Laplacian(BaseOperator):
             raise ValueError(f"Invalid ksize={ksize}; must be one of {sorted(_VALID_KSIZE)}")
 
         laplacian = cv2.Laplacian(image, ddepth, ksize=ksize)
-        return np.uint8(np.absolute(laplacian))
+        return cv2.convertScaleAbs(laplacian)

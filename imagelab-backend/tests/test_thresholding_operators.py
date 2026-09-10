@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from app.operators.thresholding.adaptive_threshold import AdaptiveThreshold
 from app.operators.thresholding.apply_threshold import ApplyThreshold
@@ -15,9 +14,6 @@ class TestApplyThreshold:
         result = ApplyThreshold({}).compute(color_image)
         assert result.dtype == np.uint8
 
-    @pytest.mark.xfail(
-        strict=True, reason="maxValue defaults to 0 — known bug, fix in fix/apply-threshold-default-max-value"
-    )
     def test_default_params_produces_non_empty_output(self, color_image):
         result = ApplyThreshold({}).compute(color_image)
         assert result.max() > 0
@@ -115,6 +111,15 @@ class TestOtsuThreshold:
         rgba = np.dstack([color_image, np.full(color_image.shape[:2], 255, dtype=np.uint8)])
         result = OtsuThreshold({}).compute(rgba)
         assert len(result.shape) == 2
+        assert set(np.unique(result)).issubset({0, 255})
+
+    def test_bgra_input_with_varying_alpha(self, color_image):
+        alpha = np.linspace(0, 255, color_image.shape[1], dtype=np.uint8)
+        alpha = np.tile(alpha, (color_image.shape[0], 1))
+        bgra = np.dstack([color_image, alpha])
+        result = OtsuThreshold({}).compute(bgra)
+        assert result.shape == color_image.shape[:2]
+        assert result.dtype == np.uint8
         assert set(np.unique(result)).issubset({0, 255})
 
     def test_grayscale_input(self, grayscale_image):

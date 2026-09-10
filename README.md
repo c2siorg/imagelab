@@ -16,17 +16,13 @@ A desktop application for visual, block-based image processing using Google Bloc
 
 - [Node.js](https://nodejs.org/) >= 18
 - Python 3.12+
-- PostgreSQL
+- [PostgreSQL](https://www.postgresql.org/download/)
+- [uv](https://github.com/astral-sh/uv) - Python package installer
+  ```bash
+  pip install uv
+  ```
 
 ## Getting Started
-
-### Electron App (Legacy)
-
-```bash
-cd electron-app-legacy
-npm install
-npm start
-```
 
 ### Backend
 
@@ -54,9 +50,6 @@ npm run dev
 ## Running Tests
 
 ```bash
-# Electron app
-cd electron-app-legacy && npm test
-
 # Backend
 cd imagelab-backend && uv run pytest
 
@@ -64,11 +57,19 @@ cd imagelab-backend && uv run pytest
 cd imagelab-frontend && npm run test
 ```
 
+## Pipeline API
+
+The React app uses the FastAPI backend to execute pipelines and inspect intermediate images.
+
+- `POST /api/v1/pipeline/executions` executes the submitted pipeline and returns the final image, per-step thumbnails, timings, and an `execution_id`.
+- `GET /api/v1/pipeline/executions/{execution_id}/steps/inspect?block_id=...` returns the full-resolution image for one cached step.
+
+The legacy `/api/pipeline/execute` endpoint has been removed. Full-resolution step images are cached in backend memory with a TTL and max-entry bound; clients should keep the lightweight thumbnails from the execution response and fetch full-resolution step images only when selected.
+
 ## Project Structure
 
 ```
 imagelab/
-  electron-app-legacy/   # Original Electron + Blockly app
   imagelab-frontend/     # React + Vite frontend
   imagelab-backend/      # Python FastAPI backend
   docs/                  # Project documentation site

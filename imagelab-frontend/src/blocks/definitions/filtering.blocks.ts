@@ -167,4 +167,26 @@ export const filteringBlocks = [
     style: "filtering_style",
     tooltip: "Detects contours on an image and renders them over the original graphic.",
   },
+  {
+    type: "filtering_cannyedge",
+    message0: "Canny Edge Detection | threshold1 %1 threshold2 %2 aperture %3",
+    args0: [
+      { type: "field_number", name: "threshold1", value: 100, min: 0, max: 255 },
+      { type: "field_number", name: "threshold2", value: 200, min: 0, max: 255 },
+      {
+        type: "field_dropdown",
+        name: "apertureSize",
+        options: [
+          ["3", "3"],
+          ["5", "5"],
+          ["7", "7"],
+        ],
+      },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "filtering_style",
+    tooltip:
+      "Detects edges in the image using the Canny algorithm. threshold1 and threshold2 are the lower and upper bounds for the hysteresis procedure. apertureSize is the Sobel kernel size.",
+  },
 ];

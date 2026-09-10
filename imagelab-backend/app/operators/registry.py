@@ -1,3 +1,4 @@
+from app.operators.arithmetic.add_weighted import ArithmeticAddWeighted
 from app.operators.augmentation.gaussian_noise import GaussianNoise
 from app.operators.augmentation.salt_pepper_noise import SaltPepperNoise
 from app.operators.augmentation.sepia_filter import SepiaFilter
@@ -10,12 +11,14 @@ from app.operators.blurring.median_blur import MedianBlur
 from app.operators.conversions.bgr_to_hsv import BgrToHsv
 from app.operators.conversions.bgr_to_lab import BgrToLab
 from app.operators.conversions.bgr_to_ycrcb import BgrToYcrcb
+from app.operators.conversions.brightness_and_contrast import BrightnessAndContrast
 from app.operators.conversions.channel_split import ChannelSplit
-from app.operators.conversions.clahe import claheImage
+from app.operators.conversions.clahe import ClaheImage
 from app.operators.conversions.color_maps import ColorMaps
 from app.operators.conversions.color_to_binary import ColorToBinary
 from app.operators.conversions.gray_image import GrayImage
 from app.operators.conversions.gray_to_binary import GrayToBinary
+from app.operators.conversions.histogram_equalization import HistogramEqualization
 from app.operators.conversions.hsv_to_bgr import HsvToBgr
 from app.operators.conversions.invert_image import InvertImage
 from app.operators.conversions.lab_to_bgr import LabToBgr
@@ -28,10 +31,13 @@ from app.operators.drawing.draw_rectangle import DrawRectangle
 from app.operators.drawing.draw_text import DrawText
 from app.operators.filtering.bilateral_filter import BilateralFilter
 from app.operators.filtering.box_filter import BoxFilter
+from app.operators.filtering.canny_edge import CannyEdge
 from app.operators.filtering.contour_detection import ContourDetection
 from app.operators.filtering.dilation import Dilation
 from app.operators.filtering.erosion import Erosion
 from app.operators.filtering.gabor_filter import GaborFilter
+from app.operators.filtering.laplacian import Laplacian
+from app.operators.filtering.laplacian import Laplacian as FilteringLaplacian
 from app.operators.filtering.morphological import Morphological
 from app.operators.filtering.pyramid_down import PyramidDown
 from app.operators.filtering.pyramid_up import PyramidUp
@@ -45,6 +51,7 @@ from app.operators.geometric.scale_image import ScaleImage
 from app.operators.segmentation.kmeans_segmentation import KMeansSegmentation
 from app.operators.segmentation.mean_shift_segmentation import MeanShiftSegmentation
 from app.operators.segmentation.watershed import Watershed
+from app.operators.sobel_derivatives.prewitt_operator import PrewittOperator
 from app.operators.sobel_derivatives.scharr_derivative import ScharrDerivative
 from app.operators.sobel_derivatives.sobel_derivative import SobelDerivative
 from app.operators.thresholding.adaptive_threshold import AdaptiveThreshold
@@ -52,7 +59,6 @@ from app.operators.thresholding.apply_borders import ApplyBorders
 from app.operators.thresholding.apply_threshold import ApplyThreshold
 from app.operators.thresholding.otsu_threshold import OtsuThreshold
 from app.operators.transformation.distance_transform import DistanceTransform
-from app.operators.transformation.laplacian import Laplacian
 
 OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     # Basic
@@ -66,12 +72,13 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "geometric_affineimage": AffineImage,
     "geometric_cropimage": CropImage,
     # Conversions
-    "imageconvertions_clahe": claheImage,
+    "imageconvertions_clahe": ClaheImage,
     "imageconvertions_grayimage": GrayImage,
     "imageconvertions_channelsplit": ChannelSplit,
     "imageconvertions_graytobinary": GrayToBinary,
     "imageconvertions_colormaps": ColorMaps,
     "imageconvertions_colortobinary": ColorToBinary,
+    "imageconvertions_histogramequalization": HistogramEqualization,
     "imageconvertions_bgrtohsv": BgrToHsv,
     "imageconvertions_hsvtobgr": HsvToBgr,
     "imageconvertions_bgrtolab": BgrToLab,
@@ -79,6 +86,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "imageconvertions_bgrtoycrcb": BgrToYcrcb,
     "imageconvertions_ycrcbtobgr": YcrcbToBgr,
     "imageconvertions_invertimage": InvertImage,
+    "imageconvertions_brightnessandcontrast": BrightnessAndContrast,
     # Drawing
     "drawingoperations_drawline": DrawLine,
     "drawingoperations_drawcircle": DrawCircle,
@@ -93,6 +101,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     # Filtering
     "filtering_boxfilter": BoxFilter,
     "filtering_bilateral": BilateralFilter,
+    "filtering_cannyedge": CannyEdge,
     "filtering_sharpen": Sharpen,
     "filtering_pyramidup": PyramidUp,
     "filtering_pyramiddown": PyramidDown,
@@ -113,6 +122,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     # Sobel Derivatives
     "sobelderivatives_soblederivate": SobelDerivative,
     "sobelderivatives_scharrderivate": ScharrDerivative,
+    "sobelderivatives_prewittoperator": PrewittOperator,
     # Transformation
     "transformation_distance": DistanceTransform,
     "transformation_laplacian": Laplacian,
@@ -120,6 +130,8 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "segmentation_watershed": Watershed,
     "segmentation_kmeans": KMeansSegmentation,
     "segmentation_meanshift": MeanShiftSegmentation,
+    "laplacian": FilteringLaplacian,
+    "arithmetic_addweighted": ArithmeticAddWeighted,
 }
 
 

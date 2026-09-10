@@ -1,35 +1,89 @@
 import { create } from "zustand";
 import * as Blockly from "blockly";
 import { categories } from "../blocks/categories";
-import type { PipelineTimings } from "../types/pipeline";
+import { clearPersistedImage, saveImageState } from "../hooks/imagePersistence";
+import {
+  clearPersistedActivePipeline,
+  loadPersistedActivePipeline,
+  saveActivePipeline,
+} from "../hooks/workspacePersistence";
+import type { ImageAnalysis, ImageHistogram, PipelineTimings, StepResult } from "../types/pipeline";
+const imageResetListeners = new Set<() => void>();
+const imageLabelSyncListeners = new Set<(filename: string | null) => void>();
+const persistedActivePipeline = loadPersistedActivePipeline();
 
 interface PipelineState {
   originalImage: string | null;
   imageFormat: string;
+  imageFilename: string | null;
   processedImage: string | null;
+  executionId: string | null;
+  stepResults: StepResult[];
+  activeStepBlockId: string | null;
+  activeStepIndex: number | null;
+  activeStepImage: string | null;
+  activeStepImageFormat: string | null;
+  activeStepAnalysis: ImageAnalysis | null;
+  activeStepHistogram: ImageHistogram | null;
+  isInspectingStep: boolean;
+  workspaceDirty: boolean;
   isExecuting: boolean;
   error: string | null;
   errorStep: number | null;
   selectedBlockType: string | null;
   selectedBlockTooltip: string | null;
   timings: PipelineTimings | null;
+  isCameraModalOpen: boolean;
+  cameraCaptureHandler:
+    | ((payload: { image: string; format: string; label: string }) => void)
+    | null;
+
+  currentPipelineId: string | null;
+  currentPipelineName: string | null;
+  currentVersionNumber: number | null;
+  isReadOnly: boolean;
+  sharedPipelineName: string | null;
+  sharedVersionNumber: number | null;
+  shareToken: string | null;
+  setCurrentPipeline: (
+    id: string | null,
+    name: string | null,
+    versionNumber: number | null,
+  ) => void;
+  setShareViewContext: (name: string, versionNumber: number, token: string) => void;
+  setShareEditContext: (id: string, name: string, versionNumber: number, token: string) => void;
+  clearShareContext: () => void;
 
   // Statistics
   blockCount: number;
   uniqueBlockTypes: number;
   categoryCounts: Record<string, number>;
   complexity: "Low" | "Medium" | "High";
-  setOriginalImage: (image: string, format: string) => void;
+  getStepResultByBlockId: (blockId: string) => StepResult | undefined;
+  setOriginalImage: (image: string, format: string, filename?: string | null) => void;
   setProcessedImage: (image: string | null) => void;
+  setPreviewImage: (image: string | null) => void;
+  setExecutionId: (executionId: string | null) => void;
+  setStepResults: (results: StepResult[]) => void;
+  setActiveStep: (blockId: string | null, index?: number | null) => void;
+  setActiveStepImage: (image: string | null, format?: string | null) => void;
+  setActiveStepAnalysis: (analysis: ImageAnalysis | null) => void;
+  setActiveStepHistogram: (histogram: ImageHistogram | null) => void;
+  setInspectingStep: (inspecting: boolean) => void;
+  setWorkspaceDirty: (dirty: boolean) => void;
   setExecuting: (executing: boolean) => void;
   setError: (error: string | null, step?: number | null) => void;
   setSelectedBlock: (type: string | null, tooltip: string | null) => void;
   setTiming: (timings: PipelineTimings | null) => void;
+  openCameraModal: (
+    onCapture: (payload: { image: string; format: string; label: string }) => void,
+  ) => void;
+  closeCameraModal: () => void;
   updateBlockStats: (workspace: Blockly.WorkspaceSvg) => void;
   reset: () => void;
   clearImage: () => void;
-  _imageResetFn: (() => void) | null;
-  registerImageReset: (fn: () => void) => void;
+  registerImageReset: (fn: () => void) => () => void;
+  registerImageLabelSync: (fn: (filename: string | null) => void) => () => void;
 }
 
 function calculateComplexity(blocks: number, unique: number): "Low" | "Medium" | "High" {
@@ -39,45 +93,176 @@ function calculateComplexity(blocks: number, unique: number): "Low" | "Medium" |
   return "Low";
 }
 
-export const usePipelineStore = create<PipelineState>((set) => ({
+export const usePipelineStore = create<PipelineState>((set, get) => ({
   originalImage: null,
   imageFormat: "png",
+  imageFilename: null,
   processedImage: null,
+  executionId: null,
+  stepResults: [],
+  activeStepBlockId: null,
+  activeStepIndex: null,
+  activeStepImage: null,
+  activeStepImageFormat: null,
+  activeStepAnalysis: null,
+  activeStepHistogram: null,
+  isInspectingStep: false,
+  workspaceDirty: false,
   isExecuting: false,
   error: null,
   errorStep: null,
   selectedBlockType: null,
   selectedBlockTooltip: null,
   timings: null,
+  isCameraModalOpen: false,
+  cameraCaptureHandler: null,
   blockCount: 0,
   uniqueBlockTypes: 0,
   categoryCounts: {},
   complexity: "Low",
-  setOriginalImage: (image, format) =>
+  currentPipelineId: persistedActivePipeline?.id ?? null,
+  currentPipelineName: persistedActivePipeline?.name ?? null,
+  currentVersionNumber: persistedActivePipeline?.versionNumber ?? null,
+  isReadOnly: false,
+  sharedPipelineName: null,
+  sharedVersionNumber: null,
+  shareToken: null,
+  setCurrentPipeline: (id, name, versionNumber) => {
+    if (id && name && versionNumber !== null) {
+      saveActivePipeline({ id, name, versionNumber });
+    } else {
+      clearPersistedActivePipeline();
+    }
+    set({
+      currentPipelineId: id,
+      currentPipelineName: name,
+      currentVersionNumber: versionNumber,
+    });
+  },
+  setShareViewContext: (name, versionNumber, token) => {
+    clearPersistedActivePipeline();
+    set({
+      isReadOnly: true,
+      sharedPipelineName: name,
+      sharedVersionNumber: versionNumber,
+      shareToken: token,
+      currentPipelineId: null,
+      currentPipelineName: null,
+      currentVersionNumber: null,
+    });
+  },
+  setShareEditContext: (id, name, versionNumber, token) => {
+    clearPersistedActivePipeline();
+    set({
+      isReadOnly: false,
+      sharedPipelineName: name,
+      sharedVersionNumber: versionNumber,
+      shareToken: token,
+      currentPipelineId: id,
+      currentPipelineName: name,
+      currentVersionNumber: versionNumber,
+    });
+  },
+  clearShareContext: () =>
+    set({
+      isReadOnly: false,
+      sharedPipelineName: null,
+      sharedVersionNumber: null,
+      shareToken: null,
+    }),
+  setOriginalImage: (image, format, filename = null) => {
+    imageLabelSyncListeners.forEach((listener) => listener(filename));
+    saveImageState({ image, format, filename });
     set({
       originalImage: image,
       imageFormat: format,
+      imageFilename: filename,
       processedImage: null,
+      executionId: null,
+      stepResults: [],
+      activeStepBlockId: null,
+      activeStepIndex: null,
+      activeStepImage: null,
+      activeStepImageFormat: null,
+      activeStepAnalysis: null,
+      activeStepHistogram: null,
+      workspaceDirty: false,
       error: null,
       timings: null,
-    }),
+    });
+  },
   setProcessedImage: (image) => set({ processedImage: image, error: null, errorStep: null }),
+  setPreviewImage: (image) => set({ processedImage: image }),
+  setExecutionId: (executionId) => set({ executionId }),
+  setStepResults: (results) => set({ stepResults: results }),
+  getStepResultByBlockId: (blockId: string): StepResult | undefined => {
+    const { stepResults } = get();
+    const exact = stepResults.find((r: StepResult) => r.block_id === blockId);
+    if (exact) return exact;
+    const matches = stepResults.filter(
+      (r: StepResult) => r.block_id && r.block_id.startsWith(`${blockId}:`),
+    );
+    return matches.length > 0 ? matches[matches.length - 1] : undefined;
+  },
+  setActiveStep: (blockId, index = null) =>
+    set({ activeStepBlockId: blockId, activeStepIndex: index }),
+  setActiveStepImage: (image, format = null) =>
+    set({ activeStepImage: image, activeStepImageFormat: image ? format : null }),
+  setActiveStepAnalysis: (analysis) => set({ activeStepAnalysis: analysis }),
+  setActiveStepHistogram: (histogram) => set({ activeStepHistogram: histogram }),
+  setInspectingStep: (inspecting) => set({ isInspectingStep: inspecting }),
+  setWorkspaceDirty: (dirty) => set({ workspaceDirty: dirty }),
   setExecuting: (executing) => set({ isExecuting: executing }),
   setError: (error, step = null) => set({ error, errorStep: step }),
   setSelectedBlock: (type, tooltip) =>
     set({ selectedBlockType: type, selectedBlockTooltip: tooltip }),
   setTiming: (timings) => set({ timings }),
-  _imageResetFn: null as (() => void) | null,
-  registerImageReset: (fn) => set({ _imageResetFn: fn }),
+  openCameraModal: (onCapture) =>
+    set({
+      isCameraModalOpen: true,
+      cameraCaptureHandler: onCapture,
+    }),
+  closeCameraModal: () =>
+    set({
+      isCameraModalOpen: false,
+      cameraCaptureHandler: null,
+    }),
+  registerImageReset: (fn) => {
+    imageResetListeners.add(fn);
+    return () => {
+      imageResetListeners.delete(fn);
+    };
+  },
+  registerImageLabelSync: (fn) => {
+    imageLabelSyncListeners.add(fn);
+    return () => {
+      imageLabelSyncListeners.delete(fn);
+    };
+  },
   clearImage: () => {
-    const state = usePipelineStore.getState();
-    if (state._imageResetFn) state._imageResetFn();
+    imageResetListeners.forEach((listener) => listener());
+    imageLabelSyncListeners.forEach((listener) => listener(null));
+    clearPersistedImage();
     set({
       originalImage: null,
+      imageFormat: "png",
+      imageFilename: null,
       processedImage: null,
+      executionId: null,
+      stepResults: [],
+      activeStepBlockId: null,
+      activeStepIndex: null,
+      activeStepImage: null,
+      activeStepImageFormat: null,
+      activeStepAnalysis: null,
+      activeStepHistogram: null,
+      isInspectingStep: false,
+      workspaceDirty: false,
       error: null,
       errorStep: null,
       timings: null,
+      isCameraModalOpen: false,
+      cameraCaptureHandler: null,
     });
   },
   updateBlockStats: (workspace) => {
@@ -106,11 +291,28 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       complexity: calculateComplexity(blocks.length, uniqueTypes.size),
     });
   },
-  reset: () =>
+  reset: () => {
+    imageResetListeners.forEach((listener) => listener());
+    imageLabelSyncListeners.forEach((listener) => listener(null));
+    imageResetListeners.clear();
+    imageLabelSyncListeners.clear();
+    clearPersistedImage();
+    clearPersistedActivePipeline();
     set({
       originalImage: null,
       imageFormat: "png",
+      imageFilename: null,
       processedImage: null,
+      executionId: null,
+      stepResults: [],
+      activeStepBlockId: null,
+      activeStepIndex: null,
+      activeStepImage: null,
+      activeStepImageFormat: null,
+      activeStepAnalysis: null,
+      activeStepHistogram: null,
+      isInspectingStep: false,
+      workspaceDirty: false,
       isExecuting: false,
       error: null,
       errorStep: null,
@@ -121,5 +323,15 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       categoryCounts: {},
       complexity: "Low",
       timings: null,
-    }),
+      isCameraModalOpen: false,
+      cameraCaptureHandler: null,
+      currentPipelineId: null,
+      currentPipelineName: null,
+      currentVersionNumber: null,
+      isReadOnly: false,
+      sharedPipelineName: null,
+      sharedVersionNumber: null,
+      shareToken: null,
+    });
+  },
 }));

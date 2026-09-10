@@ -1,5 +1,5 @@
+import cv2
 import numpy as np
-import pytest
 
 from app.operators.drawing.draw_arrow_line import DrawArrowLine
 from app.operators.drawing.draw_circle import DrawCircle
@@ -104,6 +104,21 @@ class TestDrawCircle:
         assert result.shape == grayscale_image.shape
         assert result.dtype == np.uint8
 
+    def test_negative_radius_is_clamped_to_zero(self):
+        blank = np.zeros((100, 100, 3), dtype=np.uint8)
+        params = {
+            "center_point_x": 50,
+            "center_point_y": 50,
+            "radius": -10,
+            "rgbcolors_input": "#ff0000",
+            "thickness": 1,
+        }
+
+        result = DrawCircle(params).compute(blank)
+        expected = cv2.circle(blank.copy(), (50, 50), 0, (0, 0, 255), 1)
+
+        np.testing.assert_array_equal(result, expected)
+
 
 class TestDrawEllipse:
     def test_default_params_output_shape(self, color_image):
@@ -147,7 +162,6 @@ class TestDrawEllipse:
         ).compute(blank)
         assert result[:, :, 2].max() > 0
 
-    @pytest.mark.xfail(strict=True, reason="Known height/width axes swap bug in DrawEllipse")
     def test_axes_swap_bug(self):
         blank = np.zeros((100, 100, 3), dtype=np.uint8)
         result = DrawEllipse(

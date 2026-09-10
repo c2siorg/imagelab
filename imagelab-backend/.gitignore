@@ -31,3 +31,6 @@ htmlcov/
 
 # Logs
 *.log
+
+# Batch jobs
+jobs/

@@ -1,4 +1,4 @@
-EXECUTE_URL = "/api/pipeline/execute"
+EXECUTE_URL = "/api/v1/pipeline/executions"
 
 GRAY_STEP = {"type": "imageconvertions_grayimage", "params": {}}
 BINARY_STEP = {"type": "imageconvertions_graytobinary", "params": {"thresholdValue": 127, "maxValue": 255}}

@@ -5,8 +5,11 @@ import "@blockly/field-colour";
 import "@blockly/field-slider";
 import { WorkspaceSearch } from "@blockly/plugin-workspace-search";
 import { usePipelineStore } from "../store/pipelineStore";
-import { imagelabTheme } from "../blocks/theme";
+import { useMacroStore } from "../store/useMacroStore";
+import { imagelabTheme, imagelabThemeDark } from "../blocks/theme";
 import { SINGLETON_BLOCK_TYPES } from "../utils/blockLimits";
+import { loadPersistedImageState } from "./imagePersistence";
+import { useStepInspection } from "./useStepInspection";
 import {
   clearPersistedWorkspace,
   loadPersistedWorkspaceState,
@@ -31,13 +34,31 @@ const MUTATING_EVENTS = new Set<string>([
 
 type WorkspaceState = ReturnType<typeof Blockly.serialization.workspaces.save>;
 
-export function useBlocklyWorkspace() {
+interface UseBlocklyWorkspaceOptions {
+  isDark?: boolean;
+  readOnly?: boolean;
+}
+
+export function useBlocklyWorkspace({
+  isDark = false,
+  readOnly = false,
+}: UseBlocklyWorkspaceOptions = {}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<Blockly.WorkspaceSvg | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const saveTimeoutRef = useRef<number | null>(null);
   const [workspace, setWorkspace] = useState<Blockly.WorkspaceSvg | null>(null);
   const setSelectedBlock = usePipelineStore((s) => s.setSelectedBlock);
+  const setActiveStep = usePipelineStore((s) => s.setActiveStep);
+  const setWorkspaceDirty = usePipelineStore((s) => s.setWorkspaceDirty);
   const updateBlockStats = usePipelineStore((s) => s.updateBlockStats);
+  const inspectStep = useStepInspection();
+
+  // Swap Blockly theme when dark mode changes
+  useEffect(() => {
+    if (!workspaceRef.current) return;
+    workspaceRef.current.setTheme(isDark ? imagelabThemeDark : imagelabTheme);
+  }, [isDark]);
 
   const initWorkspace = useCallback(() => {
     if (!containerRef.current || workspaceRef.current) return;
@@ -46,7 +67,7 @@ export function useBlocklyWorkspace() {
     Blockly.config.connectingSnapRadius = 68;
 
     const ws = Blockly.inject(containerRef.current, {
-      readOnly: false,
+      readOnly,
       move: {
         scrollbars: true,
         drag: true,
@@ -54,11 +75,11 @@ export function useBlocklyWorkspace() {
       },
       trashcan: true,
       renderer: "zelos",
-      theme: imagelabTheme,
+      theme: isDark ? imagelabThemeDark : imagelabTheme,
       grid: {
         spacing: 20,
         length: 3,
-        colour: "#E5E7EB",
+        colour: isDark ? "#263040" : "#E5E7EB",
         snap: true,
       },
       zoom: {
@@ -70,6 +91,7 @@ export function useBlocklyWorkspace() {
         scaleSpeed: 1.2,
       },
     });
+
     // Load persisted workspace state if available and valid
     const persistedState = loadPersistedWorkspaceState<WorkspaceState>();
     if (persistedState) {
@@ -78,8 +100,14 @@ export function useBlocklyWorkspace() {
       } catch (err) {
         console.warn("[ImageLab] Failed to restore workspace state; clearing persisted data.", err);
         clearPersistedWorkspace();
-        // workspace is already blank — no further action needed
       }
+    }
+
+    const persistedImage = loadPersistedImageState();
+    if (persistedImage) {
+      usePipelineStore
+        .getState()
+        .setOriginalImage(persistedImage.image, persistedImage.format, persistedImage.filename);
     }
 
     ws.addChangeListener((event: Blockly.Events.Abstract) => {
@@ -89,6 +117,20 @@ export function useBlocklyWorkspace() {
           const block = ws.getBlockById(selectedEvent.newElementId);
           if (block) {
             setSelectedBlock(block.type, block.tooltip as string);
+            const matchingStep = usePipelineStore
+              .getState()
+              .stepResults.find((step) => step.block_id === block.id);
+            if (matchingStep) {
+              const state = usePipelineStore.getState();
+              const isCurrentStep =
+                state.activeStepBlockId === matchingStep.block_id &&
+                state.activeStepIndex === matchingStep.index;
+              if (state.isInspectingStep || (isCurrentStep && state.activeStepAnalysis)) {
+                setActiveStep(matchingStep.block_id ?? null, matchingStep.index);
+              } else {
+                void inspectStep(matchingStep);
+              }
+            }
           }
         } else {
           setSelectedBlock(null, null);
@@ -106,7 +148,6 @@ export function useBlocklyWorkspace() {
         }
       }
 
-      // Update stats when blocks are created, deleted, or changed (which might alter their active state but mainly create/delete impact counts)
       if (
         event.type === Blockly.Events.BLOCK_CREATE ||
         event.type === Blockly.Events.BLOCK_DELETE
@@ -114,9 +155,10 @@ export function useBlocklyWorkspace() {
         updateBlockStats(ws);
       }
 
-      // Debounced save on any change that modifies the workspace (create, delete, change, move)
       if (!event.isUiEvent && MUTATING_EVENTS.has(event.type)) {
-        // Clear any existing save timeout to debounce rapid changes
+        if (usePipelineStore.getState().stepResults.length > 0) {
+          setWorkspaceDirty(true);
+        }
         if (saveTimeoutRef.current !== null) {
           window.clearTimeout(saveTimeoutRef.current);
         }
@@ -131,25 +173,47 @@ export function useBlocklyWorkspace() {
 
     workspaceRef.current = ws;
     setWorkspace(ws);
+    // Directly set workspace reference in macro store for deletion guards and canvas sync
+    useMacroStore.getState().setWorkspace(ws);
+    Blockly.svgResize(ws);
+    if (containerRef.current && typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(() => {
+        Blockly.svgResize(ws);
+      });
+      observer.observe(containerRef.current);
+      resizeObserverRef.current = observer;
+    }
     updateBlockStats(ws); // Initial stats calculation if any blocks loaded
-  }, [setSelectedBlock, updateBlockStats]);
+  }, [
+    isDark,
+    inspectStep,
+    readOnly,
+    setActiveStep,
+    setSelectedBlock,
+    setWorkspaceDirty,
+    updateBlockStats,
+  ]);
 
   useEffect(() => {
     initWorkspace();
     return () => {
       // Cleanup on unmount: dispose workspace and clear any pending save timeout
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+        resizeObserverRef.current = null;
+      }
       if (saveTimeoutRef.current !== null) {
         window.clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = null;
-        // Flush the save synchronously so the last change is not lost
-        if (workspaceRef.current) {
-          const state = Blockly.serialization.workspaces.save(workspaceRef.current);
-          saveWorkspaceState(state);
-        }
       }
       if (workspaceRef.current) {
+        const state = Blockly.serialization.workspaces.save(workspaceRef.current);
+        saveWorkspaceState(state);
         workspaceRef.current.dispose();
         workspaceRef.current = null;
+        setWorkspace(null);
+        // Directly clear workspace reference in macro store
+        useMacroStore.getState().setWorkspace(null);
       }
     };
   }, [initWorkspace]);

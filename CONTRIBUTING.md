@@ -73,6 +73,22 @@ The backend API runs on port **4100**.
 4. Write clear, descriptive commit messages.
 5. Push your branch to your fork and open a Pull Request against the `main` branch.
 
+### Pre-Commit Checklist to format the code
+
+Before pushing your changes, run:
+
+```bash
+# Frontend
+cd imagelab-frontend
+npm run lint
+npx prettier --write "src/**/*.{ts,tsx,js,jsx,json,css}"
+
+# Backend
+cd imagelab-backend
+uv run ruff check . --fix
+uv run ruff format
+```
+
 ## Code Style
 
 - **JavaScript/TypeScript:** We use ESLint and Prettier for linting and formatting. Run `npm run lint` where available to check your code.

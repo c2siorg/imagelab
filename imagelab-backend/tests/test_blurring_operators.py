@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from app.operators.blurring.blur import Blur
 from app.operators.blurring.gaussian_blur import GaussianBlur
@@ -56,11 +57,10 @@ class TestGaussianBlur:
         result = GaussianBlur({"widthSize": 5, "heightSize": 5}).compute(color_image)
         assert result.shape == color_image.shape
 
-    def test_even_kernel_corrected_to_odd(self, color_image):
-        result_even = GaussianBlur({"widthSize": 4, "heightSize": 4}).compute(color_image)
-        result_odd = GaussianBlur({"widthSize": 5, "heightSize": 5}).compute(color_image)
-        assert result_even.shape == color_image.shape
-        np.testing.assert_array_equal(result_even, result_odd)
+    def test_even_kernel_raises_value_error(self, color_image):
+        # Validator rejects even kernels with a "Did you mean 3 or 5?" message.
+        with pytest.raises(ValueError, match="odd"):
+            GaussianBlur({"widthSize": 4, "heightSize": 4}).compute(color_image)
 
     def test_grayscale_input(self, grayscale_image):
         result = GaussianBlur({}).compute(grayscale_image)
@@ -102,11 +102,10 @@ class TestMedianBlur:
         result = MedianBlur({"kernelSize": 5}).compute(color_image)
         assert result.shape == color_image.shape
 
-    def test_even_kernel_corrected_to_odd(self, color_image):
-        result_even = MedianBlur({"kernelSize": 4}).compute(color_image)
-        result_odd = MedianBlur({"kernelSize": 5}).compute(color_image)
-        assert result_even.shape == color_image.shape
-        np.testing.assert_array_equal(result_even, result_odd)
+    def test_even_kernel_raises_value_error(self, color_image):
+        # Validator rejects even kernels with a "Did you mean 3 or 5?" message.
+        with pytest.raises(ValueError, match="odd"):
+            MedianBlur({"kernelSize": 4}).compute(color_image)
 
     def test_grayscale_input(self, grayscale_image):
         result = MedianBlur({}).compute(grayscale_image)
@@ -129,9 +128,11 @@ class TestMedianBlur:
             np.abs(result.astype(int) - clean.astype(int)).mean() < np.abs(noisy.astype(int) - clean.astype(int)).mean()
         )
 
-    def test_kernel_size_1_is_identity(self, color_image):
-        result = MedianBlur({"kernelSize": 1}).compute(color_image)
-        np.testing.assert_array_equal(result, color_image)
+    def test_kernel_size_1_rejected(self, color_image):
+        # MedianBlur's validator deliberately forbids ksize=1 (a no-op) even though
+        # OpenCV would accept it. See app/operators/blurring/validation.py.
+        with pytest.raises(ValueError, match=">= 3"):
+            MedianBlur({"kernelSize": 1}).compute(color_image)
 
     def test_small_image_no_crash(self):
         img = np.zeros((3, 3, 3), dtype=np.uint8)

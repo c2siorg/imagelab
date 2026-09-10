@@ -1,6 +1,7 @@
-EXECUTE_URL = "/api/pipeline/execute"
+EXECUTE_URL = "/api/v1/pipeline/executions"
 
 GRAY_STEP = {"type": "imageconvertions_grayimage", "params": {}}
+GRAY_STEP_WITH_ID = {"type": "imageconvertions_grayimage", "block_id": "gray-block", "params": {}}
 BINARY_STEP = {"type": "imageconvertions_graytobinary", "params": {"thresholdValue": 127, "maxValue": 255}}
 
 
@@ -14,12 +15,23 @@ def test_health(client):
     assert r.json() == {"status": "ok"}
 
 
+def test_legacy_execute_endpoint_removed(client, png_b64):
+    r = client.post(
+        "/api/pipeline/execute",
+        json={"image": png_b64, "image_format": "png", "pipeline": [GRAY_STEP]},
+    )
+    assert r.status_code == 404
+
+
 def test_single_step(client, png_b64):
-    r = post(client, png_b64, [GRAY_STEP])
+    r = post(client, png_b64, [GRAY_STEP_WITH_ID])
     assert r.status_code == 200
     data = r.json()
     assert data["success"] is True
     assert data["image"] is not None
+    assert data["execution_id"] is not None
+    assert data["step_results"][0]["block_id"] == "gray-block"
+    assert data["step_results"][0]["thumbnail"] is not None
 
 
 def test_multi_step(client, png_b64):
@@ -82,3 +94,87 @@ def test_error_response_has_step(client, png_b64):
     data = r.json()
     assert data["success"] is False
     assert isinstance(data["step"], int)
+
+
+def test_execution_inspect_returns_full_image_and_analysis(client, png_b64):
+    r = client.post(
+        "/api/v1/pipeline/executions",
+        json={"image": png_b64, "image_format": "png", "pipeline": [GRAY_STEP_WITH_ID]},
+    )
+    assert r.status_code == 200
+    execution = r.json()
+    inspect = client.get(
+        f"/api/v1/pipeline/executions/{execution['execution_id']}/steps/inspect",
+        params={"block_id": "gray-block"},
+    )
+    assert inspect.status_code == 200
+    data = inspect.json()
+    assert data["success"] is True
+    assert data["block_id"] == "gray-block"
+    assert data["image"] is not None
+    assert data["analysis"]["width"] == 10
+    assert data["analysis"]["height"] == 10
+    assert data["histogram"]["bins"] == list(range(256))
+    assert len(data["histogram"]["luminance"]) == 256
+    assert data["histogram"]["red"] is None
+    assert data["histogram"]["green"] is None
+    assert data["histogram"]["blue"] is None
+
+
+def test_execution_inspect_returns_rgb_histograms_for_color_steps(client, png_b64):
+    color_step = {"type": "imageconvertions_invertimage", "block_id": "color-block", "params": {}}
+    r = client.post(
+        "/api/v1/pipeline/executions",
+        json={"image": png_b64, "image_format": "png", "pipeline": [color_step]},
+    )
+    assert r.status_code == 200
+    execution = r.json()
+
+    inspect = client.get(
+        f"/api/v1/pipeline/executions/{execution['execution_id']}/steps/inspect",
+        params={"block_id": "color-block"},
+    )
+    assert inspect.status_code == 200
+    histogram = inspect.json()["histogram"]
+    assert len(histogram["luminance"]) == 256
+    assert len(histogram["red"]) == 256
+    assert len(histogram["green"]) == 256
+    assert len(histogram["blue"]) == 256
+
+
+def test_execution_inspect_unknown_execution_returns_404(client):
+    inspect = client.get(
+        "/api/v1/pipeline/executions/not-real/steps/inspect",
+        params={"block_id": "gray-block"},
+    )
+    assert inspect.status_code == 404
+
+
+def test_execution_inspect_unknown_block_returns_404(client, png_b64):
+    r = client.post(
+        "/api/v1/pipeline/executions",
+        json={"image": png_b64, "image_format": "png", "pipeline": [GRAY_STEP_WITH_ID]},
+    )
+    assert r.status_code == 200
+    execution = r.json()
+    inspect = client.get(
+        f"/api/v1/pipeline/executions/{execution['execution_id']}/steps/inspect",
+        params={"block_id": "not-a-real-block"},
+    )
+    assert inspect.status_code == 404
+
+
+def test_execution_inspect_supports_block_ids_with_slashes(client, png_b64):
+    step = {"type": "imageconvertions_grayimage", "block_id": "block/with/slash", "params": {}}
+    r = client.post(
+        "/api/v1/pipeline/executions",
+        json={"image": png_b64, "image_format": "png", "pipeline": [step]},
+    )
+    assert r.status_code == 200
+    execution = r.json()
+    inspect = client.get(
+        f"/api/v1/pipeline/executions/{execution['execution_id']}/steps/inspect",
+        params={"block_id": "block/with/slash"},
+    )
+    assert inspect.status_code == 200
+    assert inspect.json()["block_id"] == "block/with/slash"

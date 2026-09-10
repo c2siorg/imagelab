@@ -14,6 +14,8 @@ import {
   Shuffle,
   Zap,
   Layers,
+  Package,
+  Workflow,
 } from "lucide-react";
 import type { CategoryInfo } from "../../blocks/categories";
 import type { BlockPreview } from "../../hooks/useBlockPreviews";
@@ -31,6 +33,8 @@ const iconMap: Record<string, React.ComponentType<{ size?: number; color?: strin
   Shuffle,
   Zap,
   Layers,
+  Package,
+  Workflow,
 };
 
 interface CategorySectionProps {
@@ -40,6 +44,8 @@ interface CategorySectionProps {
   disabledTypes: Set<string>;
   defaultOpen?: boolean;
   searchQuery?: string;
+  onEditMacro?: (macroId: string) => void;
+  onDeleteMacro?: (macroId: string) => void;
 }
 
 export default function CategorySection({
@@ -49,6 +55,8 @@ export default function CategorySection({
   disabledTypes,
   defaultOpen,
   searchQuery = "",
+  onEditMacro,
+  onDeleteMacro,
 }: CategorySectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
   const Icon = iconMap[category.icon];
@@ -66,23 +74,31 @@ export default function CategorySection({
   if (isSearching && filteredBlocks.length === 0) return null;
 
   return (
-    <div className="border-b border-gray-200">
+    <div className="border-b border-gray-200 dark:border-gray-700">
       <button
         type="button"
         onClick={() => {
           if (!isSearching) setIsOpen((prev) => !prev);
         }}
         aria-expanded={effectiveOpen}
-        className={`w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 transition-colors ${isSearching ? "cursor-default" : "cursor-pointer"}`}
+        className={`w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${isSearching ? "cursor-default" : "cursor-pointer"}`}
       >
         {effectiveOpen ? (
-          <ChevronDown size={14} className={isSearching ? "text-gray-200" : "text-gray-400"} />
+          <ChevronDown
+            size={14}
+            className={isSearching ? "text-gray-200 dark:text-gray-600" : "text-gray-400"}
+          />
         ) : (
-          <ChevronRight size={14} className={isSearching ? "text-gray-200" : "text-gray-400"} />
+          <ChevronRight
+            size={14}
+            className={isSearching ? "text-gray-200 dark:text-gray-600" : "text-gray-400"}
+          />
         )}
         {Icon && <Icon size={16} color={category.colour} />}
-        <span className="text-sm font-medium text-gray-700">{category.name}</span>
-        <span className="ml-auto text-xs text-gray-400 font-normal">
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+          {category.name}
+        </span>
+        <span className="ml-auto text-xs text-gray-400 dark:text-gray-500 font-normal">
           {isSearching
             ? `${filteredBlocks.length}/${category.blocks.length}`
             : category.blocks.length}
@@ -98,6 +114,16 @@ export default function CategorySection({
               workspace={workspace}
               preview={previews.get(block.type)}
               disabled={disabledTypes.has(block.type)}
+              onEdit={
+                category.name === "Macros"
+                  ? () => onEditMacro?.(block.type.slice("macro_".length))
+                  : undefined
+              }
+              onDelete={
+                category.name === "Macros"
+                  ? () => onDeleteMacro?.(block.type.slice("macro_".length))
+                  : undefined
+              }
             />
           ))}
         </div>

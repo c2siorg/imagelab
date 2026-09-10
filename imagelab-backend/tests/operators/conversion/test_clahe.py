@@ -1,13 +1,11 @@
 import numpy as np
 import pytest
 
-from app.operators.conversions.clahe import claheImage
+from app.operators.conversions.clahe import ClaheImage
 
 
 def make_op(params=None):
-    op = claheImage("clahe_operator")
-    op.params = params or {}
-    return op
+    return ClaheImage(params or {})
 
 
 def test_grayscale():

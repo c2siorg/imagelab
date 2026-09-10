@@ -69,14 +69,19 @@ export const operatorDocs: Record<string, OperatorDoc> = {
   },
   geometric_affineimage: {
     name: "Affine Transform",
-    description: "Applies a 2x3 affine transformation matrix to warp the image.",
+    description:
+      "Applies an affine translation by shifting every pixel by (translate_x, translate_y).",
     parameters: [
       {
-        name: "Points",
-        description: "Three points in the original image mapped to three points in the output.",
+        name: "translate_x",
+        description: "Horizontal shift in pixels. Positive moves right, negative moves left.",
+      },
+      {
+        name: "translate_y",
+        description: "Vertical shift in pixels. Positive moves down, negative moves up.",
       },
     ],
-    useCases: ["Perspective correction, scaling, and skewing."],
+    useCases: ["Repositioning the subject, generating training data with positional jitter."],
   },
   geometric_scaleimage: {
     name: "Scale Image",
@@ -416,6 +421,18 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     useCases: [
       "Accurate gradient direction computation.",
       "Fine-grained edge detection on medical or scientific images requiring higher rotational symmetry than Sobel.",
+    ],
+  },
+  sobelderivatives_prewittoperator: {
+    name: "Prewitt Operator",
+    description:
+      "Applies the Prewitt operator to detect edges using two 3x3 gradient kernels. Similar to Sobel but uses equal weights, making it a simpler approximation of the image gradient.",
+    parameters: [],
+    formula: "G = √(Gx² + Gy²), Gx = [[-1,0,1],[-1,0,1],[-1,0,1]], Gy = Gx^T",
+    useCases: [
+      "Teaching the difference between equally-weighted (Prewitt) and distance-weighted (Sobel) gradient operators.",
+      "Fast edge detection where equal directional sensitivity is preferred.",
+      "Comparing classical edge detectors side-by-side in an educational pipeline.",
     ],
   },
 

@@ -1,8 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  ACTIVE_PIPELINE_STORAGE_KEY,
   WORKSPACE_STORAGE_KEY,
+  clearPersistedActivePipeline,
   clearPersistedWorkspace,
+  loadPersistedActivePipeline,
   loadPersistedWorkspaceState,
+  saveActivePipeline,
   saveWorkspaceState,
 } from "../../src/hooks/workspacePersistence";
 
@@ -164,5 +168,52 @@ describe("clearPersistedWorkspace", () => {
     clearPersistedWorkspace(storage);
 
     expect(storage.getItem(WORKSPACE_STORAGE_KEY)).toBeNull();
+  });
+});
+
+describe("active pipeline persistence", () => {
+  it("round-trips active pipeline metadata", () => {
+    const storage = new LocalStorageMock();
+    const pipeline = { id: "pipeline-123", name: "Gaussian blur", versionNumber: 4 };
+
+    expect(saveActivePipeline(pipeline, storage)).toBe(true);
+    expect(loadPersistedActivePipeline(storage)).toEqual(pipeline);
+  });
+
+  it("removes expired active pipeline metadata", () => {
+    const storage = new LocalStorageMock();
+    saveActivePipeline(
+      { id: "pipeline-123", name: "Gaussian blur", versionNumber: 4 },
+      storage,
+      ACTIVE_PIPELINE_STORAGE_KEY,
+      -1,
+    );
+
+    expect(loadPersistedActivePipeline(storage)).toBeNull();
+    expect(storage.getItem(ACTIVE_PIPELINE_STORAGE_KEY)).toBeNull();
+  });
+
+  it("rejects malformed active pipeline metadata", () => {
+    const storage = new LocalStorageMock();
+    storage.setItem(
+      ACTIVE_PIPELINE_STORAGE_KEY,
+      JSON.stringify({
+        expiresAt: Date.now() + 1000,
+        data: { id: "pipeline-123", name: "Gaussian blur", versionNumber: 0 },
+      }),
+    );
+
+    expect(loadPersistedActivePipeline(storage)).toBeNull();
+  });
+
+  it("clears active pipeline metadata", () => {
+    const storage = new LocalStorageMock();
+    saveActivePipeline(
+      { id: "pipeline-123", name: "Gaussian blur", versionNumber: 4 },
+      storage,
+    );
+
+    clearPersistedActivePipeline(storage);
+    expect(storage.getItem(ACTIVE_PIPELINE_STORAGE_KEY)).toBeNull();
   });
 });

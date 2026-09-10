@@ -46,7 +46,7 @@ export const conversionsBlocks = [
     args0: [
       { type: "input_dummy" },
       { type: "field_number", name: "thresholdValue", value: 0, min: 0 },
-      { type: "field_number", name: "maxValue", value: 0, min: 0 },
+      { type: "field_number", name: "maxValue", value: 255, min: 0 },
     ],
     previousStatement: null,
     nextStatement: null,
@@ -91,6 +91,20 @@ export const conversionsBlocks = [
       "Apply different color maps to an image - Transforms the colors of an image using various color maps. This can enhance visual contrast and highlight specific features. For example, the 'JET' colormap transitions from blue to red, while 'HSV' represents hue, saturation, and value. Choose a colormap that best suits your image analysis needs.",
   },
   {
+    type: "imageconvertions_brightnessandcontrast",
+    message0: "Adjust image brightness by %1 and contrast scale by %2",
+    args0: [
+      { type: "field_number", name: "brightnessValue", value: 0, min: -100, max: 100 },
+      { type: "field_number", name: "contrastValue", value: 1.0, min: 0.0, max: 3.0 },
+    ],
+    inputsInline: false,
+    previousStatement: null,
+    nextStatement: null,
+    style: "conversions_style",
+    tooltip:
+      "Adjusts the brightness and contrast of an image - Brightness controls the overall lightness or darkness of an image, while contrast controls the difference in intensity between different parts of the image. Increasing brightness makes the image lighter, and increasing contrast makes the differences between light and dark areas more pronounced.",
+  },
+  {
     type: "imageconvertions_colortobinary",
     message0:
       "Convert colored image to a binary one %1 by %2 type %3 with threshold value %4 and max value %5",
@@ -106,7 +120,7 @@ export const conversionsBlocks = [
       },
       { type: "input_dummy" },
       { type: "field_number", name: "thresholdValue", value: 0, min: 0 },
-      { type: "field_number", name: "maxValue", value: 0, min: 0 },
+      { type: "field_number", name: "maxValue", value: 255, min: 0 },
     ],
     inputsInline: false,
     previousStatement: null,
@@ -114,6 +128,14 @@ export const conversionsBlocks = [
     style: "conversions_style",
     tooltip:
       "Convert colored (RGB) image to binary with adjustable threshold - Applies a binary threshold to a colored image, converting it to black and white. You can choose between 'Threshold Binary' (pixels above the threshold become white) and 'Threshold Binary Inv' (pixels above the threshold become black). Adjust the threshold value to control which pixels are considered foreground (white) or background (black), and set the max value for the output binary image.",
+  },
+  {
+    type: "imageconvertions_histogramequalization",
+    message0: "Enhance contrast using histogram equalization",
+    previousStatement: null,
+    nextStatement: null,
+    style: "conversions_style",
+    tooltip: "Automatically improves image contrast using histogram equalization",
   },
   {
     type: "imageconvertions_bgrtohsv",
