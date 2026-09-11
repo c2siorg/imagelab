@@ -141,6 +141,24 @@ class TestColorToBinary:
         result = ColorToBinary({}).compute(img)
         assert set(np.unique(result)) == {0, 255}
 
+    def test_grayscale_2d_input(self, grayscale_image):
+        result = ColorToBinary({"thresholdValue": 100, "maxValue": 255}).compute(grayscale_image)
+        assert result.shape == grayscale_image.shape
+        assert result.dtype == np.uint8
+
+    def test_grayscale_single_channel_3d_input(self):
+        img = np.zeros((50, 50, 1), dtype=np.uint8)
+        img[:25, :, 0] = 50
+        img[25:, :, 0] = 200
+        result = ColorToBinary({"thresholdValue": 100, "maxValue": 255}).compute(img)
+        assert result.shape == (50, 50)
+        assert set(np.unique(result)) == {0, 255}
+
+    def test_unsupported_channel_count_raises(self):
+        img = np.zeros((10, 10, 2), dtype=np.uint8)
+        with pytest.raises(ValueError, match="expects 1, 3, or 4 channels"):
+            ColorToBinary({}).compute(img)
+
 
 # ColorMaps
 
