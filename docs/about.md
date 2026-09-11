@@ -3,29 +3,43 @@ layout: page
 title: About
 ---
 
-ImageLab is a standalone tool which supports anyone to get started with image processing related concepts and techniques in an interactive, visual way. Users drag and connect blocks to build image processing pipelines without writing code. ImageLab is ideal for beginners learning image processing and for experienced users who want a quick test environment.
+ImageLab is a standalone tool which supports anyone to get started with image processing related concepts and techniques in an interactive, visual way. Users drag and connect blocks in the browser to build image processing pipelines without writing code. A separate Python backend executes the pipeline. ImageLab is ideal for beginners learning image processing and for experienced users who want a quick test environment.
+
+The project includes a legacy Electron desktop app and a modern React + FastAPI web app.
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 ## Supported Image Processing Operations
 
-- Basic Read/Write operation
-- Image Conversion
-- Geometric Transformations
-- Drawing operations
-- Blurring operations
-- Filtering operations
-- Thresholding operations
+Operations are organized to match the block toolbox categories:
+
+- Basic
+- Geometric
+- Conversions
+- Augmentation
+- Drawing
+- Blurring
+- Filtering
+- Thresholding
+- Segmentation
+- Sobel Derivatives
+- Transformation
+- Advanced control flow macros
 
 ## Technologies
 
-| Technology | Description            |
-|------------|------------------------|
-| Electron   | Desktop application    |
-| Blockly    | Visual block editor    |
-| OpenCV.js  | Image processing       |
-| Node.js    | Runtime environment    |
-| Jest       | Testing framework      |
+| Technology | Description |
+|------------|-------------|
+| React | Modern web frontend |
+| Vite | Frontend build tooling |
+| Blockly | Visual block editor |
+| Tailwind | Frontend styling |
+| FastAPI | Python API backend |
+| OpenCV (`opencv-python-headless`) | Image processing on the backend |
+| PostgreSQL | Database |
+| SQLModel | ORM / data models |
+| Alembic | Database migrations |
+| Electron | Legacy desktop application |
 
 ## Mentors
 - [Namal Jayasuriya]()
