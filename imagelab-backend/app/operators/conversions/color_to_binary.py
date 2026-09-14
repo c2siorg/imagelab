@@ -16,6 +16,9 @@ class ColorToBinary(BaseOperator):
         threshold_value = float(self.params.get("thresholdValue", 0))
         max_value = float(self.params.get("maxValue", 255))
 
+        if image.dtype != np.uint8:
+            raise ValueError(f"ColorToBinary expects a uint8 image, got dtype={image.dtype}.")
+
         if image.ndim == 2:
             gray = image
         elif image.ndim == 3:
@@ -27,13 +30,9 @@ class ColorToBinary(BaseOperator):
             elif channels == 1:
                 gray = image[:, :, 0]
             else:
-                raise ValueError(
-                    f"ColorToBinary expects 1, 3, or 4 channels, got shape={image.shape}."
-                )
+                raise ValueError(f"ColorToBinary expects 1, 3, or 4 channels, got shape={image.shape}.")
         else:
-            raise ValueError(
-                f"ColorToBinary expects a 2-D or 3-D array, got ndim={image.ndim}."
-            )
+            raise ValueError(f"ColorToBinary expects a 2-D or 3-D array, got ndim={image.ndim}.")
 
         _, dst = cv2.threshold(gray, threshold_value, max_value, threshold_type)
         return dst

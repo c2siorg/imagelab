@@ -159,6 +159,11 @@ class TestColorToBinary:
         with pytest.raises(ValueError, match="expects 1, 3, or 4 channels"):
             ColorToBinary({}).compute(img)
 
+    def test_non_uint8_dtype_raises(self):
+        img = np.zeros((10, 10), dtype=np.float32)
+        with pytest.raises(ValueError, match="expects a uint8 image"):
+            ColorToBinary({}).compute(img)
+
 
 # ColorMaps
 
