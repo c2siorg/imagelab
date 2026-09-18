@@ -1,20 +1,30 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import type { RefObject } from "react";
 import { usePipelineStore } from "../store/pipelineStore";
 import { getImageFormatFromMimeType } from "../utils/imageData";
 
 interface UseWorkspaceDropOptions {
-  containerRef: RefObject<HTMLDivElement>;
+  /** Ref to the drop zone container element matching DropOverlay's bounds */
+  dropZoneRef?: RefObject<HTMLDivElement | null>;
+  /** @deprecated Use dropZoneRef instead */
+  containerRef?: RefObject<HTMLDivElement | null>;
   enabled?: boolean;
 }
 
-export function useWorkspaceDrop({ containerRef, enabled = true }: UseWorkspaceDropOptions) {
+export function useWorkspaceDrop({
+  dropZoneRef,
+  containerRef,
+  enabled = true,
+}: UseWorkspaceDropOptions) {
+  const targetRef = dropZoneRef ?? containerRef;
   const [isDragOver, setIsDragOver] = useState(false);
   const { setOriginalImage } = usePipelineStore();
 
-  const handleDragEnter = useCallback(
-    (e: DragEvent) => {
-      if (!enabled) return;
+  useEffect(() => {
+    const target = targetRef?.current;
+    if (!target || !enabled) return;
+
+    const handleDragEnter = (e: DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
 
@@ -22,13 +32,9 @@ export function useWorkspaceDrop({ containerRef, enabled = true }: UseWorkspaceD
       if (e.dataTransfer?.types.includes("Files")) {
         setIsDragOver(true);
       }
-    },
-    [enabled],
-  );
+    };
 
-  const handleDragOver = useCallback(
-    (e: DragEvent) => {
-      if (!enabled) return;
+    const handleDragOver = (e: DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
 
@@ -36,29 +42,19 @@ export function useWorkspaceDrop({ containerRef, enabled = true }: UseWorkspaceD
       if (e.dataTransfer) {
         e.dataTransfer.dropEffect = "copy";
       }
-    },
-    [enabled],
-  );
+    };
 
-  const handleDragLeave = useCallback(
-    (e: DragEvent) => {
-      if (!enabled) return;
+    const handleDragLeave = (e: DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
 
-      // Only hide overlay if leaving the container itself (not child elements)
-      const target = e.target as HTMLElement;
-      const container = containerRef.current;
-      if (container && (target === container || !container.contains(e.relatedTarget as Node))) {
+      // Only hide overlay if leaving the drop zone container itself (not child elements)
+      if (!e.relatedTarget || !target.contains(e.relatedTarget as Node)) {
         setIsDragOver(false);
       }
-    },
-    [enabled, containerRef],
-  );
+    };
 
-  const handleDrop = useCallback(
-    (e: DragEvent) => {
-      if (!enabled) return;
+    const handleDrop = (e: DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
       setIsDragOver(false);
@@ -90,26 +86,20 @@ export function useWorkspaceDrop({ containerRef, enabled = true }: UseWorkspaceD
       };
 
       reader.readAsDataURL(imageFile);
-    },
-    [enabled, setOriginalImage],
-  );
+    };
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || !enabled) return;
-
-    container.addEventListener("dragenter", handleDragEnter);
-    container.addEventListener("dragover", handleDragOver);
-    container.addEventListener("dragleave", handleDragLeave);
-    container.addEventListener("drop", handleDrop);
+    target.addEventListener("dragenter", handleDragEnter);
+    target.addEventListener("dragover", handleDragOver);
+    target.addEventListener("dragleave", handleDragLeave);
+    target.addEventListener("drop", handleDrop);
 
     return () => {
-      container.removeEventListener("dragenter", handleDragEnter);
-      container.removeEventListener("dragover", handleDragOver);
-      container.removeEventListener("dragleave", handleDragLeave);
-      container.removeEventListener("drop", handleDrop);
+      target.removeEventListener("dragenter", handleDragEnter);
+      target.removeEventListener("dragover", handleDragOver);
+      target.removeEventListener("dragleave", handleDragLeave);
+      target.removeEventListener("drop", handleDrop);
     };
-  }, [containerRef, enabled, handleDragEnter, handleDragOver, handleDragLeave, handleDrop]);
+  }, [targetRef, enabled, setOriginalImage]);
 
   return { isDragOver };
 }
