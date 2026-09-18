@@ -146,10 +146,7 @@ export function validatePipelineGraph(
   const warnings: ValidationWarning[] = [];
 
   // Check for Read Image block (only in root graph, not in branches)
-  const hasReadImage = graph.nodes.some((node) => {
-    const nodeType = getNodeType(node);
-    return nodeType === "basic_input" || nodeType === "readimage" || nodeType === "read_image";
-  });
+  const hasReadImage = graph.nodes.some((node) => getNodeType(node) === "basic_readimage");
 
   if (!isNestedBranch && !hasReadImage && graph.nodes.length > 0) {
     warnings.push({
@@ -166,6 +163,16 @@ export function validatePipelineGraph(
 
   try {
     const sortedNodes = topologicalSort(graph);
+
+    // Kahn's algorithm omits nodes that are part of a cycle (their in-degree never
+    // reaches zero). Detect this by comparing output length to total node count.
+    if (sortedNodes.length < graph.nodes.length) {
+      warnings.push({
+        nodeId: "",
+        nodeType: "",
+        message: "Pipeline contains a circular connection. Remove the cycle before running.",
+      });
+    }
 
     for (const nodeId of sortedNodes) {
       const node = nodes.get(nodeId);
@@ -247,9 +254,10 @@ export function validatePipelineGraph(
       outputs[nodeId] = OPERATOR_OUTPUT_CHANNELS[nodeType] ?? primary;
     }
   } catch (error) {
-    // If topological sort fails (cycle), that's handled by backend
-    // We focus on type checking here
-    console.warn("Topological sort failed, skipping validation:", error);
+    // This fires for structural graph errors (e.g. an edge whose source/target node
+    // ID is not present in the nodes list). Cycles are detected above via the
+    // sortedNodes.length check and never cause topologicalSort to throw.
+    console.warn("Pipeline graph structural error, skipping validation:", error);
   }
 
   return {

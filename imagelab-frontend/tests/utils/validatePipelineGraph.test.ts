@@ -17,7 +17,7 @@ describe("validatePipelineGraph", () => {
     it("returns valid for a simple pipeline with Read Image", () => {
       const graph: PipelineGraph = {
         nodes: [
-          { id: "1", type: "basic_input", op: "basic_input", params: {} },
+          { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
           { id: "2", type: "filtering_blur", op: "filtering_blur", params: {} },
         ],
         edges: [{ from: "1", to: "2" }],
@@ -28,17 +28,13 @@ describe("validatePipelineGraph", () => {
       expect(result.hasReadImage).toBe(true);
     });
 
-    it("identifies Read Image block by various type names", () => {
-      const types = ["basic_input", "readimage", "read_image"];
-      
-      types.forEach((type) => {
-        const graph: PipelineGraph = {
-          nodes: [{ id: "1", type, op: type, params: {} }],
-          edges: [],
-        };
-        const result = validatePipelineGraph(graph);
-        expect(result.hasReadImage).toBe(true);
-      });
+    it("identifies Read Image block by basic_readimage type", () => {
+      const graph: PipelineGraph = {
+        nodes: [{ id: "1", type: "basic_readimage", op: "basic_readimage", params: {} }],
+        edges: [],
+      };
+      const result = validatePipelineGraph(graph);
+      expect(result.hasReadImage).toBe(true);
     });
   });
 
@@ -47,7 +43,12 @@ describe("validatePipelineGraph", () => {
       const graph: PipelineGraph = {
         nodes: [
           { id: "1", type: "filtering_blur", op: "filtering_blur", params: {} },
-          { id: "2", type: "imageconvertions_grayimage", op: "imageconvertions_grayimage", params: {} },
+          {
+            id: "2",
+            type: "imageconvertions_grayimage",
+            op: "imageconvertions_grayimage",
+            params: {},
+          },
         ],
         edges: [{ from: "1", to: "2" }],
       };
@@ -55,7 +56,7 @@ describe("validatePipelineGraph", () => {
       expect(result.valid).toBe(false);
       expect(result.hasReadImage).toBe(false);
       expect(result.warnings).toHaveLength(1);
-      expect(result.warnings[0].message).toContain("No \"Read Image\" block found");
+      expect(result.warnings[0].message).toContain('No "Read Image" block found');
     });
   });
 
@@ -63,9 +64,19 @@ describe("validatePipelineGraph", () => {
     it("detects grayscale output feeding into color-only operator", () => {
       const graph: PipelineGraph = {
         nodes: [
-          { id: "1", type: "basic_input", op: "basic_input", params: {} },
-          { id: "2", type: "imageconvertions_grayimage", op: "imageconvertions_grayimage", params: {} },
-          { id: "3", type: "imageconvertions_bgrtohsv", op: "imageconvertions_bgrtohsv", params: {} },
+          { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
+          {
+            id: "2",
+            type: "imageconvertions_grayimage",
+            op: "imageconvertions_grayimage",
+            params: {},
+          },
+          {
+            id: "3",
+            type: "imageconvertions_bgrtohsv",
+            op: "imageconvertions_bgrtohsv",
+            params: {},
+          },
         ],
         edges: [
           { from: "1", to: "2" },
@@ -75,7 +86,7 @@ describe("validatePipelineGraph", () => {
       const result = validatePipelineGraph(graph, 3);
       expect(result.valid).toBe(false);
       expect(result.warnings.length).toBeGreaterThan(0);
-      
+
       const channelWarning = result.warnings.find((w) => w.nodeId === "3");
       expect(channelWarning).toBeDefined();
       expect(channelWarning?.message).toContain("grayscale");
@@ -85,15 +96,20 @@ describe("validatePipelineGraph", () => {
     it("detects color output feeding into grayscale-only operator", () => {
       const graph: PipelineGraph = {
         nodes: [
-          { id: "1", type: "basic_input", op: "basic_input", params: {} },
-          { id: "2", type: "thresholding_adaptivethreshold", op: "thresholding_adaptivethreshold", params: {} },
+          { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
+          {
+            id: "2",
+            type: "thresholding_adaptivethreshold",
+            op: "thresholding_adaptivethreshold",
+            params: {},
+          },
         ],
         edges: [{ from: "1", to: "2" }],
       };
       const result = validatePipelineGraph(graph, 3); // Color input (3 channels)
       expect(result.valid).toBe(false);
       expect(result.warnings.length).toBeGreaterThan(0);
-      
+
       const channelWarning = result.warnings.find((w) => w.nodeId === "2");
       expect(channelWarning).toBeDefined();
       expect(channelWarning?.message).toContain("grayscale");
@@ -102,9 +118,19 @@ describe("validatePipelineGraph", () => {
     it("accepts grayscale input for grayscale-only operators", () => {
       const graph: PipelineGraph = {
         nodes: [
-          { id: "1", type: "basic_input", op: "basic_input", params: {} },
-          { id: "2", type: "imageconvertions_grayimage", op: "imageconvertions_grayimage", params: {} },
-          { id: "3", type: "thresholding_adaptivethreshold", op: "thresholding_adaptivethreshold", params: {} },
+          { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
+          {
+            id: "2",
+            type: "imageconvertions_grayimage",
+            op: "imageconvertions_grayimage",
+            params: {},
+          },
+          {
+            id: "3",
+            type: "thresholding_adaptivethreshold",
+            op: "thresholding_adaptivethreshold",
+            params: {},
+          },
         ],
         edges: [
           { from: "1", to: "2" },
@@ -119,9 +145,19 @@ describe("validatePipelineGraph", () => {
     it("accepts color input for color operators", () => {
       const graph: PipelineGraph = {
         nodes: [
-          { id: "1", type: "basic_input", op: "basic_input", params: {} },
-          { id: "2", type: "imageconvertions_bgrtohsv", op: "imageconvertions_bgrtohsv", params: {} },
-          { id: "3", type: "imageconvertions_hsvtobgr", op: "imageconvertions_hsvtobgr", params: {} },
+          { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
+          {
+            id: "2",
+            type: "imageconvertions_bgrtohsv",
+            op: "imageconvertions_bgrtohsv",
+            params: {},
+          },
+          {
+            id: "3",
+            type: "imageconvertions_hsvtobgr",
+            op: "imageconvertions_hsvtobgr",
+            params: {},
+          },
         ],
         edges: [
           { from: "1", to: "2" },
@@ -154,7 +190,7 @@ describe("validatePipelineGraph", () => {
       const result = validatePipelineGraph(graph);
       expect(result.valid).toBe(false);
       expect(result.warnings.length).toBeGreaterThan(0);
-      
+
       const branchWarning = result.warnings.find((w) => w.nodeId === "1");
       expect(branchWarning).toBeDefined();
       expect(branchWarning?.message).toContain("branch");
@@ -178,7 +214,7 @@ describe("validatePipelineGraph", () => {
       };
       const result = validatePipelineGraph(graph);
       expect(result.valid).toBe(false);
-      
+
       const branchWarning = result.warnings.find((w) => w.nodeId === "1");
       expect(branchWarning).toBeDefined();
       expect(branchWarning?.message).toContain("branch");
@@ -187,7 +223,7 @@ describe("validatePipelineGraph", () => {
     it("accepts control flow with correct branches", () => {
       const graph: PipelineGraph = {
         nodes: [
-          { id: "0", type: "basic_input", op: "basic_input", params: {} },
+          { id: "0", type: "basic_readimage", op: "basic_readimage", params: {} },
           {
             id: "1",
             type: "macro_blend",
@@ -211,10 +247,20 @@ describe("validatePipelineGraph", () => {
     it("validates a multi-step pipeline with mixed channel types", () => {
       const graph: PipelineGraph = {
         nodes: [
-          { id: "1", type: "basic_input", op: "basic_input", params: {} },
+          { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
           { id: "2", type: "filtering_blur", op: "filtering_blur", params: {} },
-          { id: "3", type: "imageconvertions_grayimage", op: "imageconvertions_grayimage", params: {} },
-          { id: "4", type: "thresholding_applythreshold", op: "thresholding_applythreshold", params: {} },
+          {
+            id: "3",
+            type: "imageconvertions_grayimage",
+            op: "imageconvertions_grayimage",
+            params: {},
+          },
+          {
+            id: "4",
+            type: "thresholding_applythreshold",
+            op: "thresholding_applythreshold",
+            params: {},
+          },
         ],
         edges: [
           { from: "1", to: "2" },
@@ -232,9 +278,19 @@ describe("validatePipelineGraph", () => {
         nodes: [
           // No Read Image block
           { id: "1", type: "filtering_blur", op: "filtering_blur", params: {} },
-          { id: "2", type: "imageconvertions_grayimage", op: "imageconvertions_grayimage", params: {} },
+          {
+            id: "2",
+            type: "imageconvertions_grayimage",
+            op: "imageconvertions_grayimage",
+            params: {},
+          },
           // Color-only operator after grayscale
-          { id: "3", type: "imageconvertions_bgrtohsv", op: "imageconvertions_bgrtohsv", params: {} },
+          {
+            id: "3",
+            type: "imageconvertions_bgrtohsv",
+            op: "imageconvertions_bgrtohsv",
+            params: {},
+          },
         ],
         edges: [
           { from: "1", to: "2" },
@@ -252,8 +308,13 @@ describe("validatePipelineGraph", () => {
     it("validates merge_images with correct mask port", () => {
       const graph: PipelineGraph = {
         nodes: [
-          { id: "1", type: "basic_input", op: "basic_input", params: {} },
-          { id: "2", type: "imageconvertions_grayimage", op: "imageconvertions_grayimage", params: {} },
+          { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
+          {
+            id: "2",
+            type: "imageconvertions_grayimage",
+            op: "imageconvertions_grayimage",
+            params: {},
+          },
           { id: "3", type: "merge_images", op: "merge_images", params: {} },
         ],
         edges: [
@@ -269,8 +330,8 @@ describe("validatePipelineGraph", () => {
     it("detects incorrect mask port channel type", () => {
       const graph: PipelineGraph = {
         nodes: [
-          { id: "1", type: "basic_input", op: "basic_input", params: {} },
-          { id: "2", type: "basic_input", op: "basic_input", params: {} }, // Color image as mask
+          { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
+          { id: "2", type: "basic_readimage", op: "basic_readimage", params: {} }, // Color image as mask
           { id: "3", type: "merge_images", op: "merge_images", params: {} },
         ],
         edges: [
@@ -280,7 +341,7 @@ describe("validatePipelineGraph", () => {
       };
       const result = validatePipelineGraph(graph, 3);
       expect(result.valid).toBe(false);
-      
+
       const maskWarning = result.warnings.find((w) => w.port === "mask");
       expect(maskWarning).toBeDefined();
     });
@@ -290,7 +351,7 @@ describe("validatePipelineGraph", () => {
     it("validates nested branches in control flow", () => {
       const graph: PipelineGraph = {
         nodes: [
-          { id: "1", type: "basic_input", op: "basic_input", params: {} },
+          { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
           {
             id: "2",
             type: "macro_blend",
@@ -300,9 +361,19 @@ describe("validatePipelineGraph", () => {
               left: {
                 nodes: [
                   { id: "3", type: "filtering_blur", op: "filtering_blur", params: {} },
-                  { id: "4", type: "imageconvertions_grayimage", op: "imageconvertions_grayimage", params: {} },
+                  {
+                    id: "4",
+                    type: "imageconvertions_grayimage",
+                    op: "imageconvertions_grayimage",
+                    params: {},
+                  },
                   // Color-only operator after grayscale in branch
-                  { id: "5", type: "imageconvertions_bgrtohsv", op: "imageconvertions_bgrtohsv", params: {} },
+                  {
+                    id: "5",
+                    type: "imageconvertions_bgrtohsv",
+                    op: "imageconvertions_bgrtohsv",
+                    params: {},
+                  },
                 ],
                 edges: [
                   { from: "3", to: "4" },
@@ -323,13 +394,37 @@ describe("validatePipelineGraph", () => {
   });
 
   describe("topological sort edge cases", () => {
+    it("detects circular connection (cycle) in pipeline", () => {
+      const graph: PipelineGraph = {
+        nodes: [
+          { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
+          { id: "2", type: "filtering_blur", op: "filtering_blur", params: {} },
+          { id: "3", type: "filtering_blur", op: "filtering_blur", params: {} },
+        ],
+        edges: [
+          { from: "1", to: "2" },
+          { from: "2", to: "3" },
+          { from: "3", to: "2" },
+        ],
+      };
+      const result = validatePipelineGraph(graph, 3);
+      expect(result.valid).toBe(false);
+      const cycleWarning = result.warnings.find((w) => w.message.includes("circular connection"));
+      expect(cycleWarning).toBeDefined();
+    });
+
     it("handles disconnected nodes gracefully", () => {
       const graph: PipelineGraph = {
         nodes: [
-          { id: "1", type: "basic_input", op: "basic_input", params: {} },
+          { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
           { id: "2", type: "filtering_blur", op: "filtering_blur", params: {} },
           // Disconnected node
-          { id: "3", type: "imageconvertions_grayimage", op: "imageconvertions_grayimage", params: {} },
+          {
+            id: "3",
+            type: "imageconvertions_grayimage",
+            op: "imageconvertions_grayimage",
+            params: {},
+          },
         ],
         edges: [{ from: "1", to: "2" }],
       };
