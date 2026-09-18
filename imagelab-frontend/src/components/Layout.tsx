@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useBlocklyWorkspace } from "../hooks/useBlocklyWorkspace";
 import { useShareFromUrl } from "../hooks/useShareFromUrl";
 import { useWorkspaceDrop } from "../hooks/useWorkspaceDrop";
@@ -27,9 +27,10 @@ export default function Layout({ shareToken = null }: LayoutProps) {
   const { containerRef, workspace } = useBlocklyWorkspace({ isDark, readOnly: isReadOnly });
   const { setWorkspace } = useMacroStore();
   const [resetKey, setResetKey] = useState(0);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
 
   // Enable drag-and-drop and clipboard paste (disabled in read-only mode)
-  const { isDragOver } = useWorkspaceDrop({ containerRef, enabled: !isReadOnly });
+  const { isDragOver } = useWorkspaceDrop({ dropZoneRef, enabled: !isReadOnly });
   useClipboardPaste({ enabled: !isReadOnly });
 
   // Update macro store with workspace reference when available
@@ -84,7 +85,7 @@ export default function Layout({ shareToken = null }: LayoutProps) {
         )}
         {!isReadOnly && <Sidebar workspace={workspace} />}
         <ErrorBoundary key={resetKey} onReset={handleEditorReset}>
-          <div className="flex-1 flex min-w-0 relative">
+          <div ref={dropZoneRef} className="flex-1 flex min-w-0 relative">
             <DropOverlay visible={isDragOver} />
             <div className="flex-1 flex flex-col min-w-0">
               <div ref={containerRef} className="flex-1" />
