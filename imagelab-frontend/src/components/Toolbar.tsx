@@ -31,6 +31,8 @@ import VersionHistoryModal from "./VersionHistoryModal";
 import BatchProcessingModal from "./BatchProcessingModal";
 import CreateMacroModal from "./modals/CreateMacroModal";
 import ConfirmDialog from "./ConfirmDialog";
+import ValidationWarningModal from "./ValidationWarningModal";
+import { validatePipelineGraph, type ValidationWarning } from "../utils/validatePipelineGraph";
 
 /** Three-phase selection state for 2-click macro range picking. */
 type SelectionPhase = "idle" | "selecting" | "waitingForEnd";
@@ -82,6 +84,8 @@ export default function Toolbar({ workspace }: ToolbarProps) {
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [showCreateMacroModal, setShowCreateMacroModal] = useState(false);
   const [showNewWorkspaceConfirm, setShowNewWorkspaceConfirm] = useState(false);
+  const [showValidationWarningModal, setShowValidationWarningModal] = useState(false);
+  const [validationWarnings, setValidationWarnings] = useState<ValidationWarning[]>([]);
 
   // ── Fallback single-click selection (used outside range-selection mode) ────
   const [selectedBlocks, setSelectedBlocks] = useState<Blockly.Block[]>([]);
@@ -222,6 +226,23 @@ export default function Toolbar({ workspace }: ToolbarProps) {
       return;
     }
 
+    // Validate pipeline graph before execution
+    const validationResult = validatePipelineGraph(graph, 3);
+
+    if (!validationResult.valid && validationResult.warnings.length > 0) {
+      // Show validation warning modal
+      setValidationWarnings(validationResult.warnings);
+      setShowValidationWarningModal(true);
+      return;
+    }
+
+    // Proceed with execution
+    executeGraphPipeline(graph);
+  };
+
+  const executeGraphPipeline = async (graph: ReturnType<typeof extractExecutableGraph>) => {
+    if (!originalImage) return;
+
     setExecuting(true);
     setError(null);
     setTiming(null);
@@ -271,6 +292,19 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     } finally {
       setExecuting(false);
     }
+  };
+
+  const handleRunAnyway = () => {
+    setShowValidationWarningModal(false);
+    if (workspace) {
+      const graph = extractExecutableGraph(workspace);
+      executeGraphPipeline(graph);
+    }
+  };
+
+  const handleCancelValidation = () => {
+    setShowValidationWarningModal(false);
+    setValidationWarnings([]);
   };
 
   // Shift+? opens the shortcuts modal
@@ -603,6 +637,13 @@ export default function Toolbar({ workspace }: ToolbarProps) {
           }}
         />
       )}
+
+      <ValidationWarningModal
+        isOpen={showValidationWarningModal}
+        warnings={validationWarnings}
+        onRunAnyway={handleRunAnyway}
+        onCancel={handleCancelValidation}
+      />
 
       <ConfirmDialog
         isOpen={showNewWorkspaceConfirm}
