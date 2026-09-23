@@ -33,14 +33,31 @@ def test_out_of_bounds_coordinates_are_clamped() -> None:
         {"x1": 4, "x2": 1},
         {"y1": 3, "y2": 3},
         {"y1": 4, "y2": 1},
+        {"x1": 0, "y1": 0, "x2": 0, "y2": 0},
+        {"x1": 50, "y1": 0, "x2": 60, "y2": 5},
     ],
 )
-def test_empty_or_inverted_box_returns_original_image(params: dict[str, int]) -> None:
+def test_empty_or_inverted_box_raises_value_error(params: dict[str, int]) -> None:
     image = _rgb_image()
 
-    result = CropImage(params).compute(image)
+    with pytest.raises(ValueError, match="crop rectangle"):
+        CropImage(params).compute(image)
 
-    np.testing.assert_array_equal(result, image)
+
+def test_error_message_reports_requested_rectangle_and_image_size() -> None:
+    image = _rgb_image()
+
+    with pytest.raises(ValueError, match=r"x1=50, y1=0, x2=60, y2=5 is empty for a 6x5 image"):
+        CropImage({"x1": 50, "y1": 0, "x2": 60, "y2": 5}).compute(image)
+
+
+def test_block_default_rectangle_crops_top_left_region() -> None:
+    # Defaults shipped by the Crop block in the frontend (geometric.blocks.ts).
+    image = np.zeros((480, 640, 3), dtype=np.uint8)
+
+    result = CropImage({"x1": 0, "y1": 0, "x2": 320, "y2": 240}).compute(image)
+
+    assert result.shape == (240, 320, 3)
 
 
 def test_default_parameters_return_full_single_channel_image() -> None:
