@@ -117,7 +117,7 @@ export default function Sidebar({ workspace }: SidebarProps) {
               title="Clear search"
               aria-label="Clear search"
               onClick={() => setQuery("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
             >
               <X size={12} aria-hidden="true" />
             </button>

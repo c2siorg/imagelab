@@ -83,7 +83,7 @@ export default function CategorySection({
           if (!isSearching) setIsOpen((prev) => !prev);
         }}
         aria-expanded={effectiveOpen}
-        className={`w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${isSearching ? "cursor-default" : ""}`}
+        className={`w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${isSearching ? "cursor-default" : "cursor-pointer"}`}
       >
         {effectiveOpen ? (
           <ChevronDown
