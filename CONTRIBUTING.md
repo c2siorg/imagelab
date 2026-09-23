@@ -57,9 +57,9 @@ The Python FastAPI backend that provides image processing services.
 ```bash
 cd imagelab-backend
 cp .env.example .env
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+uv sync
 uvicorn app.main:app --reload --port 4100
 ```
 
