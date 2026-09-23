@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-A desktop application for visual, block-based image processing using Google Blockly and OpenCV.js. ImageLab lets users drag and connect blocks to build image processing pipelines without writing code. The project includes a legacy Electron app, a new React frontend, and a Python backend.
+A web application for visual, block-based image processing using Google Blockly and OpenCV.js ImageLab lets users drag and connect blocks to build image processing pipelines without writing code. The project includes a new React frontend and a Python backend.
 
 ## Features
 
@@ -10,7 +10,7 @@ A desktop application for visual, block-based image processing using Google Bloc
 - OpenCV.js powered operations: blurring, filtering, thresholding, geometric transforms, and more
 - Drag-and-connect blocks to build image processing pipelines
 - Real-time preview of processing results
-- Legacy Electron desktop app and modern React + FastAPI web app
+- Modern React + FastAPI web app
 
 ## Prerequisites
 
