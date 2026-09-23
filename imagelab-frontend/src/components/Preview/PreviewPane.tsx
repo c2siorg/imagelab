@@ -140,8 +140,9 @@ export default function PreviewPane() {
           {originalImage ? (
             <ImageDisplay image={originalImage} format={imageFormat} zoomWidth={originalZoom} />
           ) : (
-            <p className="text-sm text-gray-400 dark:text-gray-500">
-              Use the Read Image block to upload or capture
+            <p className="text-sm text-center text-gray-500 dark:text-gray-400">
+              Drag a Read Image block from the Basic category of the Blocks panel, then click its
+              upload or camera icon to load an image
             </p>
           )}
         </div>
@@ -178,8 +179,10 @@ export default function PreviewPane() {
           {processedImage ? (
             <ImageDisplay image={processedImage} format={imageFormat} zoomWidth={processedZoom} />
           ) : (
-            <p className="text-sm text-gray-400 dark:text-gray-500">
-              {originalImage ? "Run the pipeline to see results" : "No image loaded"}
+            <p className="text-sm text-center text-gray-500 dark:text-gray-400">
+              {originalImage
+                ? "Run the pipeline to see results"
+                : "Load an image and run the pipeline to see results"}
             </p>
           )}
         </div>

@@ -1,7 +1,9 @@
 import base64
 
 import numpy as np
+import pytest
 
+from app.exceptions import PipelineExecutionError
 from app.models.pipeline import PipelineRequest, PipelineStep
 from app.services import pipeline_executor
 from app.services.pipeline_executor import encode_image_bytes, execute_pipeline
@@ -80,6 +82,17 @@ def test_unknown_operator_gives_clear_error(make_request):
     assert "at step 1" in res.error
     assert "not_a_real_op" in res.error
     assert "Unknown operator" in res.error
+
+
+def test_empty_crop_rectangle_surfaces_as_pipeline_error(make_request):
+    steps = [
+        PipelineStep(type="geometric_cropimage", block_id="crop-block", params={"x1": 0, "y1": 0, "x2": 0, "y2": 0})
+    ]
+    with pytest.raises(PipelineExecutionError) as exc_info:
+        execute_pipeline(make_request(steps))
+    assert exc_info.value.step_id == "crop-block"
+    assert exc_info.value.step_type == "geometric_cropimage"
+    assert "crop rectangle" in exc_info.value.user_friendly_message
 
 
 def test_error_includes_correct_step_index(make_request):

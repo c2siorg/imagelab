@@ -86,13 +86,14 @@ export const geometricBlocks = [
     args0: [
       { type: "field_number", name: "x1", value: 0, min: 0 },
       { type: "field_number", name: "y1", value: 0, min: 0 },
-      { type: "field_number", name: "x2", value: 0, min: 0 },
-      { type: "field_number", name: "y2", value: 0, min: 0 },
+      { type: "field_number", name: "x2", value: 320, min: 0 },
+      { type: "field_number", name: "y2", value: 240, min: 0 },
     ],
     previousStatement: null,
     nextStatement: null,
     style: "geometric_style",
-    tooltip: "Crops the image to the specified coordinates",
+    tooltip:
+      "Crops the image to the rectangle between two corners - x1/y1 is the top-left corner and x2/y2 the bottom-right corner, in pixels from the top-left of the image. x2 must be greater than x1 and y2 greater than y1; coordinates past the image edge are clamped, and an empty rectangle stops the pipeline with an error.",
   },
   {
     type: "geometric_affineimage",

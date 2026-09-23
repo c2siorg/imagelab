@@ -10,19 +10,23 @@ class CropImage(BaseOperator):
         # Get cropping coordinates from parameters with defaults
         x1 = int(self.params.get("x1", 0))
         y1 = int(self.params.get("y1", 0))
-        x2 = int(self.params.get("x2", image.shape[1]))
-        y2 = int(self.params.get("y2", image.shape[0]))
+        x2 = int(self.params.get("x2", width))
+        y2 = int(self.params.get("y2", height))
 
         # Clamp to boundaries (Requirement: No out-of-bounds)
-        x1 = max(0, min(x1, width))
-        y1 = max(0, min(y1, height))
-        x2 = max(0, min(x2, width))
-        y2 = max(0, min(y2, height))
+        left = max(0, min(x1, width))
+        top = max(0, min(y1, height))
+        right = max(0, min(x2, width))
+        bottom = max(0, min(y2, height))
 
-        # If the coordinates are invalid return the original image
-        if x1 >= x2 or y1 >= y2:
-            return image
+        # An empty or inverted rectangle is a user error; raise so the pipeline
+        # reports it instead of silently returning the input image.
+        if left >= right or top >= bottom:
+            raise ValueError(
+                f"CropImage: crop rectangle x1={x1}, y1={y1}, x2={x2}, y2={y2} is empty "
+                f"for a {width}x{height} image. x1/y1 is the top-left corner and x2/y2 the "
+                "bottom-right corner in pixels; x2 must be greater than x1 and y2 greater than y1."
+            )
 
         # Image slicing in OpenCV is image[y1:y2, x1:x2]
-        cropped_image = image[y1:y2, x1:x2]
-        return cropped_image
+        return image[top:bottom, left:right]
