@@ -7,6 +7,8 @@ from app.utils.color import hex_to_bgr
 
 class DrawArrowLine(BaseOperator):
     def compute(self, image: np.ndarray) -> np.ndarray:
+        if image.ndim == 2:
+            image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
         result = image.copy()
         color = hex_to_bgr(self.params.get("rgbcolors_input", "#2828cc"))
         thickness = max(1, int(self.params.get("thickness", 2)))
