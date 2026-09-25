@@ -7,6 +7,8 @@ from app.utils.color import hex_to_bgr
 
 class DrawText(BaseOperator):
     def compute(self, image: np.ndarray) -> np.ndarray:
+        if image.ndim == 2:
+            image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
         result = image.copy()
         text = str(self.params.get("draw_text", "Image Lab"))
         thickness = max(1, int(self.params.get("thickness", 2)))
