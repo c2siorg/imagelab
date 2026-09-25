@@ -55,8 +55,22 @@ class TestDrawLine:
 
     def test_grayscale_input(self, grayscale_image):
         result = DrawLine({}).compute(grayscale_image)
-        assert result.shape == grayscale_image.shape
+        assert result.ndim == 3 and result.shape[2] == 3
         assert result.dtype == np.uint8
+
+    def test_grayscale_red_line_visible(self):
+        gray = np.zeros((100, 100), dtype=np.uint8)
+        result = DrawLine(
+            {
+                "starting_point_x1": 0,
+                "starting_point_y1": 50,
+                "ending_point_x": 99,
+                "ending_point_y": 50,
+                "rgbcolors_input": "#ff0000",
+                "thickness": 3,
+            }
+        ).compute(gray)
+        assert result[50, 50, 2] > 0
 
 
 class TestDrawCircle:
@@ -101,7 +115,7 @@ class TestDrawCircle:
 
     def test_grayscale_input(self, grayscale_image):
         result = DrawCircle({}).compute(grayscale_image)
-        assert result.shape == grayscale_image.shape
+        assert result.ndim == 3 and result.shape[2] == 3
         assert result.dtype == np.uint8
 
     def test_negative_radius_is_clamped_to_zero(self):
@@ -118,6 +132,19 @@ class TestDrawCircle:
         expected = cv2.circle(blank.copy(), (50, 50), 0, (0, 0, 255), 1)
 
         np.testing.assert_array_equal(result, expected)
+
+    def test_grayscale_red_circle_visible(self):
+        gray = np.zeros((100, 100), dtype=np.uint8)
+        result = DrawCircle(
+            {
+                "center_point_x": 50,
+                "center_point_y": 50,
+                "radius": 20,
+                "rgbcolors_input": "#ff0000",
+                "thickness": 2,
+            }
+        ).compute(gray)
+        assert result[:, :, 2].max() > 0
 
 
 class TestDrawEllipse:
@@ -181,8 +208,22 @@ class TestDrawEllipse:
 
     def test_grayscale_input(self, grayscale_image):
         result = DrawEllipse({}).compute(grayscale_image)
-        assert result.shape == grayscale_image.shape
+        assert result.ndim == 3 and result.shape[2] == 3
         assert result.dtype == np.uint8
+
+    def test_grayscale_red_ellipse_visible(self):
+        gray = np.zeros((100, 100), dtype=np.uint8)
+        result = DrawEllipse(
+            {
+                "center_point_x": 50,
+                "center_point_y": 50,
+                "width": 30,
+                "height": 20,
+                "rgbcolors_input": "#ff0000",
+                "thickness": 2,
+            }
+        ).compute(gray)
+        assert result[:, :, 2].max() > 0
 
 
 class TestDrawRectangle:
@@ -231,8 +272,22 @@ class TestDrawRectangle:
 
     def test_grayscale_input(self, grayscale_image):
         result = DrawRectangle({}).compute(grayscale_image)
-        assert result.shape == grayscale_image.shape
+        assert result.ndim == 3 and result.shape[2] == 3
         assert result.dtype == np.uint8
+
+    def test_grayscale_red_rectangle_visible(self):
+        gray = np.zeros((100, 100), dtype=np.uint8)
+        result = DrawRectangle(
+            {
+                "starting_point_x": 10,
+                "starting_point_y": 10,
+                "ending_point_x": 50,
+                "ending_point_y": 50,
+                "rgbcolors_input": "#ff0000",
+                "thickness": 2,
+            }
+        ).compute(gray)
+        assert result[:, :, 2].max() > 0
 
 
 class TestDrawArrowLine:
@@ -281,8 +336,22 @@ class TestDrawArrowLine:
 
     def test_grayscale_input(self, grayscale_image):
         result = DrawArrowLine({}).compute(grayscale_image)
-        assert result.shape == grayscale_image.shape
+        assert result.ndim == 3 and result.shape[2] == 3
         assert result.dtype == np.uint8
+
+    def test_grayscale_red_arrow_visible(self):
+        gray = np.zeros((100, 100), dtype=np.uint8)
+        result = DrawArrowLine(
+            {
+                "starting_point_x": 10,
+                "starting_point_y": 50,
+                "ending_point_x": 90,
+                "ending_point_y": 50,
+                "rgbcolors_input": "#ff0000",
+                "thickness": 2,
+            }
+        ).compute(gray)
+        assert result[:, :, 2].max() > 0
 
 
 class TestDrawText:
@@ -342,5 +411,19 @@ class TestDrawText:
 
     def test_grayscale_input(self, grayscale_image):
         result = DrawText({}).compute(grayscale_image)
-        assert result.shape == grayscale_image.shape
+        assert result.ndim == 3 and result.shape[2] == 3
         assert result.dtype == np.uint8
+
+    def test_grayscale_red_text_visible(self):
+        gray = np.zeros((100, 100), dtype=np.uint8)
+        result = DrawText(
+            {
+                "draw_text": "Test",
+                "starting_point_x": 10,
+                "starting_point_y": 50,
+                "rgbcolors_input": "#ff0000",
+                "scale": 1,
+                "thickness": 2,
+            }
+        ).compute(gray)
+        assert result[:, :, 2].max() > 0
