@@ -15,12 +15,12 @@ export default function ValidationWarningModal({
   onRunAnyway,
   onCancel,
 }: ValidationWarningModalProps) {
-  const runAnywayButtonRef = useRef<HTMLButtonElement>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (isOpen) {
-      // Focus the run anyway button when dialog opens
-      runAnywayButtonRef.current?.focus();
+      // Focus the cancel and fix button when dialog opens
+      cancelButtonRef.current?.focus();
     }
   }, [isOpen]);
 
@@ -88,7 +88,7 @@ export default function ValidationWarningModal({
           <ul className="space-y-3">
             {warnings.map((warning, index) => (
               <li
-                key={index}
+                key={`${warning.nodeId}-${warning.port}-${index}`}
                 className="flex gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/10 border border-amber-200 dark:border-amber-900/30"
               >
                 <AlertTriangle
@@ -123,6 +123,7 @@ export default function ValidationWarningModal({
         {/* Actions */}
         <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
           <button
+            ref={cancelButtonRef}
             type="button"
             onClick={onCancel}
             className="px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
@@ -130,7 +131,6 @@ export default function ValidationWarningModal({
             Cancel and Fix
           </button>
           <button
-            ref={runAnywayButtonRef}
             type="button"
             onClick={onRunAnyway}
             className="px-4 py-2 text-xs font-medium text-white bg-amber-600 hover:bg-amber-700 dark:bg-amber-600 dark:hover:bg-amber-700 rounded-lg transition-colors"

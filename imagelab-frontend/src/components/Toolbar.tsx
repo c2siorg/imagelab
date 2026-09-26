@@ -86,6 +86,9 @@ export default function Toolbar({ workspace }: ToolbarProps) {
   const [showNewWorkspaceConfirm, setShowNewWorkspaceConfirm] = useState(false);
   const [showValidationWarningModal, setShowValidationWarningModal] = useState(false);
   const [validationWarnings, setValidationWarnings] = useState<ValidationWarning[]>([]);
+  const [pendingGraph, setPendingGraph] = useState<ReturnType<
+    typeof extractExecutableGraph
+  > | null>(null);
 
   // ── Fallback single-click selection (used outside range-selection mode) ────
   const [selectedBlocks, setSelectedBlocks] = useState<Blockly.Block[]>([]);
@@ -199,6 +202,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     if (workspace) {
       workspace.clear();
     }
+    setPendingGraph(null);
     setShowNewWorkspaceConfirm(false);
   };
 
@@ -231,11 +235,13 @@ export default function Toolbar({ workspace }: ToolbarProps) {
 
     if (!validationResult.valid && validationResult.warnings.length > 0) {
       // Show validation warning modal
+      setPendingGraph(graph);
       setValidationWarnings(validationResult.warnings);
       setShowValidationWarningModal(true);
       return;
     }
 
+    setPendingGraph(null);
     // Proceed with execution
     executeGraphPipeline(graph);
   };
@@ -296,15 +302,17 @@ export default function Toolbar({ workspace }: ToolbarProps) {
 
   const handleRunAnyway = () => {
     setShowValidationWarningModal(false);
-    if (workspace) {
-      const graph = extractExecutableGraph(workspace);
-      executeGraphPipeline(graph);
+    const graphToExecute = pendingGraph || (workspace ? extractExecutableGraph(workspace) : null);
+    setPendingGraph(null);
+    if (graphToExecute) {
+      executeGraphPipeline(graphToExecute);
     }
   };
 
   const handleCancelValidation = () => {
     setShowValidationWarningModal(false);
     setValidationWarnings([]);
+    setPendingGraph(null);
   };
 
   // Shift+? opens the shortcuts modal
