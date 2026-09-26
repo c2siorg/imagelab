@@ -3,8 +3,8 @@ export const thresholdingBlocks = [
     type: "thresholding_applythreshold",
     message0: "Apply simple threshold with max value %1 and threshold value %2",
     args0: [
-      { type: "field_number", name: "maxValue", value: 0, min: 0 },
-      { type: "field_number", name: "thresholdValue", value: 0, min: 0 },
+      { type: "field_number", name: "maxValue", value: 255, min: 0, max: 255 },
+      { type: "field_number", name: "thresholdValue", value: 0, min: 0, max: 255 },
     ],
     previousStatement: null,
     nextStatement: null,
