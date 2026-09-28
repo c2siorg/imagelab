@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import * as Blockly from "blockly";
 import {
   FilePlus,
@@ -11,6 +11,8 @@ import {
   Keyboard,
   Save,
   FolderOpen,
+  FileDown,
+  FileUp,
   History,
   Layers,
   FolderPlus,
@@ -23,6 +25,15 @@ import { extractExecutableGraph } from "../hooks/usePipeline";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { useStepInspection } from "../hooks/useStepInspection";
 import { getSelectedBlocks, getBlocksBetween } from "../utils/extractMacroGraph";
+import { loadWorkspaceState } from "../utils/workspaceLoad";
+import {
+  buildPipelineFile,
+  parsePipelineFile,
+  pipelineFileName,
+  readFileText,
+  serializePipelineFile,
+} from "../utils/pipelineFile";
+import type { PipelineFile } from "../utils/pipelineFile";
 import SharePipelineModal from "./SharePipelineModal";
 import KeyboardShortcutsModal from "./KeyboardShortcutsModal";
 import SavePipelineModal from "./SavePipelineModal";
@@ -72,6 +83,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     currentPipelineId,
     currentPipelineName,
     currentVersionNumber,
+    setCurrentPipeline,
     isReadOnly,
     clearShareContext,
   } = usePipelineStore();
@@ -89,6 +101,12 @@ export default function Toolbar({ workspace }: ToolbarProps) {
   const [pendingGraph, setPendingGraph] = useState<ReturnType<
     typeof extractExecutableGraph
   > | null>(null);
+
+  // ── Pipeline file import ───────────────────────────────────────────────────
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  // A parsed file waiting for the user to confirm replacing a non-empty workspace
+  const [pendingImport, setPendingImport] = useState<PipelineFile | null>(null);
 
   // ── Fallback single-click selection (used outside range-selection mode) ────
   const [selectedBlocks, setSelectedBlocks] = useState<Blockly.Block[]>([]);
@@ -212,6 +230,57 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     link.href = `data:image/${imageFormat};base64,${processedImage}`;
     link.download = `processed.${imageFormat}`;
     link.click();
+  };
+
+  const handleExport = () => {
+    if (!workspace) return;
+    const file = buildPipelineFile(workspace, currentPipelineName);
+    const link = document.createElement("a");
+    link.href = `data:application/json;charset=utf-8,${encodeURIComponent(serializePipelineFile(file))}`;
+    link.download = pipelineFileName(file.name);
+    link.click();
+  };
+
+  const applyImport = (file: PipelineFile) => {
+    if (!workspace) return;
+    try {
+      // Restores the previous blocks and rethrows if the file cannot be loaded
+      loadWorkspaceState(workspace, file.workspace);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      setImportError(`Could not load "${file.name}": ${reason}`);
+      return;
+    }
+    // The imported blocks are not a version of the open server pipeline, same as New
+    setCurrentPipeline(null, null, null);
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target;
+    const selected = input.files?.[0];
+    // Clear the input so picking the same file again fires another change event
+    input.value = "";
+    if (!selected || !workspace) return;
+
+    setImportError(null);
+    let file: PipelineFile;
+    try {
+      file = parsePipelineFile(await readFileText(selected));
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "Could not read the selected file.");
+      return;
+    }
+
+    if (workspace.getAllBlocks(false).length > 0) {
+      setPendingImport(file);
+      return;
+    }
+    applyImport(file);
+  };
+
+  const confirmImport = () => {
+    if (pendingImport) applyImport(pendingImport);
+    setPendingImport(null);
   };
 
   const handleUndo = () => {
@@ -359,26 +428,32 @@ export default function Toolbar({ workspace }: ToolbarProps) {
         ? "Now click the END block…"
         : null;
 
+  const bannerError = importError ?? rangeError;
+
   return (
     <>
-      {/* Selection mode banner */}
-      {(selectionPhase !== "idle" || rangeError) && (
+      {/* Selection mode / error banner */}
+      {(selectionPhase !== "idle" || bannerError) && (
         <div
+          role={bannerError ? "alert" : undefined}
           className={`px-4 py-1 text-xs flex items-center gap-2 border-b ${
-            rangeError
+            bannerError
               ? "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400"
               : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/40 text-amber-700 dark:text-amber-300"
           }`}
         >
           <MousePointer2 size={12} className="shrink-0" />
-          <span className="flex-1">{rangeError ?? phaseBannerText}</span>
-          {rangeError && (
+          <span className="flex-1">{bannerError ?? phaseBannerText}</span>
+          {bannerError && (
             <button
               type="button"
-              onClick={() => setRangeError(null)}
+              onClick={() => {
+                setImportError(null);
+                setRangeError(null);
+              }}
               className="ml-auto p-0.5 rounded hover:bg-red-100 dark:hover:bg-red-900/40"
               title="Dismiss"
-              aria-label="Dismiss range error"
+              aria-label="Dismiss error"
             >
               <X size={11} />
             </button>
@@ -419,6 +494,30 @@ export default function Toolbar({ workspace }: ToolbarProps) {
         >
           <FolderOpen size={18} />
         </button>
+        <button
+          onClick={handleExport}
+          disabled={!workspace || isReadOnly}
+          className={iconBtn}
+          title="Export Pipeline (.json)"
+        >
+          <FileDown size={18} />
+        </button>
+        <button
+          onClick={() => importInputRef.current?.click()}
+          disabled={!workspace || isReadOnly}
+          className={iconBtn}
+          title="Import Pipeline (.json)"
+        >
+          <FileUp size={18} />
+        </button>
+        <input
+          ref={importInputRef}
+          type="file"
+          accept=".json,application/json"
+          onChange={handleImportFile}
+          className="hidden"
+          aria-label="Import pipeline file"
+        />
         <button
           onClick={() => setShowVersionModal(true)}
           disabled={!currentPipelineId || isReadOnly}
@@ -661,6 +760,16 @@ export default function Toolbar({ workspace }: ToolbarProps) {
         cancelLabel="Cancel"
         onConfirm={confirmNewWorkspace}
         onCancel={() => setShowNewWorkspaceConfirm(false)}
+      />
+
+      <ConfirmDialog
+        isOpen={pendingImport !== null}
+        title="Import Pipeline"
+        message={`Importing "${pendingImport?.name ?? ""}" will replace the blocks in the workspace. Continue?`}
+        confirmLabel="Replace"
+        cancelLabel="Cancel"
+        onConfirm={confirmImport}
+        onCancel={() => setPendingImport(null)}
       />
     </>
   );
