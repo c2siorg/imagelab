@@ -8,6 +8,7 @@ import { usePipelineStore } from "../store/pipelineStore";
 import { useMacroStore, registerMacroBlocksFromDefinitions } from "../store/useMacroStore";
 import { imagelabTheme, imagelabThemeDark } from "../blocks/theme";
 import { SINGLETON_BLOCK_TYPES } from "../utils/blockLimits";
+import { markWorkspaceTearingDown } from "../blocks/extensions/readImageExtension";
 import { loadPersistedImageState } from "./imagePersistence";
 import {
   clearPersistedWorkspace,
@@ -51,9 +52,24 @@ export function useBlocklyWorkspace({
   const setWorkspaceDirty = usePipelineStore((s) => s.setWorkspaceDirty);
   const updateBlockStats = usePipelineStore((s) => s.updateBlockStats);
 
+  // Holds the latest theme without making initWorkspace re-run
+  const isDarkRef = useRef(isDark);
+
+  // Swap Blockly theme when dark mode changes (no rebuild)
   useEffect(() => {
-    if (!workspaceRef.current) return;
-    workspaceRef.current.setTheme(isDark ? imagelabThemeDark : imagelabTheme);
+    isDarkRef.current = isDark;
+    const ws = workspaceRef.current;
+    if (!ws) return;
+    ws.setTheme(isDark ? imagelabThemeDark : imagelabTheme);
+
+    // Grid colour is only set on creation, so update the grid lines by hand
+    const patternId = ws.getGrid()?.getPatternId();
+    if (patternId) {
+      document
+        .getElementById(patternId)
+        ?.querySelectorAll("line")
+        .forEach((line) => line.setAttribute("stroke", isDark ? "#263040" : "#E5E7EB"));
+    }
   }, [isDark]);
 
   const initWorkspace = useCallback(() => {
@@ -74,11 +90,11 @@ export function useBlocklyWorkspace({
       },
       trashcan: true,
       renderer: "zelos",
-      theme: isDark ? imagelabThemeDark : imagelabTheme,
+      theme: isDarkRef.current ? imagelabThemeDark : imagelabTheme,
       grid: {
         spacing: 20,
         length: 3,
-        colour: isDark ? "#263040" : "#E5E7EB",
+        colour: isDarkRef.current ? "#263040" : "#E5E7EB",
         snap: true,
       },
       zoom: {
@@ -187,7 +203,17 @@ export function useBlocklyWorkspace({
       resizeObserverRef.current = observer;
     }
     updateBlockStats(ws);
-  }, [isDark, readOnly, setActiveStep, setSelectedBlock, setWorkspaceDirty, updateBlockStats]);
+  }, [readOnly, setActiveStep, setSelectedBlock, setWorkspaceDirty, updateBlockStats]);
+
+  // Entering or leaving a shared read-only view rebuilds the workspace for a
+  // different pipeline, so the previous image must not carry over. This runs
+  // before the init effect below, so nothing stale is restored from storage.
+  const prevReadOnlyRef = useRef(readOnly);
+  useEffect(() => {
+    if (prevReadOnlyRef.current === readOnly) return;
+    prevReadOnlyRef.current = readOnly;
+    usePipelineStore.getState().clearImage();
+  }, [readOnly]);
 
   useEffect(() => {
     initWorkspace();
@@ -203,6 +229,7 @@ export function useBlocklyWorkspace({
       if (workspaceRef.current) {
         const state = Blockly.serialization.workspaces.save(workspaceRef.current);
         saveWorkspaceState(state);
+        markWorkspaceTearingDown(workspaceRef.current);
         workspaceRef.current.dispose();
         workspaceRef.current = null;
         setWorkspace(null);

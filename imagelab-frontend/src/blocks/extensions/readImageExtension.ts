@@ -2,6 +2,12 @@ import * as Blockly from "blockly";
 import { getImageFormatFromMimeType } from "../../utils/imageData";
 import { usePipelineStore } from "../../store/pipelineStore";
 
+const workspacesBeingTornDown = new WeakSet<Blockly.Workspace>();
+
+export function markWorkspaceTearingDown(workspace: Blockly.Workspace) {
+  workspacesBeingTornDown.add(workspace);
+}
+
 function setFilenameLabel(block: Blockly.Block, value: string) {
   const label = block.getField("filename_label");
   if (label) label.setValue(value);
@@ -84,8 +90,11 @@ function initReadImageBlock(block: Blockly.Block) {
   block.dispose = new Proxy(block.dispose, {
     apply(target, thisArg, args) {
       fileInput.remove();
-      // Clear image from store when read_image block is deleted
-      usePipelineStore.getState().clearImage();
+      // Only clear the image when the block is really removed,
+      // not when the app is tearing down the whole workspace.
+      if (!workspacesBeingTornDown.has(block.workspace)) {
+        usePipelineStore.getState().clearImage();
+      }
       unregisterImageLabelSync();
       unregisterImageReset();
       return Reflect.apply(target, thisArg, args);
