@@ -7,6 +7,8 @@ from app.utils.color import hex_to_bgr
 
 class DrawCircle(BaseOperator):
     def compute(self, image: np.ndarray) -> np.ndarray:
+        if image.ndim == 2:
+            image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
         result = image.copy()
         thickness = int(self.params.get("thickness", 2))
         radius = max(0, int(self.params.get("radius", 5)))

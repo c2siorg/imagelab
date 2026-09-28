@@ -17,29 +17,11 @@ Thank you for your interest in contributing to ImageLab! This guide will help yo
 
 ## Development Setup
 
-ImageLab has three sub-projects. Depending on what you are working on, you may need to set up one or more of them.
+ImageLab has two sub-projects. Depending on what you are working on, you may need to set up one or both of them.
 
-### Electron App (Legacy)
+### Frontend
 
-The original desktop application built with Electron and Google Blockly.
-
-```bash
-cd electron-app-legacy
-npm install
-npm start
-```
-
-This launches the Electron app in development mode.
-
-To run the test suite:
-
-```bash
-npm test
-```
-
-### Frontend (New)
-
-The new React + Vite frontend.
+The React + Vite frontend.
 
 ```bash
 cd imagelab-frontend
@@ -57,9 +39,9 @@ The Python FastAPI backend that provides image processing services.
 ```bash
 cd imagelab-backend
 cp .env.example .env
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+uv sync
 uvicorn app.main:app --reload --port 4100
 ```
 
@@ -92,7 +74,7 @@ uv run ruff format
 ## Code Style
 
 - **JavaScript/TypeScript:** We use ESLint and Prettier for linting and formatting. Run `npm run lint` where available to check your code.
-- **Testing:** The Electron app uses Jest for unit testing. Test files are located in `electron-app-legacy/tests/unit/`.
+- **Testing:** The frontend uses Vitest for unit testing (`imagelab-frontend/`); the backend uses pytest (`imagelab-backend/`).
 - **Python:** Follow PEP 8 conventions for backend code.
 
 ## Reporting Bugs / Requesting Features

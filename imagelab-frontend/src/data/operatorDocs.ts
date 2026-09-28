@@ -469,4 +469,48 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     formula: "Δf = ∂²f/∂x² + ∂²f/∂y²",
     useCases: ["Blob detection, sharpening edge transitions."],
   },
+
+  // --- Detection ---
+  detection_smiledetection: {
+    name: "Smile Detection",
+    description:
+      "Detects smiles in faces using Haar cascade classifiers. First detects faces in the image, then searches for smiles only within the lower 60% of each detected face region to reduce false positives. Draws bounding boxes around detected smiles on the output image.",
+    parameters: [
+      {
+        name: "Scale Factor",
+        description:
+          "Parameter specifying how much the image size is reduced at each image scale. A value closer to 1.0 means a smaller step and more thorough search (slower but more accurate). Typical range: 1.01 to 2.0. Default: 1.1.",
+      },
+      {
+        name: "Min Neighbors",
+        description:
+          "Parameter specifying how many neighbors each candidate rectangle should have to retain it. Higher values result in fewer but more confident detections (reduces false positives). Typical range: 1 to 20. Default: 5.",
+      },
+      {
+        name: "Min Width / Min Height",
+        description:
+          "Minimum possible object size in pixels. Objects smaller than this are ignored. This helps filter out noise and small false detections. Typical range: 10 to 500. Default: 30.",
+      },
+      {
+        name: "Box Color",
+        description:
+          "RGB color for the bounding boxes drawn around detected smiles. Default: green (#00ff00).",
+      },
+      {
+        name: "Thickness",
+        description: "Thickness of the bounding box lines in pixels. Range: 1 to 10. Default: 2.",
+      },
+      {
+        name: "Draw Face Boxes",
+        description:
+          "When enabled, also draws bounding boxes around the detected faces (not just smiles). Useful for debugging or visualization. Default: false.",
+      },
+    ],
+    useCases: [
+      "Building facial expression recognition pipelines for emotion detection.",
+      "Creating interactive photo booth applications that detect and highlight smiles.",
+      "Analyzing social media images for happiness or engagement metrics.",
+      "Educational demonstrations of classical computer vision detection techniques.",
+    ],
+  },
 };

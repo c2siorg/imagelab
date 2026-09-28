@@ -4,14 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ImageLab is a web application for visual, block-based image processing. Users compose pipelines by dragging and connecting blocks in a Google Blockly editor, then the backend executes those pipelines server-side with OpenCV (Python). The repo also contains a legacy Electron desktop app (under `electron-app-legacy/`) and a Jekyll documentation site (`docs/`).
+ImageLab is a web application for visual, block-based image processing. Users compose pipelines by dragging and connecting blocks in a Google Blockly editor, then the backend executes those pipelines server-side with OpenCV (Python). The repo also contains a Jekyll documentation site (`docs/`).
 
 ## Repository Structure
 
 - **`imagelab-frontend/`** — React 19 + TypeScript + Vite SPA with Blockly editor
 - **`imagelab-backend/`** — Python FastAPI server with `opencv-python-headless`
 - **`docs/`** — Jekyll documentation site
-- **`electron-app-legacy/`** — Legacy Electron desktop version, kept for reference
 
 ## Common Commands
 

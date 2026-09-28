@@ -37,7 +37,7 @@ export async function inspectPipelineStep(
   executionId: string,
   blockId: string,
 ): Promise<StepInspectResponse> {
-  const params = new URLSearchParams({ block_id: blockId });
+  const params = new URLSearchParams({ block_id: encodeURIComponent(blockId) });
   const response = await fetch(
     `${API_URL}/api/v1/pipeline/executions/${encodeURIComponent(executionId)}/steps/inspect?${params.toString()}`,
   );

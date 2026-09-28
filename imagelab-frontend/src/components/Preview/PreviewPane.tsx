@@ -18,7 +18,7 @@ function ZoomControls({
       <button
         onClick={onZoomIn}
         disabled={disabled}
-        className="flex items-center justify-center p-1.5 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="flex items-center justify-center p-1.5 border border-gray-300 dark:border-gray-600 rounded-md cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         title="Zoom In"
       >
         <ZoomIn size={14} />
@@ -26,7 +26,7 @@ function ZoomControls({
       <button
         onClick={onZoomOut}
         disabled={disabled}
-        className="flex items-center justify-center p-1.5 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="flex items-center justify-center p-1.5 border border-gray-300 dark:border-gray-600 rounded-md cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         title="Zoom Out"
       >
         <ZoomOut size={14} />
@@ -128,7 +128,7 @@ export default function PreviewPane() {
           {originalImage && (
             <button
               onClick={clearImage}
-              className={`${isReadOnly ? "" : "ml-auto"} p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-colors`}
+              className={`${isReadOnly ? "" : "ml-auto"} p-1 rounded cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-colors`}
               title="Remove image"
               aria-label="Remove image"
             >
@@ -140,8 +140,9 @@ export default function PreviewPane() {
           {originalImage ? (
             <ImageDisplay image={originalImage} format={imageFormat} zoomWidth={originalZoom} />
           ) : (
-            <p className="text-sm text-gray-400 dark:text-gray-500">
-              Use the Read Image block to upload or capture
+            <p className="text-sm text-center text-gray-500 dark:text-gray-400">
+              Drag a Read Image block from the Basic category of the Blocks panel, then click its
+              upload or camera icon to load an image
             </p>
           )}
         </div>
@@ -178,8 +179,10 @@ export default function PreviewPane() {
           {processedImage ? (
             <ImageDisplay image={processedImage} format={imageFormat} zoomWidth={processedZoom} />
           ) : (
-            <p className="text-sm text-gray-400 dark:text-gray-500">
-              {originalImage ? "Run the pipeline to see results" : "No image loaded"}
+            <p className="text-sm text-center text-gray-500 dark:text-gray-400">
+              {originalImage
+                ? "Run the pipeline to see results"
+                : "Load an image and run the pipeline to see results"}
             </p>
           )}
         </div>

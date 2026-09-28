@@ -1,7 +1,13 @@
+export interface MacroStackFrame {
+  id: string;
+  name: string;
+}
+
 export interface PipelineStep {
   block_id?: string;
   type: string;
   params: Record<string, unknown>;
+  macro_stack?: MacroStackFrame[];
 }
 
 /** Pipeline steps as stored in the persistence API (`pipeline_json` field). */
@@ -36,6 +42,7 @@ export interface StepResult {
   timing_ms?: number | null;
   has_full_image: boolean;
   error?: string | null;
+  macro_stack?: MacroStackFrame[];
 }
 
 export interface ImageAnalysis {

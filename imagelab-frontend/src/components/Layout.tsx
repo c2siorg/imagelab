@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useBlocklyWorkspace } from "../hooks/useBlocklyWorkspace";
 import { useShareFromUrl } from "../hooks/useShareFromUrl";
+import { useWorkspaceDrop } from "../hooks/useWorkspaceDrop";
+import { useClipboardPaste } from "../hooks/useClipboardPaste";
 import { usePipelineStore } from "../store/pipelineStore";
 import { useMacroStore } from "../store/useMacroStore";
 import { useDarkMode } from "../hooks/useDarkMode";
@@ -9,6 +11,8 @@ import Toolbar from "./Toolbar";
 import Sidebar from "./Sidebar/Sidebar";
 import PreviewPane from "./Preview/PreviewPane";
 import BottomPanel from "./BottomPanel";
+import DropOverlay from "./DropOverlay";
+import EmptyWorkspaceHint from "./EmptyWorkspaceHint";
 import { ErrorBoundary } from "./ErrorBoundary";
 import CameraCaptureModal from "./CameraCaptureModal";
 import CloneSharedPipelineModal from "./CloneSharedPipelineModal";
@@ -24,6 +28,11 @@ export default function Layout({ shareToken = null }: LayoutProps) {
   const { containerRef, workspace } = useBlocklyWorkspace({ isDark, readOnly: isReadOnly });
   const { setWorkspace } = useMacroStore();
   const [resetKey, setResetKey] = useState(0);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
+
+  // Enable drag-and-drop and clipboard paste (disabled in read-only mode)
+  const { isDragOver } = useWorkspaceDrop({ dropZoneRef, enabled: !isReadOnly });
+  useClipboardPaste({ enabled: !isReadOnly });
 
   // Update macro store with workspace reference when available
   useEffect(() => {
@@ -77,9 +86,16 @@ export default function Layout({ shareToken = null }: LayoutProps) {
         )}
         {!isReadOnly && <Sidebar workspace={workspace} />}
         <ErrorBoundary key={resetKey} onReset={handleEditorReset}>
-          <div className="flex-1 flex min-w-0">
+          <div ref={dropZoneRef} className="flex-1 flex min-w-0 relative">
+            <DropOverlay visible={isDragOver} />
             <div className="flex-1 flex flex-col min-w-0">
-              <div ref={containerRef} className="flex-1" />
+              <div className="flex-1 flex flex-col relative min-h-0 min-w-0">
+                <div
+                  ref={containerRef}
+                  className="relative flex-1 min-h-0 min-w-0 overflow-hidden w-full h-full"
+                />
+                {!isReadOnly && <EmptyWorkspaceHint workspace={workspace} />}
+              </div>
               <BottomPanel workspace={workspace} />
             </div>
             <PreviewPane />

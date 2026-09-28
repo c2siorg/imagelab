@@ -6,7 +6,7 @@ from sqlmodel import Session, select
 
 from app.exceptions import MacroDepthLimitExceeded
 from app.models.graph import GraphCycleError, GraphNode, PipelineGraph, topological_sort
-from app.models.persistence import PipelineVersion
+from app.models.persistence import Pipeline, PipelineVersion
 from app.models.pipeline import PipelineRequest, PipelineResponse, PipelineStep
 from app.utils.image import decode_base64_image
 
@@ -88,13 +88,22 @@ def _coerce_graph(payload: dict) -> PipelineGraph:
                 branches["then"] = params.pop("if_branch")
             if "else_branch" in params:
                 branches["else"] = params.pop("else_branch")
-            nodes.append(node.model_copy(update={"params": params, "branches": branches}))
+            # Preserve macro_stack if it exists, otherwise default to empty list
+            update_dict = {"params": params, "branches": branches}
+            if hasattr(node, "macro_stack"):
+                update_dict["macro_stack"] = node.macro_stack
+            nodes.append(node.model_copy(update=update_dict))
         return graph.model_copy(update={"nodes": nodes})
     raw_steps = payload.get("steps", [])
     steps = [PipelineStep.model_validate(step) for step in raw_steps]
     return PipelineGraph(
         nodes=[
-            {"id": step.block_id or str(index), "type": step.type, "params": step.params}
+            {
+                "id": step.block_id or str(index),
+                "type": step.type,
+                "params": step.params,
+                "macro_stack": getattr(step, "macro_stack", []),
+            }
             for index, step in enumerate(steps)
         ],
         edges=[
@@ -128,7 +137,11 @@ def _namespace_graph(graph: PipelineGraph, prefix: str) -> PipelineGraph:
                 namespaced_branches[name] = _namespace_graph(branch, prefix)
             else:
                 namespaced_branches[name] = branch
-        nodes.append(node.model_copy(update={"id": f"{prefix}:{node.id}", "branches": namespaced_branches}))
+        # Preserve macro_stack if it exists, otherwise default to empty list
+        update_dict = {"id": f"{prefix}:{node.id}", "branches": namespaced_branches}
+        if hasattr(node, "macro_stack"):
+            update_dict["macro_stack"] = node.macro_stack
+        nodes.append(node.model_copy(update=update_dict))
     return PipelineGraph(
         nodes=nodes,
         edges=[
@@ -157,12 +170,22 @@ def _apply_exposed_values(graph: PipelineGraph, values: dict) -> PipelineGraph:
                 applied_branches[name] = _apply_exposed_values(branch, values)
             else:
                 applied_branches[name] = branch
-        nodes.append(node.model_copy(update={"params": params, "branches": applied_branches}))
+        # Preserve macro_stack if it exists, otherwise default to empty list
+        update_dict = {"params": params, "branches": applied_branches}
+        if hasattr(node, "macro_stack"):
+            update_dict["macro_stack"] = node.macro_stack
+        nodes.append(node.model_copy(update=update_dict))
     return graph.model_copy(update={"nodes": nodes})
 
 
-def _expand_graph(graph: PipelineGraph, session: Session, active: list[uuid.UUID] | None = None) -> PipelineGraph:
+def _expand_graph(
+    graph: PipelineGraph,
+    session: Session,
+    active: list[uuid.UUID] | None = None,
+    current_stack: list[dict[str, str]] | None = None,
+) -> PipelineGraph:
     active = active or []
+    current_stack = current_stack or []
     expanded_nodes = []
     expanded_edges = list(graph.edges)
     for original in graph.nodes:
@@ -172,12 +195,12 @@ def _expand_graph(graph: PipelineGraph, session: Session, active: list[uuid.UUID
         for name, branch in original.branches.items():
             if isinstance(branch, list):
                 branch_graph = _coerce_graph({"nodes": branch, "edges": []})
-                expanded_branches[name] = _expand_graph(branch_graph, session, active)
+                expanded_branches[name] = _expand_graph(branch_graph, session, active, current_stack)
             elif isinstance(branch, PipelineGraph):
-                expanded_branches[name] = _expand_graph(branch, session, active)
+                expanded_branches[name] = _expand_graph(branch, session, active, current_stack)
             elif isinstance(branch, dict):
                 branch_graph = _coerce_graph(branch)
-                expanded_branches[name] = _expand_graph(branch_graph, session, active)
+                expanded_branches[name] = _expand_graph(branch_graph, session, active, current_stack)
             else:
                 # Fallback or pass-through for primitive branch parameters
                 expanded_branches[name] = branch
@@ -185,6 +208,14 @@ def _expand_graph(graph: PipelineGraph, session: Session, active: list[uuid.UUID
         node = original.model_copy(update={"branches": expanded_branches})
         macro_id_text = _macro_id(node)
         if not macro_id_text:
+            # Primitive node: set macro_stack to current_stack
+            node = node.model_copy(update={"macro_stack": current_stack})
+            expanded_nodes.append(node)
+            continue
+
+        # Skip UUID parsing for macro_input and macro_output nodes
+        node_type = _node_type(node)
+        if node_type in {"macro_input", "macro_output"}:
             expanded_nodes.append(node)
             continue
         # Skip UUID parsing for macro_input and macro_output nodes
@@ -208,9 +239,27 @@ def _expand_graph(graph: PipelineGraph, session: Session, active: list[uuid.UUID
         ).first()
         if not version:
             raise ValueError(f"Macro pipeline {macro_id} not found.")
+
+        # Look up the human-readable macro name from the Pipeline table
+        pipeline = session.exec(select(Pipeline).where(Pipeline.id == macro_id)).first()
+        macro_name = (
+            node.params.get("macro_name")
+            or node.params.get("name")
+            or (pipeline.name if pipeline else None)
+            or node_type
+        )
+
+        # Create macro info for tracking ancestry
+        # node.id is the original canvas block ID before any namespacing
+        # This ensures the frontend can use this ID to select the correct macro block on the canvas
+        macro_info = {"id": node.id, "name": macro_name}
+        new_stack = current_stack + [macro_info]
         subgraph = _namespace_graph(
             _expand_graph(
-                _apply_exposed_values(_coerce_graph(version.pipeline_json), node.params), session, [*active, macro_id]
+                _apply_exposed_values(_coerce_graph(version.pipeline_json), node.params),
+                session,
+                [*active, macro_id],
+                new_stack,
             ),
             node.id,
         )
@@ -245,7 +294,9 @@ def _expand_graph(graph: PipelineGraph, session: Session, active: list[uuid.UUID
     return PipelineGraph(nodes=expanded_nodes, edges=expanded_edges)
 
 
-def _validate_graph(graph: PipelineGraph, input_channels: int) -> dict[str, int]:
+def _validate_graph(
+    graph: PipelineGraph, input_channels: int, current_stack: list[dict[str, str]] | None = None
+) -> dict[str, int]:
     graph.validate_no_cycles()
     outputs: dict[str, int] = {}
     nodes = {node.id: node for node in graph.nodes}
@@ -292,8 +343,14 @@ def _validate_graph(graph: PipelineGraph, input_channels: int) -> dict[str, int]
     return outputs
 
 
-def compile_graph(graph: PipelineGraph, session: Session | None = None, input_channels: int = 3) -> list[PipelineStep]:
-    expanded = _expand_graph(graph, session) if session is not None else graph
+def compile_graph(
+    graph: PipelineGraph,
+    session: Session | None = None,
+    input_channels: int = 3,
+    current_stack: list[dict[str, str]] | None = None,
+) -> list[PipelineStep]:
+    current_stack = current_stack or []
+    expanded = _expand_graph(graph, session, current_stack=current_stack) if session is not None else graph
     _validate_graph(expanded, input_channels)
     node_map = {node.id: node for node in expanded.nodes}
     steps = []
@@ -306,12 +363,20 @@ def compile_graph(graph: PipelineGraph, session: Session | None = None, input_ch
         for name, branch in node.branches.items():
             if isinstance(branch, list):
                 branch_graph = _coerce_graph({"nodes": branch, "edges": []})
-                compiled_branches[name] = compile_graph(branch_graph, session, input_channels)
+                compiled_branches[name] = compile_graph(branch_graph, session, input_channels, current_stack)
             elif isinstance(branch, PipelineGraph):
-                compiled_branches[name] = compile_graph(branch, session, input_channels)
+                compiled_branches[name] = compile_graph(branch, session, input_channels, current_stack)
             else:
                 compiled_branches[name] = branch
-        steps.append(PipelineStep(type=node_type, block_id=node.id, params=node.params, branches=compiled_branches))
+        steps.append(
+            PipelineStep(
+                type=node_type,
+                block_id=node.id,
+                params=node.params,
+                branches=compiled_branches,
+                macro_stack=getattr(node, "macro_stack", current_stack),
+            )
+        )
     return steps
 
 
