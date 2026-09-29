@@ -117,6 +117,39 @@ describe("Toolbar pipeline import", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
+  it("migrates a legacy affine block in the imported file", async () => {
+    const text = JSON.stringify({
+      schemaVersion: PIPELINE_FILE_SCHEMA_VERSION,
+      name: "Legacy",
+      workspace: {
+        blocks: {
+          languageVersion: 0,
+          blocks: [
+            {
+              type: "geometric_affineimage",
+              id: "affine-1",
+              fields: { translate_x: 20, translate_y: 5 },
+            },
+          ],
+        },
+      },
+    });
+    render(<Toolbar workspace={toolbarWorkspace()} />);
+
+    importFile(new File([text], "legacy.json", { type: "application/json" }));
+
+    await waitFor(() => expect(workspace.getBlockById("affine-1")).not.toBeNull());
+    const affine = workspace.getBlockById("affine-1")!;
+    expect(affine.getFieldValue("src_x1")).toBe(0);
+    expect(affine.getFieldValue("dst_x1")).toBe(20);
+    expect(affine.getFieldValue("dst_y1")).toBe(5);
+    expect(affine.getFieldValue("dst_x2")).toBe(120);
+    expect(affine.getFieldValue("dst_y2")).toBe(5);
+    expect(affine.getFieldValue("dst_x3")).toBe(20);
+    expect(affine.getFieldValue("dst_y3")).toBe(105);
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
   it("asks before replacing existing blocks and keeps them on cancel", async () => {
     addBlurBlock(workspace, "existing", 3);
     const source = new Blockly.Workspace();

@@ -4,6 +4,7 @@ import { X, Loader2, History, RotateCcw } from "lucide-react";
 import { usePipelineStore } from "../store/pipelineStore";
 import { listVersions, restoreVersion } from "../api/persistence";
 import type { VersionSummary } from "../api/persistence";
+import { migrateWorkspaceJson } from "../utils/workspaceMigrations";
 import ConfirmDialog from "./ConfirmDialog";
 
 interface VersionHistoryModalProps {
@@ -72,7 +73,10 @@ export default function VersionHistoryModal({ workspace, onClose }: VersionHisto
       workspace.clear();
 
       try {
-        Blockly.serialization.workspaces.load(result.workspace_json, workspace);
+        Blockly.serialization.workspaces.load(
+          migrateWorkspaceJson(result.workspace_json),
+          workspace,
+        );
       } catch (loadErr) {
         Blockly.serialization.workspaces.load(snapshot, workspace);
         throw loadErr;
