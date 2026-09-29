@@ -97,15 +97,28 @@ export const geometricBlocks = [
   },
   {
     type: "geometric_affineimage",
-    message0: "Apply affine transformation translate x %1 translate y %2",
+    message0:
+      "Apply affine transformation %1 mapping source points x %2 y %3 , x %4 y %5 , x %6 y %7 %8 onto destination points x %9 y %10 , x %11 y %12 , x %13 y %14",
     args0: [
-      { type: "field_number", name: "translate_x", value: 0 },
-      { type: "field_number", name: "translate_y", value: 0 },
+      { type: "input_dummy" },
+      { type: "field_number", name: "src_x1", value: 0 },
+      { type: "field_number", name: "src_y1", value: 0 },
+      { type: "field_number", name: "src_x2", value: 100 },
+      { type: "field_number", name: "src_y2", value: 0 },
+      { type: "field_number", name: "src_x3", value: 0 },
+      { type: "field_number", name: "src_y3", value: 100 },
+      { type: "input_dummy" },
+      { type: "field_number", name: "dst_x1", value: 0 },
+      { type: "field_number", name: "dst_y1", value: 0 },
+      { type: "field_number", name: "dst_x2", value: 100 },
+      { type: "field_number", name: "dst_y2", value: 0 },
+      { type: "field_number", name: "dst_x3", value: 0 },
+      { type: "field_number", name: "dst_y3", value: 100 },
     ],
     previousStatement: null,
     nextStatement: null,
     style: "geometric_style",
     tooltip:
-      "Applies an affine translation to the image - shifts every pixel by (translate_x, translate_y). Pixels that fall outside the original frame are clipped, and exposed areas are filled with black.",
+      "Applies an affine transformation defined by three point pairs - Source points are pixel positions in the input image, and destination points are where those same pixels land in the output; the whole image is warped by the matrix that maps one triangle onto the other. Identical source and destination points leave the image unchanged, shifting all three by the same offset translates it, moving a single point shears it, and spreading them apart scales it. Source points must not lie on one line - if they do the image is passed through unchanged. Areas exposed by the warp are filled with black.",
   },
 ];

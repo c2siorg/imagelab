@@ -8,6 +8,7 @@ import { usePipelineStore } from "../store/pipelineStore";
 import { useMacroStore, registerMacroBlocksFromDefinitions } from "../store/useMacroStore";
 import { imagelabTheme, imagelabThemeDark } from "../blocks/theme";
 import { SINGLETON_BLOCK_TYPES } from "../utils/blockLimits";
+import { migrateWorkspaceJson } from "../utils/workspaceMigrations";
 import { loadPersistedImageState } from "./imagePersistence";
 import {
   clearPersistedWorkspace,
@@ -95,7 +96,7 @@ export function useBlocklyWorkspace({
     const persistedState = loadPersistedWorkspaceState<WorkspaceState>();
     if (persistedState) {
       try {
-        Blockly.serialization.workspaces.load(persistedState, ws);
+        Blockly.serialization.workspaces.load(migrateWorkspaceJson(persistedState), ws);
       } catch (err) {
         console.warn("[ImageLab] Failed to restore workspace state; clearing persisted data.", err);
         clearPersistedWorkspace();
