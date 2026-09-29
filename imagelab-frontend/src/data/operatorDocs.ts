@@ -70,18 +70,22 @@ export const operatorDocs: Record<string, OperatorDoc> = {
   geometric_affineimage: {
     name: "Affine Transform",
     description:
-      "Applies an affine translation by shifting every pixel by (translate_x, translate_y).",
+      "Warps the image with the affine matrix that maps three source points onto three destination points (cv2.getAffineTransform). Covers translation, rotation, scaling and shear.",
     parameters: [
       {
-        name: "translate_x",
-        description: "Horizontal shift in pixels. Positive moves right, negative moves left.",
+        name: "Source points",
+        description:
+          "Three (x, y) pixel positions in the input image. They must not lie on a single line.",
       },
       {
-        name: "translate_y",
-        description: "Vertical shift in pixels. Positive moves down, negative moves up.",
+        name: "Destination points",
+        description:
+          "Where each source point lands in the output. Equal to the source points for an identity mapping.",
       },
     ],
-    useCases: ["Repositioning the subject, generating training data with positional jitter."],
+    useCases: [
+      "Correcting skew, aligning images, generating training data with shear or rotation jitter.",
+    ],
   },
   geometric_scaleimage: {
     name: "Scale Image",

@@ -4,6 +4,7 @@ import { X, Loader2, FolderOpen, Trash2, Search } from "lucide-react";
 import { usePipelineStore } from "../store/pipelineStore";
 import { listPipelines, getPipelineLatest, deletePipeline } from "../api/persistence";
 import type { Pipeline } from "../api/persistence";
+import { migrateWorkspaceJson } from "../utils/workspaceMigrations";
 import ConfirmDialog from "./ConfirmDialog";
 
 interface LoadPipelineModalProps {
@@ -75,7 +76,10 @@ export default function LoadPipelineModal({ workspace, onClose }: LoadPipelineMo
       workspace.clear();
 
       try {
-        Blockly.serialization.workspaces.load(latestVersion.workspace_json, workspace);
+        Blockly.serialization.workspaces.load(
+          migrateWorkspaceJson(latestVersion.workspace_json),
+          workspace,
+        );
       } catch (loadErr) {
         // Fallback to snapshot in case of load failure
         Blockly.serialization.workspaces.load(snapshot, workspace);

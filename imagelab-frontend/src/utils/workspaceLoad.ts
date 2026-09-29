@@ -1,5 +1,6 @@
 import * as Blockly from "blockly";
 import type { WorkspaceJson } from "../types/blocklyWorkspace";
+import { migrateWorkspaceJson } from "./workspaceMigrations";
 
 const READ_IMAGE_BLOCK_TYPE = "basic_readimage";
 const FILENAME_LABEL_FIELD = "filename_label";
@@ -9,7 +10,7 @@ export function loadWorkspaceState(workspace: Blockly.WorkspaceSvg, state: Works
   workspace.clear();
 
   try {
-    Blockly.serialization.workspaces.load(state, workspace);
+    Blockly.serialization.workspaces.load(migrateWorkspaceJson(state), workspace);
   } catch (loadErr) {
     Blockly.serialization.workspaces.load(snapshot, workspace);
     throw loadErr;
