@@ -471,6 +471,43 @@ export const operatorDocs: Record<string, OperatorDoc> = {
   },
 
   // --- Detection ---
+  detection_facedetection: {
+    name: "Face Detection",
+    description:
+      "Detects frontal human faces using Haar cascade classifiers. Runs detection on a grayscale, histogram-equalized copy of the input image and draws bounding boxes around detected face regions on a copy of the source image to preserve source colors.",
+    parameters: [
+      {
+        name: "Scale Factor",
+        description:
+          "Parameter specifying how much the image size is reduced at each image scale. Smaller values (e.g., 1.05 to 1.1) result in a finer multi-scale search, detecting faces more reliably but with slower processing. Typical range: 1.01 to 2.0. Default: 1.1.",
+      },
+      {
+        name: "Min Neighbors",
+        description:
+          "Number of neighboring candidate rectangles required to retain a detection. Higher values yield fewer false positives, while lower values may detect more faces in challenging lighting or angles. Range: 1 to 20. Default: 5.",
+      },
+      {
+        name: "Min Width / Min Height",
+        description:
+          "Minimum possible face size in pixels. Faces smaller than this dimension are ignored, filtering out noise and false detections in background textures. Range: 10 to 500. Default: 30.",
+      },
+      {
+        name: "Box Color",
+        description:
+          "RGB color for the bounding boxes drawn around detected faces. Default: green (#00ff00).",
+      },
+      {
+        name: "Thickness",
+        description: "Thickness of the bounding box lines in pixels. Range: 1 to 10. Default: 2.",
+      },
+    ],
+    useCases: [
+      "Locating faces in portraits, group photos, and webcam feeds for cropping or avatar creation.",
+      "Preprocessing step for downstream facial analysis, emotion recognition, or face recognition tasks.",
+      "Privacy redaction pipelines that blur or mask human faces in public photography datasets.",
+      "Educational demonstrations of classical Viola-Jones Haar feature-based cascade object detection.",
+    ],
+  },
   detection_smiledetection: {
     name: "Smile Detection",
     description:
