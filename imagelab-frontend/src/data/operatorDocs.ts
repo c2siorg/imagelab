@@ -513,4 +513,41 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       "Educational demonstrations of classical computer vision detection techniques.",
     ],
   },
+  detection_eyedetection: {
+    name: "Eye Detection",
+    description:
+      "Detects eyes in an image using Haar cascade classifiers. Runs detection on a grayscale, histogram-equalized copy of the input image and draws bounding boxes around detected eye regions on a copy of the source image to preserve source colors.",
+    parameters: [
+      {
+        name: "Scale Factor",
+        description:
+          "Parameter specifying how much the image size is reduced at each image scale. Smaller values (e.g., 1.05 to 1.1) result in a finer multi-scale search, detecting eyes more reliably but with slower processing. Typical range: 1.01 to 2.0. Default: 1.1.",
+      },
+      {
+        name: "Min Neighbors",
+        description:
+          "Number of neighboring candidate rectangles required to confirm a detection. Whole-image eye detection can be noisy on textured or complex backgrounds; increasing this parameter (e.g. 5 to 10) significantly filters out false positives. Range: 1 to 20. Default: 5.",
+      },
+      {
+        name: "Min Width / Min Height",
+        description:
+          "Minimum expected dimensions of an eye in pixels. Small texture details and background noise can trigger false eye detections; setting appropriate minimum dimensions ensures small false positives are discarded. Range: 10 to 500. Default: 10.",
+      },
+      {
+        name: "Box Color",
+        description:
+          "RGB color for the bounding boxes drawn around detected eyes. Default: green (#00ff00).",
+      },
+      {
+        name: "Thickness",
+        description: "Line thickness of the bounding boxes in pixels. Range: 1 to 10. Default: 2.",
+      },
+    ],
+    useCases: [
+      "Locating eye regions for gaze tracking or drowsiness detection pipelines.",
+      "Preprocessing facial images prior to red-eye correction or iris recognition.",
+      "Facial feature annotation and biometric analysis experiments.",
+      "Demonstrating classical Haar feature-based cascade object detection in educational curricula.",
+    ],
+  },
 };
