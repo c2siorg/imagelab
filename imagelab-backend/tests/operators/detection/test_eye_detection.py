@@ -286,6 +286,3 @@ def test_default_parameters_passed_to_cascade():
     assert kwargs["scaleFactor"] == 1.1
     assert kwargs["minNeighbors"] == 5
     assert kwargs["minSize"] == (10, 10)
-
-
-
