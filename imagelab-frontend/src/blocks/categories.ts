@@ -134,8 +134,9 @@ export const categories: CategoryInfo[] = [
     icon: "ScanFace",
     colour: "#9575CD",
     blocks: [
-      { type: "detection_smiledetection", label: "Smile Detection" },
+      { type: "detection_facedetection", label: "Face Detection" },
       { type: "detection_eyedetection", label: "Eye Detection" },
+      { type: "detection_smiledetection", label: "Smile Detection" },
     ],
   },
   {

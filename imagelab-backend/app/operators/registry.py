@@ -24,6 +24,7 @@ from app.operators.conversions.invert_image import InvertImage
 from app.operators.conversions.lab_to_bgr import LabToBgr
 from app.operators.conversions.ycrcb_to_bgr import YcrcbToBgr
 from app.operators.detection.eye_detection import EyeDetection
+from app.operators.detection.face_detection import FaceDetection
 from app.operators.detection.smile_detection import SmileDetection
 from app.operators.drawing.draw_arrow_line import DrawArrowLine
 from app.operators.drawing.draw_circle import DrawCircle
@@ -118,6 +119,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "filtering_contourdetection": ContourDetection,
     # Detection
     "detection_eyedetection": EyeDetection,
+    "detection_facedetection": FaceDetection,
     "detection_smiledetection": SmileDetection,
     # Thresholding
     "thresholding_applythreshold": ApplyThreshold,
