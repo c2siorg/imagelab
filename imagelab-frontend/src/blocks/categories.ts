@@ -133,7 +133,10 @@ export const categories: CategoryInfo[] = [
     name: "Detection",
     icon: "ScanFace",
     colour: "#9575CD",
-    blocks: [{ type: "detection_smiledetection", label: "Smile Detection" }],
+    blocks: [
+      { type: "detection_smiledetection", label: "Smile Detection" },
+      { type: "detection_eyedetection", label: "Eye Detection" },
+    ],
   },
   {
     name: "Sobel Derivatives",
