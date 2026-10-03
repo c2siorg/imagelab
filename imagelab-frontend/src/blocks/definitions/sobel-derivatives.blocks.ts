@@ -47,4 +47,13 @@ export const sobelDerivativesBlocks = [
     tooltip:
       "Detect edges using the Prewitt operator - Applies two 3x3 kernels to compute horizontal and vertical gradient magnitude. Similar to Sobel but with equal weights across all rows/columns, making it slightly simpler and faster. Colour images are converted to grayscale automatically.",
   },
+  {
+    type: "sobelderivatives_robertsoperator",
+    message0: "Apply Roberts Cross edge detection",
+    previousStatement: null,
+    nextStatement: null,
+    style: "sobel_derivatives_style",
+    tooltip:
+      "Detect edges using the Roberts Cross operator - Applies two 2x2 diagonal kernels to compute gradient magnitude. It is the smallest and cheapest of the classical edge detectors, but it is also the most directionally biased: the two kernels measure contrast along the image diagonals, so horizontal and vertical edges respond most strongly (peak = contrast x sqrt(2)) while edges running along the diagonals respond about 29% more weakly. The tiny 2x2 support also makes it noise-sensitive, so it needs sharp, high-contrast edges to respond at all. Colour images are converted to grayscale automatically.",
+  },
 ];
