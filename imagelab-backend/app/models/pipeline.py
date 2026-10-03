@@ -1,29 +1,83 @@
-from pydantic import BaseModel, Field, model_validator
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.models.graph import PipelineGraph
 
+# 1x1 PNG so the example actually decodes
+TINY_PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+
 
 class PipelineStep(BaseModel):
-    type: str
-    block_id: str | None = None
-    params: dict = Field(default_factory=dict)
-    branches: dict[str, list["PipelineStep"]] = Field(default_factory=dict)
+    type: str = Field(
+        description="Registered operator key in the form '<category>_<operatorname>', "
+        "e.g. 'blurring_applyblur'.",
+    )
+    block_id: str | None = Field(
+        default=None,
+        description="Client-side block ID. Echoed back in step results and errors.",
+    )
+    params: dict = Field(
+        default_factory=dict,
+        description="Operator-specific parameters (camelCase), e.g. {'widthSize': 3}. "
+        "Omitted params fall back to the operator's defaults.",
+    )
+    branches: dict[str, list["PipelineStep"]] = Field(
+        default_factory=dict,
+        description=(
+            "Named sub-pipelines for branching operators. "
+            "Maps a branch name to an ordered list of steps (same shape as this step)."
+        ),
+    )
     macro_stack: list[dict[str, str]] = Field(default_factory=list)
 
 
 class PipelineRequest(BaseModel):
-    image: str
-    image_format: str = "png"
-    graph: PipelineGraph | None = None
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "image": TINY_PNG,
+                    "image_format": "png",
+                    "pipeline": [
+                        {
+                            "type": "blurring_applyblur",
+                            "block_id": "blur1",
+                            "params": {"widthSize": 3, "heightSize": 3},
+                        },
+                        {
+                            "type": "thresholding_applythreshold",
+                            "block_id": "threshold1",
+                            "params": {"thresholdValue": 127, "maxValue": 255},
+                        },
+                    ],
+                }
+            ]
+        }
+    )
+
+    image: str = Field(
+        min_length=1,
+        description="Base64-encoded input image (no data-URI prefix).",
+    )
+    image_format: Literal["png", "jpeg"] = Field(
+        default="png",
+        description="Format used to encode output images.",
+    )
+    graph: PipelineGraph | None = Field(
+        default=None,
+        description="Node/edge graph. Compiled into a pipeline before execution.",
+    )
     # Keep default None so Pydantic catches when the key is completely missing in raw JSON
-    pipeline: list[PipelineStep] | None = None
+    pipeline: list[PipelineStep] | None = Field(
+        default=None,
+        description="Flat ordered list of steps. Overwritten if 'graph' is provided.",
+    )
 
     @model_validator(mode="after")
     def validate_payload_presence(self):
-        # 1. If 'pipeline' key was completely missing and no 'graph' was given, raise ValueError (HTTP 422)
         if self.pipeline is None and self.graph is None:
             raise ValueError("Field 'pipeline' or 'graph' is required.")
-        # 2. If 'pipeline' key was explicitly provided as missing/None, initialize to [] for execution
         if self.pipeline is None:
             self.pipeline = []
         return self
