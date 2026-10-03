@@ -16,6 +16,33 @@ export interface BlockPreview {
  */
 const PREVIEW_SCALE = 0.75;
 
+const INLINE_STYLE_PROPS = [
+  "fill",
+  "fill-opacity",
+  "stroke",
+  "stroke-width",
+  "stroke-opacity",
+  "font-family",
+  "font-size",
+  "font-weight",
+  "opacity",
+  "dominant-baseline",
+  "text-anchor",
+  "display",
+  "visibility",
+];
+
+function inlineComputedStyles(source: Element, target: Element): void {
+  const computed = window.getComputedStyle(source);
+  const style = INLINE_STYLE_PROPS.map((prop) => `${prop}:${computed.getPropertyValue(prop)}`).join(
+    ";",
+  );
+  target.setAttribute("style", style);
+  for (let i = 0; i < source.children.length; i++) {
+    inlineComputedStyles(source.children[i], target.children[i]);
+  }
+}
+
 function generatePreviews(): Map<string, BlockPreview> {
   const container = document.createElement("div");
   container.style.position = "absolute";
@@ -49,6 +76,7 @@ function generatePreviews(): Map<string, BlockPreview> {
         const naturalWidth = Math.ceil(bbox.width + padding * 2);
         const naturalHeight = Math.ceil(bbox.height + padding * 2);
         const clone = svgRoot.cloneNode(true) as SVGElement;
+        inlineComputedStyles(svgRoot, clone);
 
         const width = Math.ceil(naturalWidth * PREVIEW_SCALE);
         const height = Math.ceil(naturalHeight * PREVIEW_SCALE);
