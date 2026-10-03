@@ -10,8 +10,7 @@ TINY_PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAE
 
 class PipelineStep(BaseModel):
     type: str = Field(
-        description="Registered operator key in the form '<category>_<operatorname>', "
-        "e.g. 'blurring_applyblur'.",
+        description="Registered operator key in the form '<category>_<operatorname>', e.g. 'blurring_applyblur'.",
     )
     block_id: str | None = Field(
         default=None,
