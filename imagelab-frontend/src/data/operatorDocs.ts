@@ -435,6 +435,18 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       "Comparing classical edge detectors side-by-side in an educational pipeline.",
     ],
   },
+  sobelderivatives_robertsoperator: {
+    name: "Roberts Cross",
+    description:
+      "Applies the Roberts Cross operator to detect edges using two 2x2 diagonal gradient kernels. It is the smallest and cheapest of the classical edge detectors, but it is also the most directionally biased and the most noise-sensitive, because it only ever compares the two diagonals of a 2x2 window.",
+    parameters: [],
+    formula: "G = √(Gx² + Gy²), Gx = [[1,0],[0,-1]], Gy = [[0,1],[-1,0]]",
+    useCases: [
+      "Low-cost edge detection where compute budget matters more than edge completeness.",
+      "Finding staircases, roof lines and other diagonal structures — though note these are this operator's weakest case, not its strongest.",
+      "Teaching the trade-off between kernel size, noise sensitivity, and directional selectivity across Sobel, Prewitt, and Roberts Cross.",
+    ],
+  },
 
   // --- Transformation ---
   transformation_distance: {

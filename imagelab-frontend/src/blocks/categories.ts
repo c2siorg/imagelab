@@ -146,6 +146,7 @@ export const categories: CategoryInfo[] = [
       { type: "sobelderivatives_soblederivate", label: "Sobel Derivative" },
       { type: "sobelderivatives_scharrderivate", label: "Scharr Derivative" },
       { type: "sobelderivatives_prewittoperator", label: "Prewitt Operator" },
+      { type: "sobelderivatives_robertsoperator", label: "Roberts Cross" },
     ],
   },
   {
