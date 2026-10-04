@@ -23,7 +23,7 @@ export const geometricBlocks = [
     type: "geometric_rotateimage",
     message0: "Rotate image with angle of %1 and rescale by %2",
     args0: [
-      { type: "field_angle", name: "angle", angle: 90 },
+      { type: "field_angle", name: "angle", value: 90 },
       { type: "field_number", name: "scale", value: 1, min: 0 },
     ],
     previousStatement: null,
