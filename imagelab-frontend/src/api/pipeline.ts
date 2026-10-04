@@ -1,4 +1,10 @@
-import type { PipelineRequest, PipelineResponse, StepInspectResponse } from "../types/pipeline";
+import type {
+  ExportPythonRequest,
+  ExportPythonResponse,
+  PipelineRequest,
+  PipelineResponse,
+  StepInspectResponse,
+} from "../types/pipeline";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4100";
 
@@ -58,6 +64,21 @@ export async function inspectPipelineStep(
   );
   if (!response.ok) {
     throw new Error(`Step inspection failed with status ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function exportPipelineAsPython(
+  request: ExportPythonRequest,
+): Promise<ExportPythonResponse> {
+  const response = await fetch(`${API_URL}/api/v1/pipeline/export-python`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Exporting pipeline as Python failed (${response.status}): ${errorText}`);
   }
   return response.json();
 }

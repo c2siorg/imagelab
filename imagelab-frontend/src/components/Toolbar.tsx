@@ -12,6 +12,7 @@ import {
   Save,
   FolderOpen,
   FileDown,
+  FileCode,
   FileUp,
   History,
   Layers,
@@ -20,7 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { usePipelineStore } from "../store/pipelineStore";
-import { executePipeline, PipelineApiError } from "../api/pipeline";
+import { executePipeline, exportPipelineAsPython, PipelineApiError } from "../api/pipeline";
 import { extractExecutableGraph } from "../hooks/usePipeline";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { useStepInspection } from "../hooks/useStepInspection";
@@ -107,6 +108,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
   const [importError, setImportError] = useState<string | null>(null);
   // A parsed file waiting for the user to confirm replacing a non-empty workspace
   const [pendingImport, setPendingImport] = useState<PipelineFile | null>(null);
+  const [isExportingPython, setIsExportingPython] = useState(false);
 
   // ── Fallback single-click selection (used outside range-selection mode) ────
   const [selectedBlocks, setSelectedBlocks] = useState<Blockly.Block[]>([]);
@@ -239,6 +241,35 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     link.href = `data:application/json;charset=utf-8,${encodeURIComponent(serializePipelineFile(file))}`;
     link.download = pipelineFileName(file.name);
     link.click();
+  };
+
+  const handleExportPython = async () => {
+    if (!workspace) return;
+    try {
+      setIsExportingPython(true);
+      const graph = extractExecutableGraph(workspace);
+      const pipelineName = currentPipelineName || "pipeline";
+      const result = await exportPipelineAsPython({
+        graph,
+        pipeline_name: pipelineName,
+      });
+
+      if (result.unsupported_operators && result.unsupported_operators.length > 0) {
+        alert(
+          `Note: The following operators cannot be directly translated and were commented in the script: ${result.unsupported_operators.join(", ")}`,
+        );
+      }
+
+      const link = document.createElement("a");
+      link.href = `data:text/x-python;charset=utf-8,${encodeURIComponent(result.code)}`;
+      link.download = result.filename || "pipeline.py";
+      link.click();
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      setError(`Failed to export Python script: ${reason}`);
+    } finally {
+      setIsExportingPython(false);
+    }
   };
 
   const applyImport = (file: PipelineFile) => {
@@ -503,6 +534,19 @@ export default function Toolbar({ workspace }: ToolbarProps) {
           title="Export Pipeline (.json)"
         >
           <FileDown size={18} />
+        </button>
+        <button
+          onClick={handleExportPython}
+          disabled={!workspace || isReadOnly || isExportingPython}
+          className={iconBtn}
+          title="Export as Python Script (.py)"
+          aria-label="Export as Python Script (.py)"
+        >
+          {isExportingPython ? (
+            <Loader2 size={18} className="animate-spin" />
+          ) : (
+            <FileCode size={18} />
+          )}
         </button>
         <button
           onClick={() => importInputRef.current?.click()}

@@ -1,4 +1,7 @@
-from pydantic import BaseModel, Field, model_validator
+import re
+from typing import Any
+
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.models.graph import PipelineGraph
 
@@ -95,3 +98,50 @@ class StepInspectResponse(BaseModel):
     timing_ms: float | None = None
     analysis: ImageAnalysis
     histogram: ImageHistogram
+
+
+class ExportPythonRequest(BaseModel):
+    graph: PipelineGraph | None = None
+    pipeline: list[PipelineStep] | None = None
+    pipeline_name: str = "ImageLab Pipeline"
+    input_filename: str = "input.jpg"
+    output_filename: str = "output.jpg"
+
+    @field_validator("input_filename", mode="before")
+    @classmethod
+    def sanitize_input_filename(cls, v: Any) -> str:
+        if not isinstance(v, str):
+            return "input.jpg"
+        cleaned = re.sub(r"[\r\n\x00-\x1f\x7f-\x9f]", "", v).strip()
+        return cleaned or "input.jpg"
+
+    @field_validator("output_filename", mode="before")
+    @classmethod
+    def sanitize_output_filename(cls, v: Any) -> str:
+        if not isinstance(v, str):
+            return "output.jpg"
+        cleaned = re.sub(r"[\r\n\x00-\x1f\x7f-\x9f]", "", v).strip()
+        return cleaned or "output.jpg"
+
+    @field_validator("pipeline_name", mode="before")
+    @classmethod
+    def sanitize_pipeline_name(cls, v: Any) -> str:
+        if not isinstance(v, str):
+            return "ImageLab Pipeline"
+        cleaned = re.sub(r"[\r\n\x00-\x1f\x7f-\x9f]", " ", v).strip()
+        return cleaned or "ImageLab Pipeline"
+
+    @model_validator(mode="after")
+    def validate_payload_presence(self):
+        if self.pipeline is None and self.graph is None:
+            raise ValueError("Field 'pipeline' or 'graph' is required.")
+        if self.pipeline is None:
+            self.pipeline = []
+        return self
+
+
+class ExportPythonResponse(BaseModel):
+    success: bool
+    code: str
+    filename: str
+    unsupported_operators: list[str] = Field(default_factory=list)
