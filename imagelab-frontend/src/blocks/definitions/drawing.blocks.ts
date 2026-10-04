@@ -49,7 +49,7 @@ export const drawingBlocks = [
       { type: "input_dummy" },
       { type: "field_number", name: "height", value: 50, min: 0 },
       { type: "field_number", name: "width", value: 80, min: 0 },
-      { type: "field_angle", name: "angle", angle: 90 },
+      { type: "field_angle", name: "angle", value: 90 },
       { type: "input_dummy" },
       { type: "field_colour", name: "rgbcolors_input", colour: "#2828cc" },
       { type: "field_number", name: "center_point_x", value: 0 },
