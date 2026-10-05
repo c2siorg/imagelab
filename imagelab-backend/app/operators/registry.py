@@ -39,6 +39,7 @@ from app.operators.filtering.contour_detection import ContourDetection
 from app.operators.filtering.dilation import Dilation
 from app.operators.filtering.erosion import Erosion
 from app.operators.filtering.gabor_filter import GaborFilter
+from app.operators.filtering.hough_lines import HoughLines
 from app.operators.filtering.laplacian import Laplacian
 from app.operators.filtering.laplacian import Laplacian as FilteringLaplacian
 from app.operators.filtering.morphological import Morphological
@@ -106,6 +107,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "filtering_boxfilter": BoxFilter,
     "filtering_bilateral": BilateralFilter,
     "filtering_cannyedge": CannyEdge,
+    "filtering_houghlines": HoughLines,
     "filtering_sharpen": Sharpen,
     "filtering_pyramidup": PyramidUp,
     "filtering_pyramiddown": PyramidDown,

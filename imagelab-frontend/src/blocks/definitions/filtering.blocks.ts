@@ -189,4 +189,25 @@ export const filteringBlocks = [
     tooltip:
       "Detects edges in the image using the Canny algorithm. threshold1 and threshold2 are the lower and upper bounds for the hysteresis procedure. apertureSize is the Sobel kernel size.",
   },
+  {
+    type: "filtering_houghlines",
+    message0:
+      "Hough Line Detection | rho %1 theta (deg) %2 threshold %3 %4 min line length %5 max line gap %6 %7 color %8 thickness %9",
+    args0: [
+      { type: "field_number", name: "rho", value: 1, min: 0.1, max: 10, precision: 0.1 },
+      { type: "field_number", name: "thetaDegrees", value: 1, min: 0.1, max: 180, precision: 0.1 },
+      { type: "field_number", name: "threshold", value: 50, min: 1, max: 1000 },
+      { type: "input_dummy" },
+      { type: "field_number", name: "minLineLength", value: 50, min: 0, max: 10000 },
+      { type: "field_number", name: "maxLineGap", value: 10, min: 0, max: 10000 },
+      { type: "input_dummy" },
+      { type: "field_colour", name: "color", colour: "#00ff00" },
+      { type: "field_number", name: "thickness", value: 2, min: 1, max: 50 },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "filtering_style",
+    tooltip:
+      "Detects straight line segments with the probabilistic Hough transform (cv2.HoughLinesP) and draws them on the image. The image is converted to grayscale and run through Canny (fixed thresholds 50/150) before the transform. rho and theta are the distance (px) and angle (degrees) resolution of the accumulator, threshold is the minimum number of votes for a line, min line length discards shorter segments and max line gap joins collinear segments separated by at most that many pixels.",
+  },
 ];
