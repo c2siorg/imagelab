@@ -104,6 +104,7 @@ export const categories: CategoryInfo[] = [
       { type: "filtering_gaborfilter", label: "Gabor Filter" },
       { type: "filtering_contourdetection", label: "Contour Detection" },
       { type: "filtering_cannyedge", label: "Canny Edge Detection" },
+      { type: "filtering_houghlines", label: "Hough Line Detection" },
     ],
   },
   {

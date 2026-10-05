@@ -312,6 +312,51 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     ],
     useCases: ["Removing inner object noise, finding outlines."],
   },
+  filtering_houghlines: {
+    name: "Hough Line Detection",
+    description:
+      "Detects straight line segments with the probabilistic Hough transform (cv2.HoughLinesP). The image is converted to grayscale and run through Canny edge detection (fixed thresholds 50/150) on a copy; the detected segments are then drawn onto the original colour image. If no segments are found the image is returned unchanged. Grayscale inputs are promoted to BGR so the lines render in colour.",
+    parameters: [
+      {
+        name: "Rho",
+        description:
+          "Distance resolution of the accumulator in pixels. Range: 0.1 to 10. Default: 1.",
+      },
+      {
+        name: "Theta (deg)",
+        description:
+          "Angle resolution of the accumulator in degrees, converted to radians internally. Range: 0.1 to 180. Default: 1.",
+      },
+      {
+        name: "Threshold",
+        description:
+          "Minimum number of accumulator votes a line needs to be returned. Range: 1 to 1000. Default: 50.",
+      },
+      {
+        name: "Min Line Length",
+        description:
+          "Segments shorter than this many pixels are discarded. Range: 0 to 10000. Default: 50.",
+      },
+      {
+        name: "Max Line Gap",
+        description:
+          "Maximum gap in pixels between collinear points to link them into one segment. Range: 0 to 10000. Default: 10.",
+      },
+      {
+        name: "Color",
+        description: "Colour used to draw the detected segments. Default: green (#00ff00).",
+      },
+      {
+        name: "Thickness",
+        description: "Line thickness of the drawn segments in pixels. Range: 1 to 50. Default: 2.",
+      },
+    ],
+    useCases: [
+      "Lane detection in road images.",
+      "Finding page edges for document scanning and deskewing.",
+      "Measuring structural lines in architectural or engineering photos.",
+    ],
+  },
 
   // --- Thresholding ---
   thresholding_adaptivethreshold: {
