@@ -38,7 +38,6 @@ from app.operators.filtering.contour_detection import ContourDetection
 from app.operators.filtering.dilation import Dilation
 from app.operators.filtering.erosion import Erosion
 from app.operators.filtering.gabor_filter import GaborFilter
-from app.operators.filtering.laplacian import Laplacian
 from app.operators.filtering.laplacian import Laplacian as FilteringLaplacian
 from app.operators.filtering.morphological import Morphological
 from app.operators.filtering.pyramid_down import PyramidDown
@@ -61,6 +60,7 @@ from app.operators.thresholding.apply_borders import ApplyBorders
 from app.operators.thresholding.apply_threshold import ApplyThreshold
 from app.operators.thresholding.otsu_threshold import OtsuThreshold
 from app.operators.transformation.distance_transform import DistanceTransform
+from app.operators.transformation.laplacian import Laplacian as TransformationLaplacian
 
 OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     # Basic
@@ -130,7 +130,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "sobelderivatives_prewittoperator": PrewittOperator,
     # Transformation
     "transformation_distance": DistanceTransform,
-    "transformation_laplacian": Laplacian,
+    "transformation_laplacian": TransformationLaplacian,
     # Segmentation
     "segmentation_watershed": Watershed,
     "segmentation_kmeans": KMeansSegmentation,
