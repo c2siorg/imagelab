@@ -154,12 +154,13 @@ export function useBlocklyWorkspace({
       }
 
       if (event.type === Blockly.Events.BLOCK_CREATE) {
-        const createEvent = event as Blockly.Events.BlockCreate;
-        const blockId = createEvent.blockId;
-        if (!blockId) return;
-        const block = ws.getBlockById(blockId);
-        if (!block || !SINGLETON_BLOCK_TYPES.has(block.type)) return;
-        if (ws.getBlocksByType(block.type).length > 1) {
+        const { blockId } = event as Blockly.Events.BlockCreate;
+        const block = blockId ? ws.getBlockById(blockId) : null;
+        if (
+          block &&
+          SINGLETON_BLOCK_TYPES.has(block.type) &&
+          ws.getBlocksByType(block.type).length > 1
+        ) {
           block.dispose(false);
         }
       }
