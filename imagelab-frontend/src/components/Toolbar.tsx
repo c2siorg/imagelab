@@ -387,6 +387,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
   // Shift+? opens the shortcuts modal
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (showSaveModal) return;
       if (e.key === "?" && e.shiftKey && !e.ctrlKey && !e.metaKey) {
         const target = e.target as HTMLElement;
         const isEditable =
@@ -401,7 +402,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [showSaveModal]);
 
   // Register global keyboard shortcuts
   useKeyboardShortcuts({
@@ -410,6 +411,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     onUndo: handleUndo,
     onRedo: handleRedo,
     workspace,
+    disabled: showSaveModal,
   });
 
   const iconBtn =
