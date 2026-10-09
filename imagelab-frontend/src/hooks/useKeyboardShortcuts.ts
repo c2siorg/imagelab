@@ -7,6 +7,7 @@ interface ShortcutHandlers {
   onUndo: () => void;
   onRedo: () => void;
   workspace: Blockly.WorkspaceSvg | null;
+  disabled?: boolean;
 }
 
 function isTypingInBlockly(): boolean {
@@ -26,8 +27,11 @@ export function useKeyboardShortcuts({
   onUndo,
   onRedo,
   workspace,
+  disabled = false,
 }: ShortcutHandlers) {
   useEffect(() => {
+    if (disabled) return;
+
     const handler = (e: KeyboardEvent) => {
       const meta = e.ctrlKey || e.metaKey;
 
@@ -47,14 +51,18 @@ export function useKeyboardShortcuts({
 
       switch (e.key) {
         case "Enter":
+          if (isTypingInBlockly()) return;
           e.preventDefault();
           onRun();
           break;
+
         case "s":
         case "S":
+          if (isTypingInBlockly()) return;
           e.preventDefault();
           onDownload();
           break;
+
         case "z":
         case "Z":
           if (!isTypingInBlockly()) {
@@ -66,6 +74,7 @@ export function useKeyboardShortcuts({
             }
           }
           break;
+
         case "y":
         case "Y":
           if (!isTypingInBlockly()) {
@@ -78,5 +87,5 @@ export function useKeyboardShortcuts({
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onRun, onDownload, onUndo, onRedo, workspace]);
+  }, [onRun, onDownload, onUndo, onRedo, workspace, disabled]);
 }
