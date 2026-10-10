@@ -1,6 +1,7 @@
 import pytest
 
 from app.operators.blurring.validation import (
+    validate_anchor_point,
     validate_median_kernel_size,
     validate_positive_kernel_dim,
     validate_positive_odd_kernel_size,
@@ -123,3 +124,25 @@ class TestValidateMedianKernelSize:
     def test_non_integer_raises_type_error(self, non_int):
         with pytest.raises(TypeError, match="'kernelSize'"):
             validate_median_kernel_size(non_int, "kernelSize")  # type: ignore[arg-type]
+
+
+class TestValidateAnchorPoint:
+    """validate_anchor_point — used by Blur for pointX / pointY."""
+
+    @pytest.mark.parametrize("value", [-1, 0, 1, 2])
+    def test_valid_values_for_kernel_of_three(self, value):
+        validate_anchor_point(value, 3, "pointX")
+
+    @pytest.mark.parametrize("value", [3, 10, -2, -10])
+    def test_out_of_range_values_raise(self, value):
+        with pytest.raises(ValueError, match="'pointX'"):
+            validate_anchor_point(value, 3, "pointX")
+
+    def test_error_message_shows_valid_range_and_value(self):
+        with pytest.raises(ValueError, match=r"between 0 and 2 .* got 10"):
+            validate_anchor_point(10, 3, "pointX")
+
+    @pytest.mark.parametrize("non_int", [1.0, "1", None])
+    def test_non_integer_raises_type_error(self, non_int):
+        with pytest.raises(TypeError, match="'pointY'"):
+            validate_anchor_point(non_int, 3, "pointY")  # type: ignore[arg-type]

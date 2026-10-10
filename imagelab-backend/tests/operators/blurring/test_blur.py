@@ -56,3 +56,16 @@ class TestBlurInvalidInput:
     def test_error_message_is_user_friendly(self, image):
         with pytest.raises(ValueError, match="positive integer"):
             Blur({"widthSize": 0}).compute(image)
+
+    @pytest.mark.parametrize(("param", "value"), [("pointX", 10), ("pointY", 10), ("pointX", -2)])
+    def test_anchor_outside_kernel_raises_value_error(self, image, param, value):
+        params = {"widthSize": 3, "heightSize": 3, param: value}
+        with pytest.raises(ValueError, match=f"'{param}'"):
+            Blur(params).compute(image)
+
+
+class TestBlurAnchor:
+    @pytest.mark.parametrize(("point_x", "point_y"), [(-1, -1), (0, 0), (2, 1)])
+    def test_anchor_inside_kernel_is_accepted(self, image, point_x, point_y):
+        result = Blur({"widthSize": 3, "heightSize": 2, "pointX": point_x, "pointY": point_y}).compute(image)
+        assert result.shape == image.shape
