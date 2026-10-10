@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 from app.operators.base import BaseOperator
-from app.operators.blurring.validation import validate_positive_kernel_dim
+from app.operators.blurring.validation import validate_anchor_point, validate_positive_kernel_dim
 
 
 class Blur(BaseOperator):
@@ -14,6 +14,8 @@ class Blur(BaseOperator):
 
         validate_positive_kernel_dim(width_size, "widthSize")
         validate_positive_kernel_dim(height_size, "heightSize")
+        validate_anchor_point(point_x, width_size, "pointX")
+        validate_anchor_point(point_y, height_size, "pointY")
 
         return cv2.blur(
             image,

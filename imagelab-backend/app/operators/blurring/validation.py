@@ -9,6 +9,7 @@ Validators:
   validate_positive_kernel_dim      - used by Blur (widthSize, heightSize)
   validate_positive_odd_kernel_size - used by GaussianBlur (widthSize, heightSize)
   validate_median_kernel_size       - used by MedianBlur (kernelSize)
+  validate_anchor_point             - used by Blur (pointX, pointY)
 """
 
 
@@ -75,3 +76,21 @@ def validate_median_kernel_size(value: int, name: str) -> None:
     """
     _require_int(value, name)
     _validate_odd_kernel(value, name, min_value=3, examples="3, 5, 7")
+
+
+def validate_anchor_point(value: int, kernel_dim: int, name: str) -> None:
+    """Raise ValueError if value is not a valid anchor position for the kernel.
+
+    OpenCV requires the anchor to be -1 (kernel centre) or inside the kernel,
+    i.e. 0 <= value < kernel_dim. Otherwise cv2.blur fails with a raw
+    assertion error.
+
+    Used by Blur for pointX (against widthSize) and pointY (against heightSize).
+    """
+    _require_int(value, name)
+    if value == -1 or 0 <= value < kernel_dim:
+        return
+    raise ValueError(
+        f"'{name}' must be -1 (centre) or between 0 and {kernel_dim - 1} "
+        f"for a kernel size of {kernel_dim}, got {value}."
+    )
