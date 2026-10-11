@@ -3,6 +3,8 @@ import type { MacroDefinition } from "../types/macro";
 export const WORKSPACE_STORAGE_KEY = "imagelab.pipeline.workspace.v1";
 export const ACTIVE_PIPELINE_STORAGE_KEY = "imagelab.pipeline.active.v1";
 export const MACRO_STORAGE_KEY = "imagelab.macros.v1";
+export const SIDEBAR_COLLAPSED_STORAGE_KEY = "imagelab.sidebar.collapsed.v1";
+export const SIDEBAR_COLLAPSED_KEY = SIDEBAR_COLLAPSED_STORAGE_KEY;
 export const WORKSPACE_STORAGE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 type PersistedPayload<T> = {
@@ -192,4 +194,47 @@ export function clearPersistedMacros(
   key = MACRO_STORAGE_KEY,
 ): void {
   storage.removeItem(key);
+}
+
+// Sidebar collapsed state persistence functions
+
+export function loadSidebarCollapsedState(
+  storage: Storage = localStorage,
+  key = SIDEBAR_COLLAPSED_STORAGE_KEY,
+): boolean {
+  try {
+    const raw = storage.getItem(key);
+    if (raw === null) return false;
+    if (raw === "true" || raw === "1") return true;
+    if (raw === "false" || raw === "0") return false;
+    const parsed = JSON.parse(raw);
+    return Boolean(parsed);
+  } catch {
+    return false;
+  }
+}
+
+export function saveSidebarCollapsedState(
+  collapsed: boolean,
+  storage: Storage = localStorage,
+  key = SIDEBAR_COLLAPSED_STORAGE_KEY,
+): boolean {
+  try {
+    storage.setItem(key, String(collapsed));
+    return true;
+  } catch (err) {
+    console.warn("[ImageLab] Could not persist sidebar collapsed state:", err);
+    return false;
+  }
+}
+
+export function clearSidebarCollapsedState(
+  storage: Storage = localStorage,
+  key = SIDEBAR_COLLAPSED_STORAGE_KEY,
+): void {
+  try {
+    storage.removeItem(key);
+  } catch {
+    // ignore
+  }
 }

@@ -3,15 +3,20 @@ import {
   ACTIVE_PIPELINE_STORAGE_KEY,
   WORKSPACE_STORAGE_KEY,
   MACRO_STORAGE_KEY,
+  SIDEBAR_COLLAPSED_STORAGE_KEY,
+  SIDEBAR_COLLAPSED_KEY,
   clearPersistedActivePipeline,
   clearPersistedWorkspace,
   clearPersistedMacros,
+  clearSidebarCollapsedState,
   loadPersistedActivePipeline,
   loadPersistedWorkspaceState,
   loadPersistedMacros,
+  loadSidebarCollapsedState,
   saveActivePipeline,
   saveWorkspaceState,
   savePersistedMacros,
+  saveSidebarCollapsedState,
 } from "../../src/hooks/workspacePersistence";
 import type { MacroDefinition } from "../../src/types/macro";
 
@@ -213,10 +218,7 @@ describe("active pipeline persistence", () => {
 
   it("clears active pipeline metadata", () => {
     const storage = new LocalStorageMock();
-    saveActivePipeline(
-      { id: "pipeline-123", name: "Gaussian blur", versionNumber: 4 },
-      storage,
-    );
+    saveActivePipeline({ id: "pipeline-123", name: "Gaussian blur", versionNumber: 4 }, storage);
 
     clearPersistedActivePipeline(storage);
     expect(storage.getItem(ACTIVE_PIPELINE_STORAGE_KEY)).toBeNull();
@@ -302,6 +304,81 @@ describe("macro persistence", () => {
     const macros = [createMockMacro("macro-1")];
     expect(() => savePersistedMacros(macros, storage)).not.toThrow();
     expect(savePersistedMacros(macros, storage)).toBe(false);
+
+    warnSpy.mockRestore();
+  });
+});
+
+describe("sidebar collapsed state persistence", () => {
+  let storage: LocalStorageMock;
+
+  beforeEach(() => {
+    storage = new LocalStorageMock();
+  });
+
+  it("exports matching storage keys", () => {
+    expect(SIDEBAR_COLLAPSED_STORAGE_KEY).toBe("imagelab.sidebar.collapsed.v1");
+    expect(SIDEBAR_COLLAPSED_KEY).toBe(SIDEBAR_COLLAPSED_STORAGE_KEY);
+  });
+
+  it("defaults to false when no state is persisted", () => {
+    expect(loadSidebarCollapsedState(storage)).toBe(false);
+  });
+
+  it("loads true when 'true' or '1' is stored", () => {
+    storage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, "true");
+    expect(loadSidebarCollapsedState(storage)).toBe(true);
+
+    storage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, "1");
+    expect(loadSidebarCollapsedState(storage)).toBe(true);
+  });
+
+  it("loads false when 'false' or '0' is stored", () => {
+    storage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, "false");
+    expect(loadSidebarCollapsedState(storage)).toBe(false);
+
+    storage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, "0");
+    expect(loadSidebarCollapsedState(storage)).toBe(false);
+  });
+
+  it("handles valid JSON boolean", () => {
+    storage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, JSON.stringify(true));
+    expect(loadSidebarCollapsedState(storage)).toBe(true);
+
+    storage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, JSON.stringify(false));
+    expect(loadSidebarCollapsedState(storage)).toBe(false);
+  });
+
+  it("returns false for invalid values or exceptions", () => {
+    storage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, "invalid-json{");
+    expect(loadSidebarCollapsedState(storage)).toBe(false);
+  });
+
+  it("saves and loads collapsed state correctly", () => {
+    expect(saveSidebarCollapsedState(true, storage)).toBe(true);
+    expect(storage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY)).toBe("true");
+    expect(loadSidebarCollapsedState(storage)).toBe(true);
+
+    expect(saveSidebarCollapsedState(false, storage)).toBe(true);
+    expect(storage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY)).toBe("false");
+    expect(loadSidebarCollapsedState(storage)).toBe(false);
+  });
+
+  it("clears persisted sidebar collapsed state", () => {
+    saveSidebarCollapsedState(true, storage);
+    expect(storage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY)).toBe("true");
+
+    clearSidebarCollapsedState(storage);
+    expect(storage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY)).toBeNull();
+    expect(loadSidebarCollapsedState(storage)).toBe(false);
+  });
+
+  it("does not throw when storage throws QuotaExceededError", () => {
+    storage.throwOnSet = true;
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    expect(() => saveSidebarCollapsedState(true, storage)).not.toThrow();
+    expect(saveSidebarCollapsedState(true, storage)).toBe(false);
 
     warnSpy.mockRestore();
   });
