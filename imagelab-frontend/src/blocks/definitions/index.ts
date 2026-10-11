@@ -2,7 +2,7 @@ import * as Blockly from "blockly";
 import { registerReadImageExtension } from "../extensions/readImageExtension";
 import { basicBlocks } from "./basic.blocks";
 import { geometricBlocks } from "./geometric.blocks";
-import { conversionsBlocks } from "./conversions.blocks";
+import { conversionsBlocks, legacyConversionBlocks } from "./conversions.blocks";
 import { drawingBlocks } from "./drawing.blocks";
 import { blurringBlocks } from "./blurring.blocks";
 import { filteringBlocks } from "./filtering.blocks";
@@ -119,6 +119,7 @@ export function registerAllBlocks() {
     ...basicBlocks,
     ...geometricBlocks,
     ...conversionsBlocks,
+    ...legacyConversionBlocks,
     ...drawingBlocks,
     ...blurringBlocks,
     ...filteringBlocks,

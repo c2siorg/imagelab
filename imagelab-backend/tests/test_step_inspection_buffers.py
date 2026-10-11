@@ -21,7 +21,7 @@ def test_low_res_preview_generation():
         image=large_b64,
         image_format="png",
         pipeline=[
-            PipelineStep(block_id="step_gray", type="imageconvertions_grayimage"),
+            PipelineStep(block_id="step_gray", type="imageconversions_grayimage"),
             PipelineStep(block_id="step_blur", type="blurring_applyblur", params={"kernelSize": 5}),
         ],
     )
@@ -50,7 +50,7 @@ def test_high_res_inspection_on_demand(client: TestClient):
         "pipeline": [
             {
                 "block_id": "step_gray_node",
-                "type": "imageconvertions_grayimage",
+                "type": "imageconversions_grayimage",
                 "params": {},
             }
         ],
@@ -72,7 +72,7 @@ def test_high_res_inspection_on_demand(client: TestClient):
     inspect_data = inspect_res.json()
     assert inspect_data["success"] is True
     assert inspect_data["block_id"] == "step_gray_node"
-    assert inspect_data["type"] == "imageconvertions_grayimage"
+    assert inspect_data["type"] == "imageconversions_grayimage"
     assert inspect_data["image"] is not None
 
     # Decode high-res image and verify original dimensions are preserved (300x400)
@@ -90,7 +90,7 @@ def test_intermediate_buffer_eviction(sample_image_b64: str):
     req = PipelineRequest(
         image=sample_image_b64,
         image_format="png",
-        pipeline=[PipelineStep(block_id="evict_step", type="imageconvertions_grayimage")],
+        pipeline=[PipelineStep(block_id="evict_step", type="imageconversions_grayimage")],
     )
 
     execution_ids = []

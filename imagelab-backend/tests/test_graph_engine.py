@@ -69,7 +69,7 @@ def test_two_level_nested_macro_expansion(session):
     macro_b_graph = {
         "nodes": [
             {"id": "in_b", "type": "macro_input"},
-            {"id": "gray", "type": "imageconvertions_grayimage"},
+            {"id": "gray", "type": "imageconversions_grayimage"},
             {"id": "out_b", "type": "macro_output"},
         ],
         "edges": [{"from": "in_b", "to": "gray"}, {"from": "gray", "to": "out_b"}],
@@ -122,7 +122,7 @@ def test_two_level_nested_macro_expansion(session):
 
     # Verify that the operators are preserved
     assert steps[0].type == "basic_readimage"
-    assert steps[1].type == "imageconvertions_grayimage"
+    assert steps[1].type == "imageconversions_grayimage"
     assert steps[2].type == "filtering_cannyedge"
 
 
@@ -183,8 +183,8 @@ def test_cyclic_macro_nesting_fails(session):
 
 def test_type_integrity_channel_mismatch(session):
     # Setup a graph where a grayscale image feeds directly into an input that strictly requires 3/4 channels.
-    # imageconvertions_colortobinary expects 3 or 4 channels.
-    # We feed it the output of imageconvertions_grayimage (1 channel).
+    # imageconversions_colortobinary expects 3 or 4 channels.
+    # We feed it the output of imageconversions_grayimage (1 channel).
 
     pipeline = Pipeline(name="Type Mismatch Pipeline")
     session.add(pipeline)
@@ -194,8 +194,8 @@ def test_type_integrity_channel_mismatch(session):
     invalid_graph = {
         "nodes": [
             {"id": "read", "type": "basic_readimage"},
-            {"id": "gray", "type": "imageconvertions_grayimage"},
-            {"id": "color_to_bin", "type": "imageconvertions_colortobinary"},
+            {"id": "gray", "type": "imageconversions_grayimage"},
+            {"id": "color_to_bin", "type": "imageconversions_colortobinary"},
         ],
         "edges": [{"from": "read", "to": "gray"}, {"from": "gray", "to": "color_to_bin"}],
     }
@@ -224,7 +224,7 @@ def test_type_integrity_multi_port_compatible_and_incompatible(session):
     valid_graph = {
         "nodes": [
             {"id": "read", "type": "basic_readimage"},
-            {"id": "gray", "type": "imageconvertions_grayimage"},
+            {"id": "gray", "type": "imageconversions_grayimage"},
             {"id": "merge", "type": "merge_images"},
         ],
         "edges": [
@@ -250,7 +250,7 @@ def test_type_integrity_multi_port_compatible_and_incompatible(session):
     invalid_graph = {
         "nodes": [
             {"id": "read", "type": "basic_readimage"},
-            {"id": "gray", "type": "imageconvertions_grayimage"},
+            {"id": "gray", "type": "imageconversions_grayimage"},
             {"id": "merge", "type": "merge_images"},
         ],
         "edges": [

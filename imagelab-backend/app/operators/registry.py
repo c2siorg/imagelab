@@ -74,21 +74,21 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "geometric_affineimage": AffineImage,
     "geometric_cropimage": CropImage,
     # Conversions
-    "imageconvertions_clahe": ClaheImage,
-    "imageconvertions_grayimage": GrayImage,
-    "imageconvertions_channelsplit": ChannelSplit,
-    "imageconvertions_graytobinary": GrayToBinary,
-    "imageconvertions_colormaps": ColorMaps,
-    "imageconvertions_colortobinary": ColorToBinary,
-    "imageconvertions_histogramequalization": HistogramEqualization,
-    "imageconvertions_bgrtohsv": BgrToHsv,
-    "imageconvertions_hsvtobgr": HsvToBgr,
-    "imageconvertions_bgrtolab": BgrToLab,
-    "imageconvertions_labtobgr": LabToBgr,
-    "imageconvertions_bgrtoycrcb": BgrToYcrcb,
-    "imageconvertions_ycrcbtobgr": YcrcbToBgr,
-    "imageconvertions_invertimage": InvertImage,
-    "imageconvertions_brightnessandcontrast": BrightnessAndContrast,
+    "imageconversions_clahe": ClaheImage,
+    "imageconversions_grayimage": GrayImage,
+    "imageconversions_channelsplit": ChannelSplit,
+    "imageconversions_graytobinary": GrayToBinary,
+    "imageconversions_colormaps": ColorMaps,
+    "imageconversions_colortobinary": ColorToBinary,
+    "imageconversions_histogramequalization": HistogramEqualization,
+    "imageconversions_bgrtohsv": BgrToHsv,
+    "imageconversions_hsvtobgr": HsvToBgr,
+    "imageconversions_bgrtolab": BgrToLab,
+    "imageconversions_labtobgr": LabToBgr,
+    "imageconversions_bgrtoycrcb": BgrToYcrcb,
+    "imageconversions_ycrcbtobgr": YcrcbToBgr,
+    "imageconversions_invertimage": InvertImage,
+    "imageconversions_brightnessandcontrast": BrightnessAndContrast,
     # Drawing
     "drawingoperations_drawline": DrawLine,
     "drawingoperations_drawcircle": DrawCircle,
@@ -139,6 +139,33 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "arithmetic_addweighted": ArithmeticAddWeighted,
 }
 
+# Deliberate legacy alias table for backward compatibility with saved pipelines
+LEGACY_OPERATOR_ALIASES: dict[str, str] = {
+    f"imageconvertions_{name}": f"imageconversions_{name}"
+    for name in [
+        "clahe",
+        "grayimage",
+        "channelsplit",
+        "graytobinary",
+        "colormaps",
+        "colortobinary",
+        "histogramequalization",
+        "bgrtohsv",
+        "hsvtobgr",
+        "bgrtolab",
+        "labtobgr",
+        "bgrtoycrcb",
+        "ycrcbtobgr",
+        "invertimage",
+        "brightnessandcontrast",
+    ]
+}
+
+
+def resolve_operator_name(block_type: str) -> str:
+    """Resolve legacy operator key typos to their canonical names."""
+    return LEGACY_OPERATOR_ALIASES.get(block_type, block_type)
+
 
 def get_operator(block_type: str) -> type[BaseOperator] | None:
-    return OPERATOR_REGISTRY.get(block_type)
+    return OPERATOR_REGISTRY.get(resolve_operator_name(block_type))

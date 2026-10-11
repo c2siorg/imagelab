@@ -1,4 +1,5 @@
 import type { PipelineGraph, GraphNode } from "../types/macro";
+import { resolveOperatorName } from "../blocks/definitions/conversions.blocks";
 
 export interface ValidationWarning {
   nodeId: string;
@@ -15,16 +16,16 @@ export interface ValidationResult {
 
 // Port specifications matching backend OPERATOR_PORT_SPECS
 const OPERATOR_PORT_SPECS: Record<string, Record<string, number[]>> = {
-  imageconvertions_grayimage: { image: [3, 4], input: [3, 4] },
-  imageconvertions_colortobinary: { image: [3, 4], input: [3, 4] },
-  imageconvertions_graytobinary: { image: [1], input: [1] },
-  imageconvertions_channelsplit: { image: [3, 4], input: [3, 4] },
-  imageconvertions_hsvtobgr: { image: [3], input: [3] },
-  imageconvertions_bgrtohsv: { image: [3, 4], input: [3, 4] },
-  imageconvertions_bgrtolab: { image: [3, 4], input: [3, 4] },
-  imageconvertions_labtobgr: { image: [3], input: [3] },
-  imageconvertions_bgrtoycrcb: { image: [3, 4], input: [3, 4] },
-  imageconvertions_ycrcbtobgr: { image: [3], input: [3] },
+  imageconversions_grayimage: { image: [3, 4], input: [3, 4] },
+  imageconversions_colortobinary: { image: [3, 4], input: [3, 4] },
+  imageconversions_graytobinary: { image: [1], input: [1] },
+  imageconversions_channelsplit: { image: [3, 4], input: [3, 4] },
+  imageconversions_hsvtobgr: { image: [3], input: [3] },
+  imageconversions_bgrtohsv: { image: [3, 4], input: [3, 4] },
+  imageconversions_bgrtolab: { image: [3, 4], input: [3, 4] },
+  imageconversions_labtobgr: { image: [3], input: [3] },
+  imageconversions_bgrtoycrcb: { image: [3, 4], input: [3, 4] },
+  imageconversions_ycrcbtobgr: { image: [3], input: [3] },
   thresholding_adaptivethreshold: { image: [1], input: [1] },
   thresholding_otsuthreshold: { image: [1], input: [1] },
   merge_images: { image: [3, 4], mask: [1] },
@@ -33,10 +34,10 @@ const OPERATOR_PORT_SPECS: Record<string, Record<string, number[]>> = {
 
 // Output channel specifications matching backend OPERATOR_OUTPUT_CHANNELS
 const OPERATOR_OUTPUT_CHANNELS: Record<string, number> = {
-  imageconvertions_grayimage: 1,
-  imageconvertions_colortobinary: 1,
-  imageconvertions_graytobinary: 1,
-  imageconvertions_channelsplit: 1,
+  imageconversions_grayimage: 1,
+  imageconversions_colortobinary: 1,
+  imageconversions_graytobinary: 1,
+  imageconversions_channelsplit: 1,
   thresholding_applythreshold: 1,
   thresholding_adaptivethreshold: 1,
   thresholding_otsuthreshold: 1,
@@ -52,7 +53,7 @@ const CONTROL_BRANCHES: Record<string, string[]> = {
 };
 
 function getNodeType(node: GraphNode): string {
-  return node.type || node.op || "";
+  return resolveOperatorName(node.type || node.op || "");
 }
 
 function topologicalSort(graph: PipelineGraph): string[] {
@@ -107,8 +108,9 @@ function topologicalSort(graph: PipelineGraph): string[] {
 
 function getHumanReadableOperatorName(nodeType: string): string {
   // Remove common prefixes
-  let cleanType = nodeType.replace(
-    /^(imageconvertions_|thresholding_|filtering_|morphological_|geometric_|segmentation_|transformation_|annotation_|drawing_)/,
+  const resolvedType = resolveOperatorName(nodeType);
+  let cleanType = resolvedType.replace(
+    /^(imageconversions_|thresholding_|filtering_|morphological_|geometric_|segmentation_|transformation_|annotation_|drawing_)/,
     "",
   );
 

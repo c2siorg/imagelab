@@ -138,7 +138,7 @@ def test_macro_dependency_safety_check_blocks_deletion(client: TestClient, sessi
     macro_graph = {
         "nodes": [
             {"id": "in_1", "type": "macro_input"},
-            {"id": "gray_1", "type": "imageconvertions_grayimage"},
+            {"id": "gray_1", "type": "imageconversions_grayimage"},
             {"id": "out_1", "type": "macro_output"},
         ],
         "edges": [{"from": "in_1", "to": "gray_1"}, {"from": "gray_1", "to": "out_1"}],
@@ -181,7 +181,7 @@ def test_macro_expansion_and_step_inspection(client: TestClient, session: Sessio
     macro_graph = {
         "nodes": [
             {"id": "in_1", "type": "macro_input"},
-            {"id": "gray_step", "type": "imageconvertions_grayimage"},
+            {"id": "gray_step", "type": "imageconversions_grayimage"},
             {"id": "out_1", "type": "macro_output"},
         ],
         "edges": [{"from": "in_1", "to": "gray_step"}, {"from": "gray_step", "to": "out_1"}],
@@ -231,7 +231,7 @@ def test_macro_expansion_and_step_inspection(client: TestClient, session: Sessio
     assert inspect_res.status_code == 200
     inspect_data = inspect_res.json()
     assert inspect_data["success"]
-    assert inspect_data["type"] == "imageconvertions_grayimage"
+    assert inspect_data["type"] == "imageconversions_grayimage"
 
 
 def test_control_flow_macro_pipeline_execution(client: TestClient, sample_image_b64: str):
@@ -244,7 +244,7 @@ def test_control_flow_macro_pipeline_execution(client: TestClient, sample_image_
                 "block_id": "blend_node",
                 "params": {
                     "alpha": 0.5,
-                    "op1_branch": [{"type": "imageconvertions_grayimage"}],
+                    "op1_branch": [{"type": "imageconversions_grayimage"}],
                     "op2_branch": [{"type": "blurring_applyblur", "params": {"widthSize": 5, "heightSize": 5}}],
                 },
             },
@@ -255,7 +255,7 @@ def test_control_flow_macro_pipeline_execution(client: TestClient, sample_image_
                     "metric": "mean_brightness",
                     "comparator": ">",
                     "threshold": 10.0,
-                    "if_branch": [{"type": "imageconvertions_grayimage"}],
+                    "if_branch": [{"type": "imageconversions_grayimage"}],
                     "else_branch": [],
                 },
             },

@@ -122,6 +122,37 @@ describe("loadPersistedWorkspaceState", () => {
 
     expect(result).toEqual(state);
   });
+
+  it("migrates legacy imageconvertions_* operator keys to imageconversions_*", () => {
+    const legacyState = {
+      blocks: {
+        blocks: [
+          { id: "1", type: "imageconvertions_grayimage" },
+          { id: "2", type: "imageconvertions_invertimage" },
+          { id: "3", type: "basic_readimage" },
+        ],
+      },
+    };
+    storage.setItem(
+      WORKSPACE_STORAGE_KEY,
+      JSON.stringify({
+        expiresAt: Date.now() + 60_000,
+        data: legacyState,
+      }),
+    );
+
+    const result = loadPersistedWorkspaceState<typeof legacyState>(storage);
+
+    expect(result).toEqual({
+      blocks: {
+        blocks: [
+          { id: "1", type: "imageconversions_grayimage" },
+          { id: "2", type: "imageconversions_invertimage" },
+          { id: "3", type: "basic_readimage" },
+        ],
+      },
+    });
+  });
 });
 
 describe("saveWorkspaceState", () => {
@@ -213,10 +244,7 @@ describe("active pipeline persistence", () => {
 
   it("clears active pipeline metadata", () => {
     const storage = new LocalStorageMock();
-    saveActivePipeline(
-      { id: "pipeline-123", name: "Gaussian blur", versionNumber: 4 },
-      storage,
-    );
+    saveActivePipeline({ id: "pipeline-123", name: "Gaussian blur", versionNumber: 4 }, storage);
 
     clearPersistedActivePipeline(storage);
     expect(storage.getItem(ACTIVE_PIPELINE_STORAGE_KEY)).toBeNull();

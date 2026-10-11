@@ -13,7 +13,7 @@ def test_nested_macro_expansion(client: TestClient, session: Session, sample_ima
     c_graph = {
         "nodes": [
             {"id": "c_in", "type": "macro_input"},
-            {"id": "c_gray", "type": "imageconvertions_grayimage"},
+            {"id": "c_gray", "type": "imageconversions_grayimage"},
             {"id": "c_out", "type": "macro_output"},
         ],
         "edges": [
@@ -96,7 +96,7 @@ def test_macro_max_depth_exceeded_error(client: TestClient, session: Session):
             graph = {
                 "nodes": [
                     {"id": f"in_{i}", "type": "macro_input"},
-                    {"id": f"step_{i}", "type": "imageconvertions_grayimage"},
+                    {"id": f"step_{i}", "type": "imageconversions_grayimage"},
                     {"id": f"out_{i}", "type": "macro_output"},
                 ],
                 "edges": [{"from": f"in_{i}", "to": f"step_{i}"}, {"from": f"step_{i}", "to": f"out_{i}"}],

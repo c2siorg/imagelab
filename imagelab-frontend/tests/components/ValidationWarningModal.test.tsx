@@ -18,7 +18,7 @@ describe("ValidationWarningModal Component", () => {
   const sampleWarnings: ValidationWarning[] = [
     {
       nodeId: "node-1",
-      nodeType: "imageconvertions_grayimage",
+      nodeType: "imageconversions_grayimage",
       message: "Channel count mismatch: operator expects 3 or 4 channels but received 1 channel.",
       port: "image",
     },

@@ -141,7 +141,7 @@ describe("Blockly Serialization", () => {
             y: 150,
           },
           {
-            type: "imageconvertions_grayimage",
+            type: "imageconversions_grayimage",
             id: "block2",
             x: 100,
             y: 250,
@@ -153,7 +153,7 @@ describe("Blockly Serialization", () => {
     // Verify the structure supports multiple blocks
     expect(workspaceJson.blocks.blocks).toHaveLength(2);
     expect(workspaceJson.blocks.blocks[0].type).toBe("filtering_gaussianblur");
-    expect(workspaceJson.blocks.blocks[1].type).toBe("imageconvertions_grayimage");
+    expect(workspaceJson.blocks.blocks[1].type).toBe("imageconversions_grayimage");
 
     // Verify coordinates are preserved
     expect(workspaceJson.blocks.blocks[0].x).toBe(100);

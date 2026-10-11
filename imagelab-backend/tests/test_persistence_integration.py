@@ -19,13 +19,13 @@ def test_full_pipeline_lifecycle(client: TestClient, session: Session, sample_im
         "owner_id": "test_user_1",
         "workspace_json": {
             "blocks": [
-                {"id": "step_1", "type": "imageconvertions_grayimage"},
+                {"id": "step_1", "type": "imageconversions_grayimage"},
                 {"id": "step_2", "type": "filtering_cannyedge"},
             ]
         },
         "pipeline_json": {
             "nodes": [
-                {"id": "step_1", "type": "imageconvertions_grayimage"},
+                {"id": "step_1", "type": "imageconversions_grayimage"},
                 {"id": "step_2", "type": "filtering_cannyedge"},
             ],
             "edges": [{"from": "step_1", "to": "step_2"}],
@@ -118,7 +118,7 @@ def test_share_token_access_control(client: TestClient):
         f"/api/share/{view_token}/versions",
         json={
             "workspace_json": {"version": 2},
-            "pipeline_json": {"nodes": [{"id": "n1", "type": "imageconvertions_grayimage"}]},
+            "pipeline_json": {"nodes": [{"id": "n1", "type": "imageconversions_grayimage"}]},
             "change_note": "Unauthorized Edit Attempt",
         },
     )
@@ -143,7 +143,7 @@ def test_share_token_access_control(client: TestClient):
         f"/api/share/{edit_token}/versions",
         json={
             "workspace_json": {"version": 2},
-            "pipeline_json": {"nodes": [{"id": "n1", "type": "imageconvertions_grayimage"}]},
+            "pipeline_json": {"nodes": [{"id": "n1", "type": "imageconversions_grayimage"}]},
             "change_note": "Authorized Shared Edit",
         },
     )

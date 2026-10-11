@@ -236,7 +236,7 @@ describe("extractMacroGraph", () => {
   });
 
   it("extracts macro_blend block statement branches and parameters cleanly", () => {
-    const child1 = createMockBlock("c1", "imageconvertions_grayimage");
+    const child1 = createMockBlock("c1", "imageconversions_grayimage");
     const child2 = createMockBlock("c2", "blurring_applyblur");
 
     const blendBlock = createMockBlock("blend1", "macro_blend", [
@@ -263,12 +263,12 @@ describe("extractMacroGraph", () => {
     expect(blendNode?.branches).toBeDefined();
     expect(blendNode?.branches?.left).toBeDefined();
     expect(blendNode?.branches?.right).toBeDefined();
-    expect(blendNode?.branches?.left?.nodes[0]?.type).toBe("imageconvertions_grayimage");
+    expect(blendNode?.branches?.left?.nodes[0]?.type).toBe("imageconversions_grayimage");
     expect(blendNode?.branches?.right?.nodes[0]?.type).toBe("blurring_applyblur");
   });
 
   it("extracts macro_if_else block statement branches and parameters cleanly", () => {
-    const ifChild = createMockBlock("ic1", "imageconvertions_grayimage");
+    const ifChild = createMockBlock("ic1", "imageconversions_grayimage");
     const elseChild = createMockBlock("ec1", "blurring_applyblur");
 
     const ifElseBlock = createMockBlock("ifelse1", "macro_if_else", [
