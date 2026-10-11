@@ -34,7 +34,7 @@ def test_memory_limit_exceeded_during_pipeline_execution():
     req = PipelineRequest(
         image=large_b64,
         image_format="png",
-        pipeline=[PipelineStep(block_id="step_gray", type="imageconvertions_grayimage")],
+        pipeline=[PipelineStep(block_id="step_gray", type="imageconversions_grayimage")],
     )
 
     with pytest.raises(MemoryLimitExceededException):

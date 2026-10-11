@@ -1,4 +1,5 @@
 import type { MacroDefinition } from "../types/macro";
+import { LEGACY_CONVERSION_ALIASES } from "../blocks/definitions/conversions.blocks";
 
 export const WORKSPACE_STORAGE_KEY = "imagelab.pipeline.workspace.v1";
 export const ACTIVE_PIPELINE_STORAGE_KEY = "imagelab.pipeline.active.v1";
@@ -43,15 +44,30 @@ function loadPersistedPayload<T>(
   }
 }
 
+export function migrateWorkspaceState<T>(state: T): T {
+  if (!state || typeof state !== "object") return state;
+  let jsonStr = JSON.stringify(state);
+  let changed = false;
+  for (const [legacy, canonical] of Object.entries(LEGACY_CONVERSION_ALIASES)) {
+    if (jsonStr.includes(`"${legacy}"`)) {
+      jsonStr = jsonStr.replaceAll(`"${legacy}"`, `"${canonical}"`);
+      changed = true;
+    }
+  }
+  return changed ? (JSON.parse(jsonStr) as T) : state;
+}
+
 export function loadPersistedWorkspaceState<T>(
   storage: Storage = localStorage,
   key = WORKSPACE_STORAGE_KEY,
 ): T | null {
-  return loadPersistedPayload<T>(
+  const loaded = loadPersistedPayload<T>(
     storage,
     key,
     (data): data is T => Boolean(data) && typeof data === "object",
   );
+  if (!loaded) return null;
+  return migrateWorkspaceState(loaded);
 }
 
 export function saveWorkspaceState<T extends object>(

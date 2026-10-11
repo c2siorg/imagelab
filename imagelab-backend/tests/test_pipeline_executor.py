@@ -14,7 +14,7 @@ def cached_step(block_id="block"):
     return {
         "index": 1,
         "block_id": block_id,
-        "type": "imageconvertions_grayimage",
+        "type": "imageconversions_grayimage",
         "image_bytes": encode_image_bytes(np.zeros((2, 2, 3), dtype=np.uint8), "png"),
         "image_format": "png",
         "timing_ms": 1.0,
@@ -40,7 +40,7 @@ def test_noop_steps_are_skipped(make_request, sample_image_b64):
 
 def test_single_operator(make_request):
     pipeline_executor._EXECUTION_CACHE.clear()
-    steps = [PipelineStep(type="imageconvertions_grayimage", block_id="gray-block")]
+    steps = [PipelineStep(type="imageconversions_grayimage", block_id="gray-block")]
     res = execute_pipeline(make_request(steps))
     assert res.success is True
     assert res.execution_id is not None
@@ -58,7 +58,7 @@ def test_single_operator(make_request):
 
 def test_multi_step_pipeline(make_request, sample_image_b64):
     steps = [
-        PipelineStep(type="imageconvertions_grayimage", block_id="gray-block"),
+        PipelineStep(type="imageconversions_grayimage", block_id="gray-block"),
         PipelineStep(
             type="blurring_applygaussianblur",
             block_id="blur-block",
@@ -97,7 +97,7 @@ def test_empty_crop_rectangle_surfaces_as_pipeline_error(make_request):
 
 def test_error_includes_correct_step_index(make_request):
     steps = [
-        PipelineStep(type="imageconvertions_grayimage", block_id="gray-block"),
+        PipelineStep(type="imageconversions_grayimage", block_id="gray-block"),
         PipelineStep(type="bad_operator_step_one", block_id="bad-block"),
     ]
     res = execute_pipeline(make_request(steps))
@@ -127,7 +127,7 @@ def test_valid_base64_but_invalid_image_fails():
 
 
 def test_pipeline_is_deterministic(make_request):
-    steps = [PipelineStep(type="imageconvertions_grayimage")]
+    steps = [PipelineStep(type="imageconversions_grayimage")]
     r1 = execute_pipeline(make_request(steps))
     r2 = execute_pipeline(make_request(steps))
     assert r1.success is True
@@ -217,7 +217,7 @@ def test_macro_blend_execution_and_unrolling(make_request):
             block_id="blend_1",
             params={
                 "alpha": 0.5,
-                "op1_branch": [{"type": "imageconvertions_grayimage"}],
+                "op1_branch": [{"type": "imageconversions_grayimage"}],
                 "op2_branch": [{"type": "blurring_applyblur", "params": {"widthSize": 3, "heightSize": 3}}],
             },
         )
@@ -249,7 +249,7 @@ def test_macro_if_else_execution_branch_routing(make_request):
                 "metric": "mean_brightness",
                 "comparator": ">",
                 "threshold": 100.0,
-                "if_branch": [{"type": "imageconvertions_grayimage"}],
+                "if_branch": [{"type": "imageconversions_grayimage"}],
                 "else_branch": [{"type": "blurring_applyblur", "params": {"widthSize": 3, "heightSize": 3}}],
             },
         )

@@ -1,8 +1,8 @@
 EXECUTE_URL = "/api/v1/pipeline/executions"
 
-GRAY_STEP = {"type": "imageconvertions_grayimage", "params": {}}
-GRAY_STEP_WITH_ID = {"type": "imageconvertions_grayimage", "block_id": "gray-block", "params": {}}
-BINARY_STEP = {"type": "imageconvertions_graytobinary", "params": {"thresholdValue": 127, "maxValue": 255}}
+GRAY_STEP = {"type": "imageconversions_grayimage", "params": {}}
+GRAY_STEP_WITH_ID = {"type": "imageconversions_grayimage", "block_id": "gray-block", "params": {}}
+BINARY_STEP = {"type": "imageconversions_graytobinary", "params": {"thresholdValue": 127, "maxValue": 255}}
 
 
 def post(client, png_b64, pipeline):
@@ -122,7 +122,7 @@ def test_execution_inspect_returns_full_image_and_analysis(client, png_b64):
 
 
 def test_execution_inspect_returns_rgb_histograms_for_color_steps(client, png_b64):
-    color_step = {"type": "imageconvertions_invertimage", "block_id": "color-block", "params": {}}
+    color_step = {"type": "imageconversions_invertimage", "block_id": "color-block", "params": {}}
     r = client.post(
         "/api/v1/pipeline/executions",
         json={"image": png_b64, "image_format": "png", "pipeline": [color_step]},
@@ -165,7 +165,7 @@ def test_execution_inspect_unknown_block_returns_404(client, png_b64):
 
 
 def test_execution_inspect_supports_block_ids_with_slashes(client, png_b64):
-    step = {"type": "imageconvertions_grayimage", "block_id": "block/with/slash", "params": {}}
+    step = {"type": "imageconversions_grayimage", "block_id": "block/with/slash", "params": {}}
     r = client.post(
         "/api/v1/pipeline/executions",
         json={"image": png_b64, "image_format": "png", "pipeline": [step]},

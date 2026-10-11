@@ -8,6 +8,7 @@ from app.exceptions import MacroDepthLimitExceeded
 from app.models.graph import GraphCycleError, GraphNode, PipelineGraph, topological_sort
 from app.models.persistence import Pipeline, PipelineVersion
 from app.models.pipeline import PipelineRequest, PipelineResponse, PipelineStep
+from app.operators.registry import resolve_operator_name
 from app.utils.image import decode_base64_image
 
 MAX_MACRO_DEPTH = 10
@@ -18,26 +19,26 @@ class GraphTypeError(ValueError):
 
 
 OPERATOR_PORT_SPECS: dict[str, dict[str | None, list[int]]] = {
-    "imageconvertions_grayimage": {"image": [3, 4], None: [3, 4]},
-    "imageconvertions_colortobinary": {"image": [3, 4], None: [3, 4]},
-    "imageconvertions_graytobinary": {"image": [1], None: [1]},
-    "imageconvertions_channelsplit": {"image": [3, 4], None: [3, 4]},
-    "imageconvertions_hsvtobgr": {"image": [3], None: [3]},
-    "imageconvertions_bgrtohsv": {"image": [3, 4], None: [3, 4]},
-    "imageconvertions_bgrtolab": {"image": [3, 4], None: [3, 4]},
-    "imageconvertions_labtobgr": {"image": [3], None: [3]},
-    "imageconvertions_bgrtoycrcb": {"image": [3, 4], None: [3, 4]},
-    "imageconvertions_ycrcbtobgr": {"image": [3], None: [3]},
+    "imageconversions_grayimage": {"image": [3, 4], None: [3, 4]},
+    "imageconversions_colortobinary": {"image": [3, 4], None: [3, 4]},
+    "imageconversions_graytobinary": {"image": [1], None: [1]},
+    "imageconversions_channelsplit": {"image": [3, 4], None: [3, 4]},
+    "imageconversions_hsvtobgr": {"image": [3], None: [3]},
+    "imageconversions_bgrtohsv": {"image": [3, 4], None: [3, 4]},
+    "imageconversions_bgrtolab": {"image": [3, 4], None: [3, 4]},
+    "imageconversions_labtobgr": {"image": [3], None: [3]},
+    "imageconversions_bgrtoycrcb": {"image": [3, 4], None: [3, 4]},
+    "imageconversions_ycrcbtobgr": {"image": [3], None: [3]},
     "thresholding_adaptivethreshold": {"image": [1], None: [1]},
     "thresholding_otsuthreshold": {"image": [1], None: [1]},
     "merge_images": {"image": [3, 4], "mask": [1]},
     "blend_images": {"image": [3, 4], "mask": [1]},
 }
 OPERATOR_OUTPUT_CHANNELS = {
-    "imageconvertions_grayimage": 1,
-    "imageconvertions_colortobinary": 1,
-    "imageconvertions_graytobinary": 1,
-    "imageconvertions_channelsplit": 1,
+    "imageconversions_grayimage": 1,
+    "imageconversions_colortobinary": 1,
+    "imageconversions_graytobinary": 1,
+    "imageconversions_channelsplit": 1,
     "thresholding_applythreshold": 1,
     "thresholding_adaptivethreshold": 1,
     "thresholding_otsuthreshold": 1,
@@ -49,7 +50,8 @@ CONTROL_BRANCHES = {"macro_blend": ("left", "right"), "macro_if_else": ("then", 
 
 
 def _node_type(node: GraphNode) -> str:
-    return node.type or node.op or ""
+    raw = node.type or node.op or ""
+    return resolve_operator_name(raw)
 
 
 def _coerce_graph(payload: dict) -> PipelineGraph:

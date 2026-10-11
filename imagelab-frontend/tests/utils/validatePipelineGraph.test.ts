@@ -45,8 +45,8 @@ describe("validatePipelineGraph", () => {
           { id: "1", type: "filtering_blur", op: "filtering_blur", params: {} },
           {
             id: "2",
-            type: "imageconvertions_grayimage",
-            op: "imageconvertions_grayimage",
+            type: "imageconversions_grayimage",
+            op: "imageconversions_grayimage",
             params: {},
           },
         ],
@@ -67,14 +67,14 @@ describe("validatePipelineGraph", () => {
           { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
           {
             id: "2",
-            type: "imageconvertions_grayimage",
-            op: "imageconvertions_grayimage",
+            type: "imageconversions_grayimage",
+            op: "imageconversions_grayimage",
             params: {},
           },
           {
             id: "3",
-            type: "imageconvertions_bgrtohsv",
-            op: "imageconvertions_bgrtohsv",
+            type: "imageconversions_bgrtohsv",
+            op: "imageconversions_bgrtohsv",
             params: {},
           },
         ],
@@ -121,8 +121,8 @@ describe("validatePipelineGraph", () => {
           { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
           {
             id: "2",
-            type: "imageconvertions_grayimage",
-            op: "imageconvertions_grayimage",
+            type: "imageconversions_grayimage",
+            op: "imageconversions_grayimage",
             params: {},
           },
           {
@@ -148,14 +148,14 @@ describe("validatePipelineGraph", () => {
           { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
           {
             id: "2",
-            type: "imageconvertions_bgrtohsv",
-            op: "imageconvertions_bgrtohsv",
+            type: "imageconversions_bgrtohsv",
+            op: "imageconversions_bgrtohsv",
             params: {},
           },
           {
             id: "3",
-            type: "imageconvertions_hsvtobgr",
-            op: "imageconvertions_hsvtobgr",
+            type: "imageconversions_hsvtobgr",
+            op: "imageconversions_hsvtobgr",
             params: {},
           },
         ],
@@ -251,8 +251,8 @@ describe("validatePipelineGraph", () => {
           { id: "2", type: "filtering_blur", op: "filtering_blur", params: {} },
           {
             id: "3",
-            type: "imageconvertions_grayimage",
-            op: "imageconvertions_grayimage",
+            type: "imageconversions_grayimage",
+            op: "imageconversions_grayimage",
             params: {},
           },
           {
@@ -280,15 +280,15 @@ describe("validatePipelineGraph", () => {
           { id: "1", type: "filtering_blur", op: "filtering_blur", params: {} },
           {
             id: "2",
-            type: "imageconvertions_grayimage",
-            op: "imageconvertions_grayimage",
+            type: "imageconversions_grayimage",
+            op: "imageconversions_grayimage",
             params: {},
           },
           // Color-only operator after grayscale
           {
             id: "3",
-            type: "imageconvertions_bgrtohsv",
-            op: "imageconvertions_bgrtohsv",
+            type: "imageconversions_bgrtohsv",
+            op: "imageconversions_bgrtohsv",
             params: {},
           },
         ],
@@ -311,8 +311,8 @@ describe("validatePipelineGraph", () => {
           { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
           {
             id: "2",
-            type: "imageconvertions_grayimage",
-            op: "imageconvertions_grayimage",
+            type: "imageconversions_grayimage",
+            op: "imageconversions_grayimage",
             params: {},
           },
           { id: "3", type: "merge_images", op: "merge_images", params: {} },
@@ -363,15 +363,15 @@ describe("validatePipelineGraph", () => {
                   { id: "3", type: "filtering_blur", op: "filtering_blur", params: {} },
                   {
                     id: "4",
-                    type: "imageconvertions_grayimage",
-                    op: "imageconvertions_grayimage",
+                    type: "imageconversions_grayimage",
+                    op: "imageconversions_grayimage",
                     params: {},
                   },
                   // Color-only operator after grayscale in branch
                   {
                     id: "5",
-                    type: "imageconvertions_bgrtohsv",
-                    op: "imageconvertions_bgrtohsv",
+                    type: "imageconversions_bgrtohsv",
+                    op: "imageconversions_bgrtohsv",
                     params: {},
                   },
                 ],
@@ -421,8 +421,8 @@ describe("validatePipelineGraph", () => {
           // Disconnected node
           {
             id: "3",
-            type: "imageconvertions_grayimage",
-            op: "imageconvertions_grayimage",
+            type: "imageconversions_grayimage",
+            op: "imageconversions_grayimage",
             params: {},
           },
         ],
@@ -431,6 +431,35 @@ describe("validatePipelineGraph", () => {
       const result = validatePipelineGraph(graph, 3);
       // Should not throw, should process what it can
       expect(result.hasReadImage).toBe(true);
+    });
+  });
+
+  describe("legacy operator aliases backward compatibility", () => {
+    it("validates legacy imageconvertions_* nodes via alias resolution", () => {
+      const graph: PipelineGraph = {
+        nodes: [
+          { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
+          {
+            id: "2",
+            type: "imageconvertions_grayimage",
+            op: "imageconvertions_grayimage",
+            params: {},
+          },
+          {
+            id: "3",
+            type: "thresholding_adaptivethreshold",
+            op: "thresholding_adaptivethreshold",
+            params: {},
+          },
+        ],
+        edges: [
+          { from: "1", to: "2" },
+          { from: "2", to: "3" },
+        ],
+      };
+      const result = validatePipelineGraph(graph, 3);
+      expect(result.valid).toBe(true);
+      expect(result.warnings).toHaveLength(0);
     });
   });
 });

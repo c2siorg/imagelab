@@ -110,8 +110,7 @@ export const operatorDocs: Record<string, OperatorDoc> = {
   },
 
   // --- Conversions ---
-  // NOTE: 'imageconvertions' matches the pre-existing block-type naming in categories.ts (intentional misspelling)
-  imageconvertions_grayimage: {
+  imageconversions_grayimage: {
     name: "Color to Grayscale",
     description:
       "Converts a multi-channel RGB/BGR image into a single-channel grayscale image. Uses the standard weighted luminosity method.",
@@ -121,13 +120,13 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       "Removing color noise, decreasing computational load, preparing for edge detection.",
     ],
   },
-  imageconvertions_channelsplit: {
+  imageconversions_channelsplit: {
     name: "Channel Split",
     description: "Splits a multi-channel image into several single-channel image layers.",
     parameters: [],
     useCases: ["Analyzing individual R, G, B channels, applying filters to specific color bands."],
   },
-  imageconvertions_graytobinary: {
+  imageconversions_graytobinary: {
     name: "Gray to Binary",
     description:
       "Applies a threshold to turn a grayscale image into a pure black and white (binary) image.",
@@ -140,7 +139,7 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     formula: "dst(x,y) = maxVal if src(x,y) > thresh else 0",
     useCases: ["Creating masks, separating foreground objects from background."],
   },
-  imageconvertions_colormaps: {
+  imageconversions_colormaps: {
     name: "Color Maps",
     description:
       "Applies a pseudo-color map to a grayscale image to enhance visual perception of intensity.",
@@ -149,7 +148,7 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     ],
     useCases: ["Visualizing depth maps, temperature distribution, or heatmaps."],
   },
-  imageconvertions_colortobinary: {
+  imageconversions_colortobinary: {
     name: "Color to Binary",
     description:
       "Directly converts a color image to a binary mask using predefined threshold configurations.",
