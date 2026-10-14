@@ -6,6 +6,7 @@ import {
   getSelectedBlocks,
   hasMacroCycle,
 } from "../extractMacroGraph";
+import { extractExecutableGraph } from "../../hooks/usePipeline";
 import { useMacroStore } from "../../store/useMacroStore";
 
 const INPUT_TYPE_VALUE = 1;
@@ -233,6 +234,25 @@ describe("extractMacroGraph", () => {
 
     expect(getSelectedBlocks(null)).toEqual([]);
     expect(getSelectedBlocks(mockWs)).toEqual([]);
+  });
+
+  it("counts only blocks in the executable graph when floating blocks are present", () => {
+    const operation = createMockBlock("operation", "blurring_applyblur");
+    const readImage = createMockBlock(
+      "read",
+      "basic_readimage",
+      [],
+      operation,
+    );
+    const floating = createMockBlock("floating", "filtering_gaussianblur");
+    const workspace = {
+      getTopBlocks: () => [readImage, floating],
+    } as unknown as Blockly.WorkspaceSvg;
+
+    const graph = extractExecutableGraph(workspace);
+
+    expect(graph.nodes.map((node) => node.id)).toEqual(["read", "operation"]);
+    expect(graph.nodes).toHaveLength(2);
   });
 
   it("extracts macro_blend block statement branches and parameters cleanly", () => {

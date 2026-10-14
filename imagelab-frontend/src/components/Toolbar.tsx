@@ -76,9 +76,11 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     setExecuting,
     setError,
     setTiming,
+    setPipelineStepCount,
     reset,
     blockCount,
     uniqueBlockTypes,
+    pipelineStepCount,
     categoryCounts,
     complexity,
     currentPipelineId,
@@ -350,6 +352,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
     if (!originalImage) return;
 
     setExecuting(true);
+    setPipelineStepCount(graph.nodes.length);
     setError(null);
     setTiming(null);
     setExecutionId(null);
@@ -742,6 +745,12 @@ export default function Toolbar({ workspace }: ToolbarProps) {
                 <span>Unique Types</span>
                 <span className="font-bold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">
                   {uniqueBlockTypes}
+                </span>
+              </div>
+              <div className="mt-1.5 flex justify-between items-center text-gray-500 dark:text-gray-400 text-[10px] uppercase">
+                <span>Pipeline Steps</span>
+                <span className="font-bold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">
+                  {pipelineStepCount ?? "—"}
                 </span>
               </div>
             </div>

@@ -57,6 +57,7 @@ interface PipelineState {
   // Statistics
   blockCount: number;
   uniqueBlockTypes: number;
+  pipelineStepCount: number | null;
   categoryCounts: Record<string, number>;
   complexity: "Low" | "Medium" | "High";
   getStepResultByBlockId: (blockId: string) => StepResult | undefined;
@@ -75,6 +76,7 @@ interface PipelineState {
   setError: (error: string | null, step?: number | null) => void;
   setSelectedBlock: (type: string | null, tooltip: string | null) => void;
   setTiming: (timings: PipelineTimings | null) => void;
+  setPipelineStepCount: (count: number | null) => void;
   openCameraModal: (
     onCapture: (payload: { image: string; format: string; label: string }) => void,
   ) => void;
@@ -118,6 +120,7 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
   cameraCaptureHandler: null,
   blockCount: 0,
   uniqueBlockTypes: 0,
+  pipelineStepCount: null,
   categoryCounts: {},
   complexity: "Low",
   currentPipelineId: persistedActivePipeline?.id ?? null,
@@ -217,6 +220,7 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
   setSelectedBlock: (type, tooltip) =>
     set({ selectedBlockType: type, selectedBlockTooltip: tooltip }),
   setTiming: (timings) => set({ timings }),
+  setPipelineStepCount: (count) => set({ pipelineStepCount: count }),
   openCameraModal: (onCapture) =>
     set({
       isCameraModalOpen: true,
@@ -287,6 +291,7 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
     set({
       blockCount: blocks.length,
       uniqueBlockTypes: uniqueTypes.size,
+      pipelineStepCount: null,
       categoryCounts: counts,
       complexity: calculateComplexity(blocks.length, uniqueTypes.size),
     });
@@ -320,6 +325,7 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
       selectedBlockTooltip: null,
       blockCount: 0,
       uniqueBlockTypes: 0,
+      pipelineStepCount: null,
       categoryCounts: {},
       complexity: "Low",
       timings: null,
