@@ -84,6 +84,9 @@ async def create_batch_job(
         "updated_at": t_now,
         "duration_seconds": 0.0,
         "results": [],
+        "current_filename": None,
+        "current_frame": 0,
+        "total_frames_estimate": None,
     }
     await asyncio.to_thread(write_summary_atomic, job_id, summary)
 

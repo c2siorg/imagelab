@@ -10,6 +10,7 @@ A web application for visual, block-based image processing using Google Blockly 
 - OpenCV.js powered operations: blurring, filtering, thresholding, geometric transforms, and more
 - Drag-and-connect blocks to build image processing pipelines
 - Real-time preview of processing results
+- Batch processing for images and videos, with frame-by-frame Blockly pipelines and silent MP4 output
 - Modern React + FastAPI web app
 
 ## Prerequisites
