@@ -57,10 +57,20 @@ async def create_batch_job(
 
     def save_files():
         saved = []
+        used_stems = set()
         for upload_file in files:
             if not upload_file.filename:
                 continue
             filename = os.path.basename(upload_file.filename)
+            stem, extension = os.path.splitext(filename)
+            unique_stem = stem
+            suffix = 1
+            # adding number beside the image name to avoid overwriting images with same name
+            while unique_stem.casefold() in used_stems:
+                unique_stem = f"{stem}_{suffix}"
+                suffix += 1
+            used_stems.add(unique_stem.casefold())
+            filename = f"{unique_stem}{extension}"
             dest_path = os.path.join(inputs_dir, filename)
             with open(dest_path, "wb") as f:
                 shutil.copyfileobj(upload_file.file, f)
