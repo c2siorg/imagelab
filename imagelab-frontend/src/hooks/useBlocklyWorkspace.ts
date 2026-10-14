@@ -51,6 +51,7 @@ export function useBlocklyWorkspace({
   const setSelectedBlock = usePipelineStore((s) => s.setSelectedBlock);
   const setActiveStep = usePipelineStore((s) => s.setActiveStep);
   const setWorkspaceDirty = usePipelineStore((s) => s.setWorkspaceDirty);
+  const setPipelineStepCount = usePipelineStore((s) => s.setPipelineStepCount);
   const updateBlockStats = usePipelineStore((s) => s.updateBlockStats);
 
   // Holds the latest theme without making initWorkspace re-run
@@ -172,6 +173,7 @@ export function useBlocklyWorkspace({
       }
 
       if (!event.isUiEvent && MUTATING_EVENTS.has(event.type)) {
+        setPipelineStepCount(null);
         if (usePipelineStore.getState().stepResults.length > 0) {
           setWorkspaceDirty(true);
         }
@@ -204,7 +206,14 @@ export function useBlocklyWorkspace({
       resizeObserverRef.current = observer;
     }
     updateBlockStats(ws);
-  }, [readOnly, setActiveStep, setSelectedBlock, setWorkspaceDirty, updateBlockStats]);
+  }, [
+    readOnly,
+    setActiveStep,
+    setPipelineStepCount,
+    setSelectedBlock,
+    setWorkspaceDirty,
+    updateBlockStats,
+  ]);
 
   // Entering or leaving a shared read-only view rebuilds the workspace for a
   // different pipeline, so the previous image must not carry over. This runs
