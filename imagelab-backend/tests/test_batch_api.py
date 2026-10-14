@@ -61,8 +61,7 @@ async def test_upload_names_preserve_all_files_and_unique_output_stems(temp_jobs
 
     filenames = ["photo.png", "photo.png", "photo.jpg", "photo_1.png", "PHOTO.png"]
     uploads = [
-        UploadFile(file=io.BytesIO(f"image-{index}".encode()), filename=name)
-        for index, name in enumerate(filenames)
+        UploadFile(file=io.BytesIO(f"image-{index}".encode()), filename=name) for index, name in enumerate(filenames)
     ]
     background_tasks = BackgroundTasks()
     response = await batch_router.create_batch_job(
