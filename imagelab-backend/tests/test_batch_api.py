@@ -97,6 +97,33 @@ def test_create_batch_job_success(client):
     assert data["total_files"] == 2
 
 
+@pytest.mark.anyio
+async def test_create_batch_job_duplicate_filenames_are_preserved(client, temp_jobs_dir):
+    from fastapi import BackgroundTasks, UploadFile
+
+    bg_tasks = BackgroundTasks()
+    result = await batch_router.create_batch_job(
+        background_tasks=bg_tasks,
+        pipeline="[]",
+        image_format="png",
+        files=[
+            UploadFile(file=io.BytesIO(b"first image"), filename="photo.png"),
+            UploadFile(file=io.BytesIO(b"second image"), filename="photo.png"),
+        ],
+    )
+
+    inputs_dir = os.path.join(str(temp_jobs_dir), result.job_id, "inputs")
+    filenames = sorted(os.listdir(inputs_dir))
+    contents = []
+    for name in filenames:
+        with open(os.path.join(inputs_dir, name), "rb") as f:
+            contents.append(f.read())
+
+    assert result.total_files == 2
+    assert filenames == ["photo.png", "photo_1.png"]
+    assert contents == [b"first image", b"second image"]
+
+
 def test_get_batch_job_status_not_found(client):
     r = client.get("/api/v1/batch-jobs/non_existent_id")
     assert r.status_code == 404
