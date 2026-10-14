@@ -55,6 +55,30 @@ def test_create_batch_job_missing_files(client):
     assert r.json()["detail"] == "No files uploaded"
 
 
+@pytest.mark.asyncio
+async def test_upload_names_preserve_all_files_and_unique_output_stems(temp_jobs_dir):
+    from fastapi import BackgroundTasks, UploadFile
+
+    filenames = ["photo.png", "photo.png", "photo.jpg", "photo_1.png", "PHOTO.png"]
+    uploads = [
+        UploadFile(file=io.BytesIO(f"image-{index}".encode()), filename=name) for index, name in enumerate(filenames)
+    ]
+    background_tasks = BackgroundTasks()
+    response = await batch_router.create_batch_job(
+        background_tasks=background_tasks, pipeline="[]", image_format="png", files=uploads
+    )
+
+    expected = ["photo.png", "photo_1.png", "photo_2.jpg", "photo_1_1.png", "PHOTO_3.png"]
+    inputs_dir = temp_jobs_dir / response.job_id / "inputs"
+    assert sorted(path.name for path in inputs_dir.iterdir()) == sorted(expected)
+    for index, name in enumerate(expected):
+        assert (inputs_dir / name).read_bytes() == f"image-{index}".encode()
+    assert response.total_files == len(uploads)
+    assert background_tasks.tasks[0].args[1] == expected
+    output_stems = [os.path.splitext(name)[0].casefold() for name in expected]
+    assert len(set(output_stems)) == len(uploads)
+
+
 def test_create_batch_job_invalid_pipeline_json(client):
     files = [("files", ("image1.png", b"dummy_content", "image/png"))]
     r = client.post(
