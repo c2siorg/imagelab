@@ -9,10 +9,13 @@ import { registerAllBlocks } from "../../src/blocks/definitions";
 import Toolbar from "../../src/components/Toolbar";
 import { usePipelineStore } from "../../src/store/pipelineStore";
 import { PIPELINE_FILE_SCHEMA_VERSION, serializePipelineFile } from "../../src/utils/pipelineFile";
+import * as pipelineApi from "../../src/api/pipeline";
 
 const EXPORT_TITLE = "Export Pipeline (.json)";
+const EXPORT_PYTHON_TITLE = "Export as Python Script (.py)";
 const IMPORT_TITLE = "Import Pipeline (.json)";
 const DATA_URL_PREFIX = "data:application/json;charset=utf-8,";
+const PYTHON_DATA_PREFIX = "data:text/x-python;charset=utf-8,";
 
 let workspace: Blockly.Workspace;
 
@@ -95,6 +98,47 @@ describe("Toolbar pipeline export", () => {
     expect(link.download).toBe("soft-blur.json");
     const payload = JSON.parse(decodeURIComponent(link.href.slice(DATA_URL_PREFIX.length)));
     expect(payload.name).toBe("Soft Blur");
+  });
+});
+
+describe("Toolbar Python script export", () => {
+  it("calls exportPipelineAsPython and downloads the returned .py file", async () => {
+    addBlurBlock(workspace, "blur-1", 5);
+    const mockCode = "# python code";
+    const exportSpy = vi.spyOn(pipelineApi, "exportPipelineAsPython").mockResolvedValue({
+      success: true,
+      code: mockCode,
+      filename: "pipeline.py",
+      unsupported_operators: [],
+    });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    render(<Toolbar workspace={toolbarWorkspace()} />);
+    fireEvent.click(screen.getByTitle(EXPORT_PYTHON_TITLE));
+
+    await waitFor(() => expect(exportSpy).toHaveBeenCalledTimes(1));
+    expect(click).toHaveBeenCalledTimes(1);
+    const link = click.mock.instances[0] as unknown as HTMLAnchorElement;
+    expect(link.download).toBe("pipeline.py");
+    expect(link.href).toBe(`${PYTHON_DATA_PREFIX}${encodeURIComponent(mockCode)}`);
+  });
+
+  it("alerts when unsupported operators are returned", async () => {
+    addBlurBlock(workspace, "blur-1", 5);
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+    vi.spyOn(pipelineApi, "exportPipelineAsPython").mockResolvedValue({
+      success: true,
+      code: "# python code",
+      filename: "test.py",
+      unsupported_operators: ["unsupported_op"],
+    });
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    render(<Toolbar workspace={toolbarWorkspace()} />);
+    fireEvent.click(screen.getByTitle(EXPORT_PYTHON_TITLE));
+
+    await waitFor(() => expect(alertSpy).toHaveBeenCalledTimes(1));
+    expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining("unsupported_op"));
   });
 });
 

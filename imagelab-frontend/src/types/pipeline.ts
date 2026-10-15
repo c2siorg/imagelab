@@ -88,4 +88,20 @@ export interface StepInspectResponse {
   analysis: ImageAnalysis;
   histogram: ImageHistogram;
 }
+
+export interface ExportPythonRequest {
+  graph?: PipelineGraph;
+  pipeline?: PipelineStep[];
+  pipeline_name?: string;
+  input_filename?: string;
+  output_filename?: string;
+}
+
+export interface ExportPythonResponse {
+  success: boolean;
+  code: string;
+  filename: string;
+  unsupported_operators: string[];
+}
+
 import type { PipelineGraph } from "./macro";
