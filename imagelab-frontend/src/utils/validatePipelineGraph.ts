@@ -52,6 +52,20 @@ const CONTROL_BRANCHES: Record<string, string[]> = {
   macro_if_else: ["then", "else"],
 };
 
+// Params a connected border settings block contributes to Apply Borders
+const BORDER_SETTING_PARAMS = [
+  "border_all_sides",
+  "borderTop",
+  "borderBottom",
+  "borderLeft",
+  "borderRight",
+];
+
+function hasBorderSettings(node: GraphNode): boolean {
+  const params = node.params ?? {};
+  return BORDER_SETTING_PARAMS.some((name) => name in params);
+}
+
 function getNodeType(node: GraphNode): string {
   return resolveOperatorName(node.type || node.op || "");
 }
@@ -220,6 +234,17 @@ export function validatePipelineGraph(
             });
           }
         }
+      }
+
+      // Apply Borders needs a border settings block plugged into its input,
+      // otherwise the backend silently adds a 0-pixel border.
+      if (nodeType === "thresholding_applyborders" && !hasBorderSettings(node)) {
+        warnings.push({
+          nodeId,
+          nodeType,
+          message:
+            '"Apply Borders" block has no border settings connected, so no border will be added. Drag a "with thickness" block into its input.',
+        });
       }
 
       // Validate control flow branches

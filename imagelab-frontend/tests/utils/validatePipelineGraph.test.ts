@@ -462,4 +462,43 @@ describe("validatePipelineGraph", () => {
       expect(result.warnings).toHaveLength(0);
     });
   });
+  describe("Apply Borders settings", () => {
+    const readImage = { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} };
+
+    it("warns when Apply Borders has no border settings connected", () => {
+      const graph: PipelineGraph = {
+        nodes: [
+          readImage,
+          {
+            id: "2",
+            type: "thresholding_applyborders",
+            op: "thresholding_applyborders",
+            params: {},
+          },
+        ],
+        edges: [{ from: "1", to: "2" }],
+      };
+      const result = validatePipelineGraph(graph);
+      expect(result.valid).toBe(false);
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0].nodeId).toBe("2");
+      expect(result.warnings[0].message).toContain("no border settings connected");
+    });
+
+    it.each([
+      { border_all_sides: 10, border_type: "CONSTANT" },
+      { borderTop: 2, borderBottom: 2, borderLeft: 2, borderRight: 2, border_type: "REFLECT" },
+    ])("does not warn when border settings are connected (%o)", (params) => {
+      const graph: PipelineGraph = {
+        nodes: [
+          readImage,
+          { id: "2", type: "thresholding_applyborders", op: "thresholding_applyborders", params },
+        ],
+        edges: [{ from: "1", to: "2" }],
+      };
+      const result = validatePipelineGraph(graph);
+      expect(result.valid).toBe(true);
+      expect(result.warnings).toHaveLength(0);
+    });
+  });
 });
