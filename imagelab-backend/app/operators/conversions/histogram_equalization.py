@@ -22,13 +22,21 @@ class HistogramEqualization(BaseOperator):
 
         # Color image (BGR)
         if len(image.shape) == 3 and image.shape[2] == 3:
-            # Convert to YCrCb to preserve color fidelity
-            ycrcb = cv2.cvtColor(image, cv2.COLOR_BGR2YCrCb)
+            return self._equalize_bgr(image)
 
-            # Equalize only the luminance channel
-            ycrcb[:, :, 0] = cv2.equalizeHist(ycrcb[:, :, 0])
-
-            # Convert back to BGR
-            return cv2.cvtColor(ycrcb, cv2.COLOR_YCrCb2BGR)
+        # Color image with transparency (BGRA): equalize the color channels, keep alpha unchanged
+        if len(image.shape) == 3 and image.shape[2] == 4:
+            return np.dstack([self._equalize_bgr(image[:, :, :3]), image[:, :, 3]])
 
         return image
+
+    @staticmethod
+    def _equalize_bgr(image: np.ndarray) -> np.ndarray:
+        # Convert to YCrCb to preserve color fidelity
+        ycrcb = cv2.cvtColor(image, cv2.COLOR_BGR2YCrCb)
+
+        # Equalize only the luminance channel
+        ycrcb[:, :, 0] = cv2.equalizeHist(ycrcb[:, :, 0])
+
+        # Convert back to BGR
+        return cv2.cvtColor(ycrcb, cv2.COLOR_YCrCb2BGR)
