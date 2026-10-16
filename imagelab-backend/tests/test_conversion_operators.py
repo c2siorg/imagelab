@@ -10,6 +10,7 @@ from app.operators.conversions.color_maps import ColorMaps
 from app.operators.conversions.color_to_binary import ColorToBinary
 from app.operators.conversions.gray_image import GrayImage
 from app.operators.conversions.gray_to_binary import GrayToBinary
+from app.operators.conversions.histogram_equalization import HistogramEqualization
 from app.operators.conversions.hsv_to_bgr import HsvToBgr
 from app.operators.conversions.lab_to_bgr import LabToBgr
 from app.operators.conversions.ycrcb_to_bgr import YcrcbToBgr
@@ -429,3 +430,19 @@ class TestColorToBinaryFallback:
             {"thresholdType": "threshold_binary", "thresholdValue": 100, "maxValue": 255}
         ).compute(img)
         np.testing.assert_array_equal(result_unknown, result_default)
+
+
+class TestHistogramEqualization:
+    def test_bgra_equalizes_color_and_keeps_alpha(self):
+        rng = np.random.default_rng(42)
+        bgr = rng.integers(100, 141, (64, 64, 3), dtype=np.uint8)
+        alpha = rng.integers(0, 256, (64, 64), dtype=np.uint8)
+        bgra = np.dstack([bgr, alpha])
+
+        result = HistogramEqualization({}).compute(bgra)
+
+        assert result.shape == (64, 64, 4)
+        assert result.dtype == np.uint8
+        np.testing.assert_array_equal(result[:, :, :3], HistogramEqualization({}).compute(bgr))
+        np.testing.assert_array_equal(result[:, :, 3], alpha)
+        assert not np.array_equal(result[:, :, :3], bgr)
