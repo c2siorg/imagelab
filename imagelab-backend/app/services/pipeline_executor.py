@@ -111,6 +111,30 @@ def _run_sub_pipeline(steps: list[PipelineStep | dict], current_image: np.ndarra
     return img
 
 
+def harmonize_image_channels(src: np.ndarray, target_channels: int) -> np.ndarray:
+    """Align image channels with target_channels (1, 3, or 4)."""
+    src_channels = 1 if src.ndim == 2 else src.shape[2]
+    if src_channels == target_channels:
+        return src
+
+    if src_channels == 1:
+        if target_channels == 3:
+            return cv2.cvtColor(src, cv2.COLOR_GRAY2BGR)
+        if target_channels == 4:
+            return cv2.cvtColor(src, cv2.COLOR_GRAY2BGRA)
+    elif src_channels == 3:
+        if target_channels == 1:
+            return cv2.cvtColor(src, cv2.COLOR_BGR2GRAY)
+        if target_channels == 4:
+            return cv2.cvtColor(src, cv2.COLOR_BGR2BGRA)
+    elif src_channels == 4:
+        if target_channels == 1:
+            return cv2.cvtColor(src, cv2.COLOR_BGRA2GRAY)
+        if target_channels == 3:
+            return cv2.cvtColor(src, cv2.COLOR_BGRA2BGR)
+    return src
+
+
 def _execute_macro_blend(step: PipelineStep, image: np.ndarray) -> np.ndarray:
     branches = dict(step.branches)
     if "op1_branch" in step.params:
@@ -132,11 +156,10 @@ def _execute_macro_blend(step: PipelineStep, image: np.ndarray) -> np.ndarray:
     if img2.shape[:2] != img1.shape[:2]:
         img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]), interpolation=cv2.INTER_AREA)
 
-    if img1.ndim != img2.ndim:
-        if img1.ndim == 2 and img2.ndim == 3:
-            img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
-        elif img1.ndim == 3 and img2.ndim == 2:
-            img2 = cv2.cvtColor(img2, cv2.COLOR_GRAY2BGR)
+    ch1 = 1 if img1.ndim == 2 else img1.shape[2]
+    ch2 = 1 if img2.ndim == 2 else img2.shape[2]
+    if ch1 != ch2:
+        img2 = harmonize_image_channels(img2, ch1)
 
     if img2.dtype != img1.dtype:
         img2 = img2.astype(img1.dtype)
