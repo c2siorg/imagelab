@@ -462,4 +462,63 @@ describe("validatePipelineGraph", () => {
       expect(result.warnings).toHaveLength(0);
     });
   });
+
+  describe("edge detection operators output 1 channel", () => {
+    const edgeOps = [
+      "sobelderivatives_soblederivate",
+      "sobelderivatives_scharrderivate",
+      "sobelderivatives_prewittoperator",
+      "sobelderivatives_robertsoperator",
+      "laplacian",
+    ];
+
+    edgeOps.forEach((edgeOp) => {
+      it(`validates ${edgeOp} feeding into 1-channel adaptive thresholding block without warnings`, () => {
+        const graph: PipelineGraph = {
+          nodes: [
+            { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
+            { id: "2", type: edgeOp, op: edgeOp, params: {} },
+            {
+              id: "3",
+              type: "thresholding_adaptivethreshold",
+              op: "thresholding_adaptivethreshold",
+              params: {},
+            },
+          ],
+          edges: [
+            { from: "1", to: "2" },
+            { from: "2", to: "3" },
+          ],
+        };
+        const result = validatePipelineGraph(graph, 3);
+        expect(result.valid).toBe(true);
+        expect(result.warnings).toHaveLength(0);
+      });
+
+      it(`warns when 1-channel ${edgeOp} output feeds into color-only operator`, () => {
+        const graph: PipelineGraph = {
+          nodes: [
+            { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
+            { id: "2", type: edgeOp, op: edgeOp, params: {} },
+            {
+              id: "3",
+              type: "imageconversions_bgrtohsv",
+              op: "imageconversions_bgrtohsv",
+              params: {},
+            },
+          ],
+          edges: [
+            { from: "1", to: "2" },
+            { from: "2", to: "3" },
+          ],
+        };
+        const result = validatePipelineGraph(graph, 3);
+        expect(result.valid).toBe(false);
+        const warning = result.warnings.find((w) => w.nodeId === "3");
+        expect(warning).toBeDefined();
+        expect(warning?.message).toContain("grayscale");
+      });
+    });
+  });
 });
+
