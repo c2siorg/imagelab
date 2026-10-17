@@ -4,6 +4,7 @@ import csv
 import json
 import logging
 import os
+import shutil
 import time
 import zipfile
 
@@ -19,6 +20,59 @@ logger = logging.getLogger(__name__)
 JOBS_DIR = os.path.abspath("jobs")
 MAX_WORKERS = min(8, os.cpu_count() or 1)
 semaphore = asyncio.Semaphore(MAX_WORKERS)
+BATCH_JOB_TTL_SECONDS = int(os.getenv("BATCH_JOB_TTL_SECONDS", str(2 * 3600)))  # 2 hours default
+
+
+def cleanup_expired_batch_jobs(max_age_seconds: int = BATCH_JOB_TTL_SECONDS, jobs_dir: str = JOBS_DIR) -> int:
+    """Evict expired batch job directories from disk.
+
+    Removes any job directory whose created_at timestamp or filesystem mtime
+    exceeds max_age_seconds. Returns the count of removed directories.
+    """
+    if not os.path.exists(jobs_dir):
+        return 0
+
+    now = time.time()
+    removed_count = 0
+
+    try:
+        entries = os.listdir(jobs_dir)
+    except OSError as err:
+        logger.warning(f"Could not list batch jobs directory '{jobs_dir}': {err}")
+        return 0
+
+    for entry in entries:
+        job_dir = os.path.join(jobs_dir, entry)
+        if not os.path.isdir(job_dir):
+            continue
+
+        job_age = None
+        summary_path = os.path.join(job_dir, "summary.json")
+        if os.path.exists(summary_path):
+            try:
+                with open(summary_path, encoding="utf-8") as f:
+                    data = json.load(f)
+                    created_at = data.get("created_at")
+                    if isinstance(created_at, (int, float)):
+                        job_age = now - created_at
+            except Exception:
+                pass
+
+        if job_age is None:
+            try:
+                job_age = now - os.path.getmtime(job_dir)
+            except OSError:
+                continue
+
+        if job_age > max_age_seconds:
+            try:
+                shutil.rmtree(job_dir, ignore_errors=True)
+                removed_count += 1
+                logger.info(f"Evicted expired batch job directory '{entry}' (age: {job_age:.1f}s)")
+            except Exception as err:
+                logger.warning(f"Failed to evict batch job directory '{entry}': {err}")
+
+    return removed_count
 
 
 def write_summary_atomic(job_id: str, summary_data: dict):
