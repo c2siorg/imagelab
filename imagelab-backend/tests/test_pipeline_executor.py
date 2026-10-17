@@ -268,3 +268,75 @@ def test_macro_if_else_execution_branch_routing(make_request):
     assert res_black.success is True
     out_black = decode_base64_image(res_black.image)
     assert out_black.ndim == 3 and out_black.shape[2] == 3
+
+
+@pytest.mark.parametrize(
+    ("img1_shape", "img2_shape"),
+    [
+        ((50, 50, 4), (50, 50, 3)),  # BGRA + BGR
+        ((50, 50, 3), (50, 50, 4)),  # BGR + BGRA
+        ((50, 50), (50, 50, 4)),  # Grayscale + BGRA
+        ((50, 50, 4), (50, 50)),  # BGRA + Grayscale
+        ((50, 50), (50, 50, 3)),  # Grayscale + BGR
+        ((50, 50, 3), (50, 50)),  # BGR + Grayscale
+    ],
+)
+def test_macro_blend_channel_depth_combinations(img1_shape, img2_shape):
+    """macro_blend harmonizes channels between branches without raising cv2.error or ValueError."""
+    img1 = np.full(img1_shape, 128, dtype=np.uint8)
+    img2 = np.full(img2_shape, 200, dtype=np.uint8)
+
+    step = PipelineStep(
+        type="macro_blend",
+        params={"alpha": 0.5, "beta": 0.5},
+        branches={"left": [], "right": []},
+    )
+
+    # Mock _run_sub_pipeline to return our respective channel images
+    call_count = 0
+
+    def fake_sub_pipeline(branch, _image):
+        nonlocal call_count
+        call_count += 1
+        return img1 if call_count == 1 else img2
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(pipeline_executor, "_run_sub_pipeline", fake_sub_pipeline)
+        res = pipeline_executor._execute_macro_blend(step, img1)
+        assert isinstance(res, np.ndarray)
+        expected_channels = 1 if img1.ndim == 2 else img1.shape[2]
+        actual_channels = 1 if res.ndim == 2 else res.shape[2]
+        assert actual_channels == expected_channels
+
+
+def test_arithmetic_add_weighted_operator():
+    """ArithmeticAddWeighted executes cleanly with dtype=-1 across diverse channel formats."""
+    from app.operators.arithmetic.add_weighted import ArithmeticAddWeighted
+
+    op = ArithmeticAddWeighted({"alpha": 0.6, "beta": 0.4, "gamma": 10.0})
+
+    # 1. Default (src2 defaults to copy of image)
+    bgr = np.full((40, 40, 3), 100, dtype=np.uint8)
+    res_bgr = op.compute(bgr)
+    assert isinstance(res_bgr, np.ndarray)
+    assert res_bgr.shape == (40, 40, 3)
+
+    # 2. BGR image + BGRA image2
+    bgra = np.full((40, 40, 4), 150, dtype=np.uint8)
+    op_mixed = ArithmeticAddWeighted({"image2": bgra})
+    res_mixed = op_mixed.compute(bgr)
+    assert isinstance(res_mixed, np.ndarray)
+    assert res_mixed.shape == (40, 40, 3)
+
+    # 3. BGRA image + BGR image2
+    op_bgra = ArithmeticAddWeighted({"image2": bgr})
+    res_bgra = op_bgra.compute(bgra)
+    assert isinstance(res_bgra, np.ndarray)
+    assert res_bgra.shape == (40, 40, 4)
+
+    # 4. Grayscale image + BGR image2
+    gray = np.full((40, 40), 120, dtype=np.uint8)
+    op_gray = ArithmeticAddWeighted({"image2": bgr})
+    res_gray = op_gray.compute(gray)
+    assert isinstance(res_gray, np.ndarray)
+    assert res_gray.shape == (40, 40)

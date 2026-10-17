@@ -26,7 +26,6 @@ class PipelineVersion(SQLModel, table=True):
     workspace_json: dict[str, Any] = Field(default_factory=dict, sa_column=Column(sa.JSON, nullable=False))
     pipeline_json: dict[str, Any] = Field(default_factory=dict, sa_column=Column(sa.JSON, nullable=False))
     change_note: str | None = Field(default=None, nullable=True)
-    created_at: datetime = Field(default_factory=datetime.now(UTC))
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
@@ -39,5 +38,4 @@ class PipelineShare(SQLModel, table=True):
     permission: str  # "view" | "clone" | "edit"
     expires_at: datetime | None = Field(default=None, nullable=True)
     created_by: str | None = Field(default=None, nullable=True)
-    created_at: datetime = Field(default_factory=datetime.now(UTC))
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
