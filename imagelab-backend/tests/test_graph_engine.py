@@ -266,3 +266,89 @@ def test_type_integrity_multi_port_compatible_and_incompatible(session):
         prepare_pipeline(session, pipeline_invalid.id, 3)
 
     assert "Type mismatch on node 'merge'" in str(excinfo.value)
+
+
+@pytest.mark.parametrize(
+    ("edge_operator", "threshold_operator"),
+    [
+        ("sobelderivatives_soblederivate", "thresholding_adaptivethreshold"),
+        ("sobelderivatives_scharrderivate", "thresholding_otsuthreshold"),
+        ("sobelderivatives_prewittoperator", "imageconversions_graytobinary"),
+        ("sobelderivatives_robertsoperator", "thresholding_adaptivethreshold"),
+        ("laplacian", "thresholding_otsuthreshold"),
+    ],
+)
+def test_edge_detection_to_thresholding_compilation_and_execution(
+    session, sample_image_b64, edge_operator, threshold_operator
+):
+    """Edge detection operators produce 1-channel outputs and must cleanly connect to 1-channel thresholding blocks."""
+    pipeline = Pipeline(name=f"Edge Pipeline {edge_operator} -> {threshold_operator}")
+    session.add(pipeline)
+    session.flush()
+
+    graph = {
+        "nodes": [
+            {"id": "read", "type": "basic_readimage"},
+            {"id": "edge", "type": edge_operator},
+            {"id": "thresh", "type": threshold_operator},
+        ],
+        "edges": [
+            {"from": "read", "to": "edge"},
+            {"from": "edge", "to": "thresh"},
+        ],
+    }
+
+    session.add(PipelineVersion(pipeline_id=pipeline.id, version_number=1, pipeline_json=graph))
+    session.commit()
+
+    # 1. Compilation must succeed without GraphTypeError
+    steps = prepare_pipeline(session, pipeline.id, 3)
+    assert len(steps) == 3
+
+    # 2. Execution must run and succeed through OpenCV
+    req = PipelineRequest(image=sample_image_b64, pipeline=[])
+    res = execute_graph_pipeline(session, pipeline.id, req)
+    assert res.success is True
+    assert len(res.step_results) == 2  # read_image is noop
+    assert res.step_results[0].block_id == "edge"
+    assert res.step_results[0].success is True
+    assert res.step_results[1].block_id == "thresh"
+    assert res.step_results[1].success is True
+
+
+@pytest.mark.parametrize(
+    "edge_operator",
+    [
+        "sobelderivatives_soblederivate",
+        "sobelderivatives_scharrderivate",
+        "sobelderivatives_prewittoperator",
+        "sobelderivatives_robertsoperator",
+        "laplacian",
+    ],
+)
+def test_edge_detection_to_color_only_operator_raises_type_error(session, edge_operator):
+    """Connecting a 1-channel edge output into a color-only operator (e.g. bgrtohsv) must be rejected."""
+    pipeline = Pipeline(name=f"Invalid Edge Pipeline {edge_operator} -> bgrtohsv")
+    session.add(pipeline)
+    session.flush()
+
+    graph = {
+        "nodes": [
+            {"id": "read", "type": "basic_readimage"},
+            {"id": "edge", "type": edge_operator},
+            {"id": "hsv", "type": "imageconversions_bgrtohsv"},
+        ],
+        "edges": [
+            {"from": "read", "to": "edge"},
+            {"from": "edge", "to": "hsv"},
+        ],
+    }
+
+    session.add(PipelineVersion(pipeline_id=pipeline.id, version_number=1, pipeline_json=graph))
+    session.commit()
+
+    with pytest.raises(GraphTypeError) as excinfo:
+        prepare_pipeline(session, pipeline.id, 3)
+
+    assert "Type mismatch on node 'hsv'" in str(excinfo.value)
+    assert "expected channels in [3, 4], got 1 channels" in str(excinfo.value)
