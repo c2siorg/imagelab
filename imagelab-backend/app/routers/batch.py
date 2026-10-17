@@ -5,16 +5,31 @@ import shutil
 import time
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Path, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import TypeAdapter
 
 from app.models.batch import BatchJobResponse, BatchJobSummary
 from app.models.graph import PipelineGraph
 from app.models.pipeline import PipelineStep
-from app.services.batch_executor import JOBS_DIR, run_batch_job, write_summary_atomic
+from app.services.batch_executor import (
+    JOBS_DIR,
+    cleanup_expired_batch_jobs,
+    run_batch_job,
+    write_summary_atomic,
+)
 
 router = APIRouter()
+JOB_ID_REGEX = r"^[a-zA-Z0-9_-]+$"
+
+
+def _resolve_job_dir(job_id: str) -> str:
+    """Safely resolve job directory, preventing path traversal outside JOBS_DIR."""
+    job_dir = os.path.realpath(os.path.join(JOBS_DIR, job_id))
+    jobs_root = os.path.realpath(JOBS_DIR)
+    if not job_dir.startswith(jobs_root + os.sep) and job_dir != jobs_root:
+        raise HTTPException(status_code=400, detail="Invalid job ID path")
+    return job_dir
 
 
 @router.post("/v1/batch-jobs", response_model=BatchJobResponse)
@@ -97,14 +112,18 @@ async def create_batch_job(
     }
     await asyncio.to_thread(write_summary_atomic, job_id, summary)
 
+    background_tasks.add_task(cleanup_expired_batch_jobs)
     background_tasks.add_task(run_batch_job, job_id, filenames, pipeline_graph, image_format)
 
     return BatchJobResponse(job_id=job_id, status="pending", total_files=len(filenames))
 
 
 @router.get("/v1/batch-jobs/{job_id}", response_model=BatchJobSummary)
-def get_batch_job_status(job_id: str):
-    summary_path = os.path.join(JOBS_DIR, job_id, "summary.json")
+def get_batch_job_status(
+    job_id: Annotated[str, Path(pattern=JOB_ID_REGEX, description="32-hex character batch job ID")],
+):
+    job_dir = _resolve_job_dir(job_id)
+    summary_path = os.path.join(job_dir, "summary.json")
     if not os.path.exists(summary_path):
         raise HTTPException(status_code=404, detail="Batch job not found")
 
@@ -117,8 +136,11 @@ def get_batch_job_status(job_id: str):
 
 
 @router.get("/v1/batch-jobs/{job_id}/results")
-def get_batch_job_results(job_id: str):
-    summary_path = os.path.join(JOBS_DIR, job_id, "summary.json")
+def get_batch_job_results(
+    job_id: Annotated[str, Path(pattern=JOB_ID_REGEX, description="32-hex character batch job ID")],
+):
+    job_dir = _resolve_job_dir(job_id)
+    summary_path = os.path.join(job_dir, "summary.json")
     if not os.path.exists(summary_path):
         raise HTTPException(status_code=404, detail="Batch job not found")
 
@@ -131,8 +153,11 @@ def get_batch_job_results(job_id: str):
 
 
 @router.get("/v1/batch-jobs/{job_id}/download")
-def download_batch_results(job_id: str):
-    summary_path = os.path.join(JOBS_DIR, job_id, "summary.json")
+def download_batch_results(
+    job_id: Annotated[str, Path(pattern=JOB_ID_REGEX, description="32-hex character batch job ID")],
+):
+    job_dir = _resolve_job_dir(job_id)
+    summary_path = os.path.join(job_dir, "summary.json")
     if not os.path.exists(summary_path):
         raise HTTPException(status_code=404, detail="Batch job not found")
 
@@ -146,7 +171,7 @@ def download_batch_results(job_id: str):
     if status not in ("completed", "failed"):
         raise HTTPException(status_code=400, detail="Batch job is still processing")
 
-    zip_path = os.path.join(JOBS_DIR, job_id, "batch.zip")
+    zip_path = os.path.join(job_dir, "batch.zip")
     if not os.path.exists(zip_path):
         raise HTTPException(status_code=404, detail="ZIP bundle not found")
 

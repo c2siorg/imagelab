@@ -2,6 +2,7 @@ import asyncio
 import io
 import json
 import os
+import time
 import zipfile
 from contextlib import asynccontextmanager
 from unittest.mock import patch
@@ -513,3 +514,80 @@ async def test_concurrency_limit_respected(temp_jobs_dir, monkeypatch):
         await batch_executor.run_batch_job(job_id, filenames, [], "png")
 
     assert peak_concurrent <= cap, f"Concurrency exceeded cap={cap}: peak simultaneous tasks was {peak_concurrent}"
+
+
+# ---------------------------------------------------------------------------
+# Path traversal and automated storage retention cleanup
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "hostile_id",
+    [
+        "../traversal",
+        "..%2Ftraversal",
+        "../../etc/passwd",
+        "..\\..\\windows",
+        "job!with!special*chars",
+        "job with spaces",
+        "nested/path",
+        ".",
+        "..",
+    ],
+)
+def test_batch_job_path_traversal_rejected(client, hostile_id):
+    """Malicious or non-alphanumeric job_id values must be rejected with 404 or 422, never traversed."""
+    for endpoint in [
+        f"/api/v1/batch-jobs/{hostile_id}",
+        f"/api/v1/batch-jobs/{hostile_id}/results",
+        f"/api/v1/batch-jobs/{hostile_id}/download",
+    ]:
+        r = client.get(endpoint)
+        assert r.status_code in (400, 404, 405, 422), (
+            f"Endpoint {endpoint} unexpectedly returned {r.status_code} for hostile job_id: {hostile_id}"
+        )
+
+
+def test_cleanup_expired_batch_jobs(tmp_path):
+    """Expired jobs exceeding TTL are removed; recent jobs are retained."""
+    jobs_dir = tmp_path / "test_cleanup_jobs"
+    jobs_dir.mkdir()
+
+    now = time.time()
+    ttl = 3600  # 1 hour
+
+    # 1. Expired job with summary.json
+    expired_id = "expired_job_123"
+    expired_dir = jobs_dir / expired_id
+    expired_dir.mkdir()
+    with open(expired_dir / "summary.json", "w", encoding="utf-8") as f:
+        json.dump({"job_id": expired_id, "created_at": now - 7200}, f)
+
+    # 2. Active recent job with summary.json
+    active_id = "active_job_456"
+    active_dir = jobs_dir / active_id
+    active_dir.mkdir()
+    with open(active_dir / "summary.json", "w", encoding="utf-8") as f:
+        json.dump({"job_id": active_id, "created_at": now - 60}, f)
+
+    # 3. Expired directory without summary.json (using filesystem mtime)
+    mtime_expired_dir = jobs_dir / "mtime_expired_789"
+    mtime_expired_dir.mkdir()
+    old_time = now - 7200
+    os.utime(str(mtime_expired_dir), (old_time, old_time))
+
+    # 4. Recent directory without summary.json
+    mtime_active_dir = jobs_dir / "mtime_active_012"
+    mtime_active_dir.mkdir()
+
+    # Run cleanup
+    removed = batch_executor.cleanup_expired_batch_jobs(max_age_seconds=ttl, jobs_dir=str(jobs_dir))
+    assert removed == 2
+
+    # Assert expired folders are gone
+    assert not os.path.exists(str(expired_dir))
+    assert not os.path.exists(str(mtime_expired_dir))
+
+    # Assert active folders remain
+    assert os.path.exists(str(active_dir))
+    assert os.path.exists(str(mtime_active_dir))
