@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 from app.operators.base import BaseOperator
-from app.utils.color import hex_to_bgr
+from app.utils.color import hex_to_draw_color
 
 
 class DrawArrowLine(BaseOperator):
@@ -10,7 +10,7 @@ class DrawArrowLine(BaseOperator):
         if image.ndim == 2:
             image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
         result = image.copy()
-        color = hex_to_bgr(self.params.get("rgbcolors_input", "#2828cc"))
+        color = hex_to_draw_color(self.params.get("rgbcolors_input", "#2828cc"), result)
         thickness = max(1, int(self.params.get("thickness", 2)))
         x1 = int(self.params.get("starting_point_x", 0))
         y1 = int(self.params.get("starting_point_y", 0))

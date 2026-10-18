@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 from app.operators.base import BaseOperator
-from app.utils.color import hex_to_bgr
+from app.utils.color import hex_to_draw_color
 
 
 class DrawText(BaseOperator):
@@ -13,7 +13,7 @@ class DrawText(BaseOperator):
         text = str(self.params.get("draw_text", "Image Lab"))
         thickness = max(1, int(self.params.get("thickness", 2)))
         scale = max(0.1, float(self.params.get("scale", 1)))
-        color = hex_to_bgr(self.params.get("rgbcolors_input", "#2828cc"))
+        color = hex_to_draw_color(self.params.get("rgbcolors_input", "#2828cc"), result)
         x = int(self.params.get("starting_point_x", 0))
 
         font = cv2.FONT_HERSHEY_SIMPLEX

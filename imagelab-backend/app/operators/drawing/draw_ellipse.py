@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 from app.operators.base import BaseOperator
-from app.utils.color import hex_to_bgr
+from app.utils.color import hex_to_draw_color
 
 
 class DrawEllipse(BaseOperator):
@@ -14,7 +14,7 @@ class DrawEllipse(BaseOperator):
         height = int(self.params.get("height", 0))
         width = int(self.params.get("width", 0))
         angle = int(self.params.get("angle", 0))
-        color = hex_to_bgr(self.params.get("rgbcolors_input", "#2828cc"))
+        color = hex_to_draw_color(self.params.get("rgbcolors_input", "#2828cc"), result)
         cx = int(self.params.get("center_point_x", 0))
         cy = int(self.params.get("center_point_y", 0))
         cv2.ellipse(result, (cx, cy), (width, height), angle, 0, 360, color, thickness)
