@@ -100,6 +100,23 @@ class TestBoxFilter:
         result = BoxFilter({}).compute(color_image)
         assert result.dtype == np.uint8
 
+    @pytest.mark.parametrize("param", ["width", "height"])
+    @pytest.mark.parametrize("value", [0, -3])
+    def test_non_positive_kernel_size_raises_value_error(self, color_image, param, value):
+        with pytest.raises(ValueError, match=f"'{param}' must be a positive integer"):
+            BoxFilter({"width": 5, "height": 5, param: value}).compute(color_image)
+
+    @pytest.mark.parametrize(("param", "value"), [("point_x", 5), ("point_y", 7), ("point_x", -2), ("point_y", -5)])
+    def test_anchor_outside_kernel_raises_value_error(self, color_image, param, value):
+        with pytest.raises(ValueError, match=f"'{param}' must be -1 \\(centre\\) or between 0 and 4"):
+            BoxFilter({"width": 5, "height": 5, param: value}).compute(color_image)
+
+    @pytest.mark.parametrize(("point_x", "point_y"), [(-1, -1), (0, 0), (4, 2)])
+    def test_anchor_inside_kernel_is_accepted(self, color_image, point_x, point_y):
+        params = {"width": 5, "height": 3, "point_x": point_x, "point_y": point_y}
+        result = BoxFilter(params).compute(color_image)
+        assert result.shape == color_image.shape
+
 
 # Sharpen
 
@@ -160,6 +177,16 @@ class TestErosion:
         result = Erosion({}).compute(image)
         assert result.sum() <= image.sum()
 
+    @pytest.mark.parametrize(("param", "value"), [("point_x", 5), ("point_y", 9), ("point_x", -2), ("point_y", -5)])
+    def test_anchor_outside_kernel_raises_value_error(self, color_image, param, value):
+        with pytest.raises(ValueError, match=f"'{param}' must be -1 \\(centre\\) or between 0 and 4"):
+            Erosion({param: value}).compute(color_image)
+
+    @pytest.mark.parametrize(("point_x", "point_y"), [(-1, -1), (0, 0), (4, 4)])
+    def test_anchor_inside_kernel_is_accepted(self, color_image, point_x, point_y):
+        result = Erosion({"point_x": point_x, "point_y": point_y}).compute(color_image)
+        assert result.shape == color_image.shape
+
 
 # Dilation
 
@@ -186,6 +213,16 @@ class TestDilation:
         image[20:30, 20:30] = 255
         result = Dilation({}).compute(image)
         assert result.sum() >= image.sum()
+
+    @pytest.mark.parametrize(("param", "value"), [("point_x", 5), ("point_y", 9), ("point_x", -2), ("point_y", -5)])
+    def test_anchor_outside_kernel_raises_value_error(self, color_image, param, value):
+        with pytest.raises(ValueError, match=f"'{param}' must be -1 \\(centre\\) or between 0 and 4"):
+            Dilation({param: value}).compute(color_image)
+
+    @pytest.mark.parametrize(("point_x", "point_y"), [(-1, -1), (0, 0), (4, 4)])
+    def test_anchor_inside_kernel_is_accepted(self, color_image, point_x, point_y):
+        result = Dilation({"point_x": point_x, "point_y": point_y}).compute(color_image)
+        assert result.shape == color_image.shape
 
 
 # Morphological
