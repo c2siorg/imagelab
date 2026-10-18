@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import pytest
 
 from app.operators.drawing.draw_arrow_line import DrawArrowLine
 from app.operators.drawing.draw_circle import DrawCircle
@@ -427,3 +428,40 @@ class TestDrawText:
             }
         ).compute(gray)
         assert result[:, :, 2].max() > 0
+
+
+DRAWING_CASES = [
+    (DrawLine, {"starting_point_x1": 10, "starting_point_y1": 50, "ending_point_x": 90, "ending_point_y": 50}),
+    (DrawRectangle, {"starting_point_x": 10, "starting_point_y": 10, "ending_point_x": 90, "ending_point_y": 90}),
+    (DrawCircle, {"center_point_x": 50, "center_point_y": 50, "radius": 30}),
+    (DrawEllipse, {"center_point_x": 50, "center_point_y": 50, "width": 40, "height": 20}),
+    (DrawArrowLine, {"starting_point_x": 10, "starting_point_y": 50, "ending_point_x": 90, "ending_point_y": 50}),
+    (DrawText, {"draw_text": "Test", "starting_point_x": 10, "starting_point_y": 50}),
+]
+
+
+@pytest.mark.parametrize(("operator_cls", "params"), DRAWING_CASES, ids=[c[0].__name__ for c in DRAWING_CASES])
+class TestDrawingChannels:
+    PARAMS = {"rgbcolors_input": "#ff0000", "thickness": 3}
+
+    def test_bgra_input_draws_opaque_shape(self, operator_cls, params):
+        bgra = np.full((100, 100, 4), 200, dtype=np.uint8)
+        bgra[:, :, 3] = 255
+        result = operator_cls({**params, **self.PARAMS}).compute(bgra)
+        assert result.shape == (100, 100, 4)
+        drawn = np.any(result[:, :, :3] != 200, axis=2)
+        assert drawn.any()
+        assert (result[:, :, 3][drawn] == 255).all()
+        assert (result.reshape(-1, 4) == [0, 0, 255, 255]).all(axis=1).any()
+
+    def test_bgr_input_unchanged(self, operator_cls, params):
+        bgr = np.full((100, 100, 3), 200, dtype=np.uint8)
+        result = operator_cls({**params, **self.PARAMS}).compute(bgr)
+        assert result.shape == (100, 100, 3)
+        assert (result.reshape(-1, 3) == [0, 0, 255]).all(axis=1).any()
+
+    def test_grayscale_input_unchanged(self, operator_cls, params):
+        gray = np.full((100, 100), 200, dtype=np.uint8)
+        result = operator_cls({**params, **self.PARAMS}).compute(gray)
+        assert result.shape == (100, 100, 3)
+        assert (result.reshape(-1, 3) == [0, 0, 255]).all(axis=1).any()

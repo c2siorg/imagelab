@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 from app.operators.base import BaseOperator
-from app.utils.color import hex_to_bgr
+from app.utils.color import hex_to_draw_color
 
 
 class DrawRectangle(BaseOperator):
@@ -11,7 +11,7 @@ class DrawRectangle(BaseOperator):
             image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
         result = image.copy()
         thickness = max(1, int(self.params.get("thickness", 2)))
-        color = hex_to_bgr(self.params.get("rgbcolors_input", "#2828cc"))
+        color = hex_to_draw_color(self.params.get("rgbcolors_input", "#2828cc"), result)
         x1 = int(self.params.get("starting_point_x", 0))
         y1 = int(self.params.get("starting_point_y", 0))
         x2 = int(self.params.get("ending_point_x", 0))
