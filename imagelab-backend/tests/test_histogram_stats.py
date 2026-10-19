@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from app.services.pipeline_executor import analyze_image
 
@@ -27,11 +28,12 @@ def test_calculate_channel_statistics_rgb():
     assert abs(analysis.mean[1] - 150.0) < 0.01  # Green
     assert abs(analysis.mean[2] - 200.0) < 0.01  # Red
 
-    # Check std values (should be 0 for uniform channels)
+    # Check std values (should be 0 for uniform channels, up to float error
+    # that differs between OpenCV builds)
     assert len(analysis.std) == 3
-    assert analysis.std[0] == 0.0
-    assert analysis.std[1] == 0.0
-    assert analysis.std[2] == 0.0
+    assert analysis.std[0] == pytest.approx(0.0, abs=1e-5)
+    assert analysis.std[1] == pytest.approx(0.0, abs=1e-5)
+    assert analysis.std[2] == pytest.approx(0.0, abs=1e-5)
 
 
 def test_calculate_channel_statistics_grayscale():
