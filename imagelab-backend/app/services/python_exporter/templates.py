@@ -198,9 +198,14 @@ def _invertimage(params: dict, var: str) -> tuple[list[str], bool]:
 @register("imageconvertions_brightnessandcontrast")
 @register("imageconversions_brightnessandcontrast")
 def _brightness_contrast(params: dict, var: str) -> tuple[list[str], bool]:
-    brightness = safe_int(params.get("brightnessValue"), 0)
-    contrast = safe_float(params.get("contrastValue"), 1.0)
-    return [f"{var} = cv2.convertScaleAbs({var}, alpha={contrast}, beta={brightness})"], False
+    # Same clamping and formula as the BrightnessAndContrast operator: contrast is applied
+    # around mid-grey (128), which cv2.convertScaleAbs does not do
+    brightness = max(-100, min(100, safe_int(params.get("brightnessValue"), 0)))
+    contrast = max(0.0, min(3.0, safe_float(params.get("contrastValue"), 1.0)))
+    return [
+        f"{var} = np.clip({contrast} * ({var}.astype(np.float32) - 128.0) + 128.0 + {brightness}, 0, 255)"
+        ".astype(np.uint8)"
+    ], True
 
 
 @register("imageconvertions_histogramequalization")
