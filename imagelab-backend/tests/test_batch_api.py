@@ -75,7 +75,8 @@ async def test_upload_names_preserve_all_files_and_unique_output_stems(temp_jobs
     for index, name in enumerate(expected):
         assert (inputs_dir / name).read_bytes() == f"image-{index}".encode()
     assert response.total_files == len(uploads)
-    assert background_tasks.tasks[0].args[1] == expected
+    (job_task,) = [task for task in background_tasks.tasks if task.func is batch_router.run_batch_job]
+    assert job_task.args[1] == expected
     output_stems = [os.path.splitext(name)[0].casefold() for name in expected]
     assert len(set(output_stems)) == len(uploads)
 
