@@ -463,3 +463,31 @@ def test_api_hostile_payload_sanitization(client):
     assert "\x00" not in data["filename"]
     tree = ast.parse(data["code"])
     assert isinstance(tree, ast.Module)
+
+
+def test_exported_brightness_and_contrast_matches_the_operator():
+    """The exported script must give the same image as the app for Brightness and Contrast."""
+    params = {"brightnessValue": 20, "contrastValue": 1.5}
+    code, _ = export_pipeline_to_python(
+        [PipelineStep(type="imageconversions_brightnessandcontrast", params=params)], "Brightness Contrast"
+    )
+    test_img = np.tile(np.arange(0, 256, 4, dtype=np.uint8), (8, 1))
+    test_img = cv2.merge([test_img, test_img, test_img])
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        script_path = os.path.join(tmpdir, "run_script.py")
+        input_path = os.path.join(tmpdir, "input.png")
+        output_path = os.path.join(tmpdir, "output.png")
+        cv2.imwrite(input_path, test_img)
+        with open(script_path, "w", encoding="utf-8") as f:
+            f.write(code)
+
+        result = subprocess.run(
+            [sys.executable, script_path, "--input", input_path, "--output", output_path],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, f"Script failed: {result.stderr}"
+
+        expected = OPERATOR_REGISTRY["imageconversions_brightnessandcontrast"](params).compute(test_img)
+        np.testing.assert_array_equal(cv2.imread(output_path), expected)
