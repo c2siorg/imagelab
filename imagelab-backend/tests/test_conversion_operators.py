@@ -450,13 +450,13 @@ class TestHistogramEqualization:
 
 
 class TestBrightnessAndContrast:
-    def test_bgra_adjusts_color_and_keeps_alpha(self):
+    def test_bgra_adjusts_color_and_preserves_alpha(self):
         rng = np.random.default_rng(42)
-        bgr = rng.integers(0, 256, (64, 64, 3), dtype=np.uint8)
+        bgr = rng.integers(50, 200, (64, 64, 3), dtype=np.uint8)
         alpha = rng.integers(0, 256, (64, 64), dtype=np.uint8)
         bgra = np.dstack([bgr, alpha])
-        params = {"brightnessValue": 50, "contrastValue": 1.5}
 
+        params = {"brightnessValue": 30, "contrastValue": 1.5}
         result = BrightnessAndContrast(params).compute(bgra)
 
         assert result.shape == (64, 64, 4)
@@ -464,3 +464,51 @@ class TestBrightnessAndContrast:
         np.testing.assert_array_equal(result[:, :, :3], BrightnessAndContrast(params).compute(bgr))
         np.testing.assert_array_equal(result[:, :, 3], alpha)
         assert not np.array_equal(result[:, :, :3], bgr)
+
+    def test_bgra_transparent_pixels_remain_transparent(self):
+        # Even with high positive brightness, zero-alpha pixels must keep alpha=0
+        bgr = np.full((32, 32, 3), 100, dtype=np.uint8)
+        alpha = np.zeros((32, 32), dtype=np.uint8)
+        bgra = np.dstack([bgr, alpha])
+
+        result = BrightnessAndContrast({"brightnessValue": 50, "contrastValue": 1.0}).compute(bgra)
+
+        assert result.shape == (32, 32, 4)
+        np.testing.assert_array_equal(result[:, :, 3], 0)
+        # BGR channels should have increased from 100 to 150
+        np.testing.assert_array_equal(result[:, :, :3], 150)
+
+    def test_bgr_adjusts_normally(self, color_image):
+        params = {"brightnessValue": 20, "contrastValue": 1.2}
+        result = BrightnessAndContrast(params).compute(color_image)
+        assert result.shape == color_image.shape
+        assert result.dtype == np.uint8
+        expected = np.clip(1.2 * (color_image.astype(np.float32) - 128.0) + 128.0 + 20, 0, 255).astype(np.uint8)
+        np.testing.assert_array_equal(result, expected)
+
+    def test_grayscale_adjusts_normally(self, grayscale_image):
+        params = {"brightnessValue": -20, "contrastValue": 0.8}
+        result = BrightnessAndContrast(params).compute(grayscale_image)
+        assert result.shape == grayscale_image.shape
+        assert result.dtype == np.uint8
+        expected = np.clip(0.8 * (grayscale_image.astype(np.float32) - 128.0) + 128.0 - 20, 0, 255).astype(np.uint8)
+        np.testing.assert_array_equal(result, expected)
+
+    def test_default_params_preserves_values(self, color_image):
+        result = BrightnessAndContrast({}).compute(color_image)
+        assert result.shape == color_image.shape
+        assert result.dtype == np.uint8
+        np.testing.assert_array_equal(result, color_image)
+
+    def test_clamped_parameters(self, color_image):
+        result_clamped = BrightnessAndContrast({"brightnessValue": 500, "contrastValue": 10.0}).compute(color_image)
+        result_max = BrightnessAndContrast({"brightnessValue": 100, "contrastValue": 3.0}).compute(color_image)
+        np.testing.assert_array_equal(result_clamped, result_max)
+
+    def test_invalid_empty_image_raises_error(self):
+        with pytest.raises(ValueError, match="received an invalid or empty image"):
+            BrightnessAndContrast({}).compute(np.array([], dtype=np.uint8))
+
+    def test_none_image_raises_error(self):
+        with pytest.raises(ValueError, match="received an invalid or empty image"):
+            BrightnessAndContrast({}).compute(None)
