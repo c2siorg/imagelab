@@ -187,7 +187,7 @@ def _execute_macro_if_else(step: PipelineStep, image: np.ndarray) -> np.ndarray:
     return _run_sub_pipeline(selected, image)
 
 
-def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
+def execute_pipeline(request: PipelineRequest, *, cache_step_results: bool = True) -> PipelineResponse:
     t_start_total = time.perf_counter()
     execution_id = uuid.uuid4().hex
     step_timings: list[StepTiming] = []
@@ -235,7 +235,8 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
                             macro_stack=getattr(step, "macro_stack", []),
                         )
                     )
-                    _store_execution(execution_id, full_images)
+                    if cache_step_results:
+                        _store_execution(execution_id, full_images)
                     return PipelineResponse(
                         success=False,
                         execution_id=execution_id,
@@ -254,29 +255,30 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
             t_step_end = time.perf_counter()
             timing_ms = (t_step_end - t_step_start) * 1000
             step_timings.append(StepTiming(step=i + 1, operator_type=step.type, duration_ms=timing_ms))
-            thumbnail = encode_thumbnail_base64(image, request.image_format)
-            cache_key = step.block_id or str(i + 1)
-            full_images[cache_key] = {
-                "index": i + 1,
-                "block_id": cache_key,
-                "type": step.type,
-                "image_bytes": encode_image_bytes(image, request.image_format),
-                "image_format": request.image_format,
-                "timing_ms": timing_ms,
-            }
-            step_results.append(
-                StepResult(
-                    index=i + 1,
-                    block_id=step.block_id,
-                    type=step.type,
-                    success=True,
-                    thumbnail=thumbnail,
-                    image_format=request.image_format,
-                    timing_ms=timing_ms,
-                    has_full_image=True,
-                    macro_stack=getattr(step, "macro_stack", []),
+            if cache_step_results:
+                thumbnail = encode_thumbnail_base64(image, request.image_format)
+                cache_key = step.block_id or str(i + 1)
+                full_images[cache_key] = {
+                    "index": i + 1,
+                    "block_id": cache_key,
+                    "type": step.type,
+                    "image_bytes": encode_image_bytes(image, request.image_format),
+                    "image_format": request.image_format,
+                    "timing_ms": timing_ms,
+                }
+                step_results.append(
+                    StepResult(
+                        index=i + 1,
+                        block_id=step.block_id,
+                        type=step.type,
+                        success=True,
+                        thumbnail=thumbnail,
+                        image_format=request.image_format,
+                        timing_ms=timing_ms,
+                        has_full_image=True,
+                        macro_stack=getattr(step, "macro_stack", []),
+                    )
                 )
-            )
         except ValueError as e:
             t_fail = time.perf_counter()
             step_id = step.block_id or str(i + 1)
@@ -292,7 +294,8 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
                     macro_stack=getattr(step, "macro_stack", []),
                 )
             )
-            _store_execution(execution_id, full_images)
+            if cache_step_results:
+                _store_execution(execution_id, full_images)
             raise PipelineExecutionError(
                 step_id=step_id,
                 step_type=step.type,
@@ -311,7 +314,8 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
                     macro_stack=getattr(step, "macro_stack", []),
                 )
             )
-            _store_execution(execution_id, full_images)
+            if cache_step_results:
+                _store_execution(execution_id, full_images)
             return PipelineResponse(
                 success=False,
                 execution_id=execution_id,
@@ -327,7 +331,8 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
     except Exception as e:
         t_fail = time.perf_counter()
         error_msg = f"Failed to encode result: {type(e).__name__}: {e}"
-        _store_execution(execution_id, full_images)
+        if cache_step_results:
+            _store_execution(execution_id, full_images)
         return PipelineResponse(
             success=False,
             execution_id=execution_id,
@@ -338,7 +343,8 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
         )
 
     t_end_total = time.perf_counter()
-    _store_execution(execution_id, full_images)
+    if cache_step_results:
+        _store_execution(execution_id, full_images)
 
     return PipelineResponse(
         success=True,
@@ -348,6 +354,34 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
         timings=PipelineTimings(total_ms=(t_end_total - t_start_total) * 1000, steps=step_timings),
         step_results=step_results,
     )
+
+
+def execute_pipeline_array(image: np.ndarray, pipeline: list[PipelineStep]) -> np.ndarray:
+    """Run a pipeline directly on an image array without encoding it for transport."""
+    check_memory_limit(image)
+    for index, step in enumerate(pipeline):
+        if step.type in NOOP_TYPES:
+            continue
+
+        try:
+            if step.type == "macro_blend":
+                image = _execute_macro_blend(step, image)
+            elif step.type == "macro_if_else":
+                image = _execute_macro_if_else(step, image)
+            else:
+                operator_cls = get_operator(step.type)
+                if operator_cls is None:
+                    raise ValueError(f"Unknown operator '{step.type}'")
+                image = operator_cls(step.params).compute(image)
+            check_memory_limit(image)
+        except ValueError as e:
+            raise PipelineExecutionError(
+                step_id=step.block_id or str(index + 1),
+                step_type=step.type,
+                user_friendly_message=str(e),
+            ) from e
+
+    return image
 
 
 def encode_thumbnail_base64(image: np.ndarray, fmt: str = "png") -> str:
