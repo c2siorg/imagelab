@@ -238,12 +238,7 @@ describe("extractMacroGraph", () => {
 
   it("counts only blocks in the executable graph when floating blocks are present", () => {
     const operation = createMockBlock("operation", "blurring_applyblur");
-    const readImage = createMockBlock(
-      "read",
-      "basic_readimage",
-      [],
-      operation,
-    );
+    const readImage = createMockBlock("read", "basic_readimage", [], operation);
     const floating = createMockBlock("floating", "filtering_gaussianblur");
     const workspace = {
       getTopBlocks: () => [readImage, floating],
