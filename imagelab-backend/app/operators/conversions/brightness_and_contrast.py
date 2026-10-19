@@ -16,6 +16,9 @@ class BrightnessAndContrast(BaseOperator):
         """
         Apply brightness and contrast adjustment.
 
+        For 4-channel BGRA images, only the BGR color channels are adjusted;
+        the alpha channel is preserved unchanged.
+
         Args:
             image: Input uint8 NumPy ndarray (grayscale or multi-channel).
 
@@ -38,5 +41,15 @@ class BrightnessAndContrast(BaseOperator):
         brightness = max(-100, min(100, brightness))
         contrast = max(0.0, min(3.0, contrast))
 
-        adjusted = contrast * (image.astype(np.float32) - 128.0) + 128.0 + brightness
+        # Color image with transparency (BGRA): adjust color channels, keep alpha unchanged
+        if len(image.shape) == 3 and image.shape[2] == 4:
+            bgr = image[:, :, :3]
+            alpha = image[:, :, 3]
+            return np.dstack([self._adjust(bgr, brightness, contrast), alpha])
+
+        return self._adjust(image, brightness, contrast)
+
+    @staticmethod
+    def _adjust(img: np.ndarray, brightness: int, contrast: float) -> np.ndarray:
+        adjusted = contrast * (img.astype(np.float32) - 128.0) + 128.0 + brightness
         return np.clip(adjusted, 0, 255).astype(np.uint8)
