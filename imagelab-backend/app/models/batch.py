@@ -21,6 +21,9 @@ class BatchJobSummary(BaseModel):
     updated_at: float
     duration_seconds: float
     results: list[BatchResultItem] = []
+    current_filename: str | None = None
+    current_frame: int = 0
+    total_frames_estimate: int | None = None
 
 
 class BatchJobResponse(BaseModel):

@@ -14,7 +14,9 @@ from app.models.graph import PipelineGraph
 from app.models.pipeline import PipelineStep
 from app.services.batch_executor import (
     JOBS_DIR,
+    MAX_VIDEO_UPLOAD_BYTES,
     cleanup_expired_batch_jobs,
+    is_video_filename,
     run_batch_job,
     write_summary_atomic,
 )
@@ -87,12 +89,36 @@ async def create_batch_job(
             used_stems.add(unique_stem.casefold())
             filename = f"{unique_stem}{extension}"
             dest_path = os.path.join(inputs_dir, filename)
-            with open(dest_path, "wb") as f:
-                shutil.copyfileobj(upload_file.file, f)
+            is_video = is_video_filename(filename)
+            total_bytes = 0
+            try:
+                with open(dest_path, "wb") as f:
+                    while chunk := upload_file.file.read(1024 * 1024):
+                        total_bytes += len(chunk)
+                        if is_video and total_bytes > MAX_VIDEO_UPLOAD_BYTES:
+                            max_size_mb = MAX_VIDEO_UPLOAD_BYTES / (1024 * 1024)
+                            max_size = (
+                                f"{max_size_mb:g} MB"
+                                if MAX_VIDEO_UPLOAD_BYTES >= 1024 * 1024
+                                else f"{MAX_VIDEO_UPLOAD_BYTES} bytes"
+                            )
+                            raise HTTPException(
+                                status_code=413,
+                                detail=f"Video upload exceeds the maximum allowed size of {max_size}.",
+                            )
+                        f.write(chunk)
+            except Exception:
+                if os.path.exists(dest_path):
+                    os.remove(dest_path)
+                raise
             saved.append(filename)
         return saved
 
-    filenames = await asyncio.to_thread(save_files)
+    try:
+        filenames = await asyncio.to_thread(save_files)
+    except HTTPException:
+        shutil.rmtree(job_dir, ignore_errors=True)
+        raise
 
     if not filenames:
         raise HTTPException(status_code=400, detail="No valid images uploaded")
@@ -109,6 +135,9 @@ async def create_batch_job(
         "updated_at": t_now,
         "duration_seconds": 0.0,
         "results": [],
+        "current_filename": None,
+        "current_frame": 0,
+        "total_frames_estimate": None,
     }
     await asyncio.to_thread(write_summary_atomic, job_id, summary)
 

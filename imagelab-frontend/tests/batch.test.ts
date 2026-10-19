@@ -100,9 +100,9 @@ describe("BatchProcessingModal Component Suite", () => {
   it("renders the modal in initial setup mode", () => {
     renderModal();
 
-    expect(screen.getByText("Batch Image Processing")).toBeDefined();
+    expect(screen.getByText("Batch Image & Video Processing")).toBeDefined();
     expect(
-      screen.getByText(/Run active Blockly pipeline steps on multiple files/),
+      screen.getByText(/Run the active Blockly pipeline on images and video frames/),
     ).toBeDefined();
 
     const formatSelect = screen.getByLabelText(
@@ -111,7 +111,7 @@ describe("BatchProcessingModal Component Suite", () => {
     expect(formatSelect.value).toBe("png");
 
     expect(
-      screen.getByText("Drag & drop your images here, or click to browse"),
+      screen.getByText("Drag & drop images or videos here, or click to browse"),
     ).toBeDefined();
 
     // Submit disabled with 0 files
@@ -170,6 +170,67 @@ describe("BatchProcessingModal Component Suite", () => {
       name: /Process 0 Images/i,
     }) as HTMLButtonElement;
     expect(emptyBtn.disabled).toBe(true);
+  });
+
+  it("accepts videos and displays frame-level job progress", async () => {
+    vi.useFakeTimers();
+    const { container } = renderModal();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const video = new File(["video"], "clip.mp4", { type: "video/mp4" });
+
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [video] } });
+    });
+    expect(screen.getByText("clip.mp4")).toBeDefined();
+    expect(screen.queryByLabelText("Output Image Format")).toBeNull();
+    expect(screen.getByRole("button", { name: /Process 1 Video/i })).toBeDefined();
+
+    vi.mocked(createBatchJob).mockResolvedValueOnce({
+      job_id: "video-job",
+      status: "pending",
+      total_files: 1,
+    });
+    vi.mocked(getBatchJobStatus)
+      .mockResolvedValueOnce({
+        job_id: "video-job",
+        status: "processing",
+        total_files: 1,
+        processed_files: 0,
+        success_count: 0,
+        failure_count: 0,
+        created_at: 1000,
+        updated_at: 1001,
+        duration_seconds: 1,
+        results: [],
+        current_filename: "clip.mp4",
+        current_frame: 23,
+        total_frames_estimate: 120,
+      })
+      .mockResolvedValueOnce({
+        job_id: "video-job",
+        status: "completed",
+        total_files: 1,
+        processed_files: 1,
+        success_count: 1,
+        failure_count: 0,
+        created_at: 1000,
+        updated_at: 1002,
+        duration_seconds: 2,
+        results: [],
+      });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Process 1 Video/i }));
+    });
+    await flushPromises();
+    expect(screen.getByText("Processing Video...")).toBeDefined();
+    expect(screen.getByText("clip.mp4: frame 23 (approximately 120 total)")).toBeDefined();
+
+    await act(async () => {
+      vi.advanceTimersByTime(1000);
+    });
+    await flushPromises();
+    expect(screen.getByText("Batch Run Completed Successfully")).toBeDefined();
   });
 
   // ── 3. Drag-and-drop ─────────────────────────────────────────────────────
@@ -485,7 +546,7 @@ describe("BatchProcessingModal Component Suite", () => {
     });
 
     expect(
-      screen.getByText("Drag & drop your images here, or click to browse"),
+      screen.getByText("Drag & drop images or videos here, or click to browse"),
     ).toBeDefined();
     expect(
       screen.queryByText("Batch Run Completed Successfully"),
