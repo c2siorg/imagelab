@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from app.operators.registry import get_operator
 from app.operators.transformation.distance_transform import DistanceTransform
 from app.operators.transformation.laplacian import Laplacian
 
@@ -140,3 +141,18 @@ class TestLaplacian:
         img = rng.integers(0, 256, (60, 120, 3), dtype=np.uint8)
         result = Laplacian({}).compute(img)
         assert result.shape == img.shape
+
+    def test_registry_maps_block_to_transformation_operator(self):
+        assert get_operator("transformation_laplacian") is Laplacian
+
+    def test_registry_operator_applies_ddepth(self, color_image):
+        operator_cls = get_operator("transformation_laplacian")
+        with pytest.raises(ValueError, match="ddepth"):
+            operator_cls({"ddepth": 99}).compute(color_image)
+
+    def test_registry_operator_saturates_strong_edges(self):
+        img = np.zeros((50, 50, 3), dtype=np.uint8)
+        img[:, 25:] = 255
+        result = get_operator("transformation_laplacian")({"ksize": 7}).compute(img)
+        assert result.shape == img.shape
+        assert result[:, 24:26].min() == 255
