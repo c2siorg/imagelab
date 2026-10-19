@@ -5,6 +5,7 @@ import pytest
 from app.operators.conversions.bgr_to_hsv import BgrToHsv
 from app.operators.conversions.bgr_to_lab import BgrToLab
 from app.operators.conversions.bgr_to_ycrcb import BgrToYcrcb
+from app.operators.conversions.brightness_and_contrast import BrightnessAndContrast
 from app.operators.conversions.channel_split import ChannelSplit
 from app.operators.conversions.color_maps import ColorMaps
 from app.operators.conversions.color_to_binary import ColorToBinary
@@ -444,5 +445,22 @@ class TestHistogramEqualization:
         assert result.shape == (64, 64, 4)
         assert result.dtype == np.uint8
         np.testing.assert_array_equal(result[:, :, :3], HistogramEqualization({}).compute(bgr))
+        np.testing.assert_array_equal(result[:, :, 3], alpha)
+        assert not np.array_equal(result[:, :, :3], bgr)
+
+
+class TestBrightnessAndContrast:
+    def test_bgra_adjusts_color_and_keeps_alpha(self):
+        rng = np.random.default_rng(42)
+        bgr = rng.integers(0, 256, (64, 64, 3), dtype=np.uint8)
+        alpha = rng.integers(0, 256, (64, 64), dtype=np.uint8)
+        bgra = np.dstack([bgr, alpha])
+        params = {"brightnessValue": 50, "contrastValue": 1.5}
+
+        result = BrightnessAndContrast(params).compute(bgra)
+
+        assert result.shape == (64, 64, 4)
+        assert result.dtype == np.uint8
+        np.testing.assert_array_equal(result[:, :, :3], BrightnessAndContrast(params).compute(bgr))
         np.testing.assert_array_equal(result[:, :, 3], alpha)
         assert not np.array_equal(result[:, :, :3], bgr)
