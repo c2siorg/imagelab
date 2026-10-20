@@ -172,6 +172,36 @@ def test_end_to_end_script_execution():
         assert saved_img.shape[:2] == (80, 80)
 
 
+def test_exported_sepia_matches_the_operator():
+    """The exported script must give the same image as the app for Sepia, with and without alpha."""
+    bgr = np.zeros((16, 16, 3), dtype=np.uint8)
+    bgr[:, :, 0] = np.arange(0, 256, 16, dtype=np.uint8)
+    bgr[:, :, 1] = 100
+    bgr[:, :, 2] = 30
+    bgra = np.dstack([bgr, np.full((16, 16), 128, dtype=np.uint8)])
+
+    for params in ({"intensity": 1.0}, {"intensity": 0.5}):
+        code, _ = export_pipeline_to_python([PipelineStep(type="augmentation_sepiafilter", params=params)], "Sepia")
+        for test_img in (bgr, bgra):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                script_path = os.path.join(tmpdir, "run_script.py")
+                input_path = os.path.join(tmpdir, "input.png")
+                output_path = os.path.join(tmpdir, "output.png")
+                cv2.imwrite(input_path, test_img)
+                with open(script_path, "w", encoding="utf-8") as f:
+                    f.write(code)
+
+                result = subprocess.run(
+                    [sys.executable, script_path, "--input", input_path, "--output", output_path],
+                    capture_output=True,
+                    text=True,
+                )
+                assert result.returncode == 0, f"Script failed: {result.stderr}"
+
+                expected = OPERATOR_REGISTRY["augmentation_sepiafilter"](params).compute(test_img)
+                np.testing.assert_array_equal(cv2.imread(output_path, cv2.IMREAD_UNCHANGED), expected)
+
+
 def test_api_export_python_pipeline_request(client):
     """Test POST /api/v1/pipeline/export-python with pipeline steps."""
     payload = {
