@@ -98,7 +98,7 @@ export default function Layout({ shareToken = null }: LayoutProps) {
               </div>
               <BottomPanel workspace={workspace} />
             </div>
-            <PreviewPane />
+            <PreviewPane workspace={workspace} />
           </div>
         </ErrorBoundary>
       </div>
