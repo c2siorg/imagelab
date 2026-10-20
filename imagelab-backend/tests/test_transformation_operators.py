@@ -140,3 +140,24 @@ class TestLaplacian:
         img = rng.integers(0, 256, (60, 120, 3), dtype=np.uint8)
         result = Laplacian({}).compute(img)
         assert result.shape == img.shape
+
+
+class TestTransformationLaplacianRegistry:
+    def test_block_uses_transformation_laplacian(self):
+        from app.operators.registry import get_operator
+
+        assert get_operator("transformation_laplacian") is Laplacian
+
+    def test_strong_edges_saturate_instead_of_wrapping(self):
+        from app.operators.registry import get_operator
+
+        img = np.zeros((40, 40), dtype=np.uint8)
+        img[:, 20:] = 255
+        result = get_operator("transformation_laplacian")({"ksize": "7", "ddepth": 6}).compute(img)
+        assert result[20, 17:23].min() == 255
+
+    def test_invalid_output_depth_is_rejected(self, color_image):
+        from app.operators.registry import get_operator
+
+        with pytest.raises(ValueError, match="Invalid ddepth"):
+            get_operator("transformation_laplacian")({"ddepth": 1}).compute(color_image)
