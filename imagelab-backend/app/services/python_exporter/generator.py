@@ -229,11 +229,21 @@ def _emit_steps(
                     f"{indent}        ({left_var}.shape[1], {left_var}.shape[0]),",
                     f"{indent}        interpolation=cv2.INTER_AREA,",
                     f"{indent}    )",
-                    f"{indent}if {left_var}.ndim != {right_var}.ndim:",
-                    f"{indent}    if {left_var}.ndim == 2 and {right_var}.ndim == 3:",
-                    f"{indent}        {right_var} = cv2.cvtColor({right_var}, cv2.COLOR_BGR2GRAY)",
-                    f"{indent}    elif {left_var}.ndim == 3 and {right_var}.ndim == 2:",
+                    f"{indent}_c_left = 1 if {left_var}.ndim == 2 else {left_var}.shape[2]",
+                    f"{indent}_c_right = 1 if {right_var}.ndim == 2 else {right_var}.shape[2]",
+                    f"{indent}if _c_left != _c_right:",
+                    f"{indent}    if _c_right == 1 and _c_left == 3:",
                     f"{indent}        {right_var} = cv2.cvtColor({right_var}, cv2.COLOR_GRAY2BGR)",
+                    f"{indent}    elif _c_right == 1 and _c_left == 4:",
+                    f"{indent}        {right_var} = cv2.cvtColor({right_var}, cv2.COLOR_GRAY2BGRA)",
+                    f"{indent}    elif _c_right == 3 and _c_left == 1:",
+                    f"{indent}        {right_var} = cv2.cvtColor({right_var}, cv2.COLOR_BGR2GRAY)",
+                    f"{indent}    elif _c_right == 3 and _c_left == 4:",
+                    f"{indent}        {right_var} = cv2.cvtColor({right_var}, cv2.COLOR_BGR2BGRA)",
+                    f"{indent}    elif _c_right == 4 and _c_left == 1:",
+                    f"{indent}        {right_var} = cv2.cvtColor({right_var}, cv2.COLOR_BGRA2GRAY)",
+                    f"{indent}    elif _c_right == 4 and _c_left == 3:",
+                    f"{indent}        {right_var} = cv2.cvtColor({right_var}, cv2.COLOR_BGRA2BGR)",
                     f"{indent}if {right_var}.dtype != {left_var}.dtype:",
                     f"{indent}    {right_var} = {right_var}.astype({left_var}.dtype)",
                     f"{indent}{var_name} = cv2.addWeighted({left_var}, {alpha}, {right_var}, {beta}, {gamma})",
@@ -252,6 +262,8 @@ def _emit_steps(
             metric_name = str(
                 step.params.get("metric") or step.params.get("condition_metric") or "mean_brightness"
             ).lower()
+            if metric_name not in {"mean_brightness", "width", "height"}:
+                metric_name = "mean_brightness"
             comparator_raw = str(step.params.get("comparator") or step.params.get("operator") or ">").strip()
             if comparator_raw == "=":
                 comparator = "=="

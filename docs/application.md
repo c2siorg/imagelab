@@ -52,3 +52,43 @@ Contours can be explained simply as a curve joining all the continuous points (a
 
 To get accurate results we need to use a binary image. So before finding contours, apply thresold or canny edge detection.
 
+<br>
+
+## 4. Interactive Region of Interest (ROI) & Visual Canvas Inspection
+
+ImageLab includes interactive canvas overlay tools directly in the preview pane, allowing you to visually crop regions, compare execution stages, and inspect pixel-level metrics without leaving the workflow:
+
+### Interactive ROI Selection & Block Synchronization
+
+When tuning operations like `Crop Image` or `Draw Rectangle`, guessing $(x, y, w, h)$ pixel coordinates manually is tedious and error-prone. The docked **ROI Tool** provides an interactive canvas overlay:
+
+- **Freeform & Constrained Aspect Ratios**: Draw bounding boxes freely or lock aspect ratios (`1:1`, `4:3`, `16:9`) for standard framing.
+- **Corner & Edge Transform Handles**: Scale, move, and reposition the bounding box across full-resolution image coordinate space.
+- **Statistical HUD**: Live floating overlay showing ROI dimensions (`W × H px`), origin `(X, Y)`, mean intensity ($\mu$), and standard deviation ($\sigma$).
+- **One-Click Sync**: Click **Apply to Block** to transfer exact coordinates directly into the selected `geometric_cropimage` or `drawingoperations_drawrectangle` block in the Blockly workspace.
+- **Clipboard Export**: Copy the bounding box coordinates directly with **Copy**.
+
+![ROI Crop Selection](./../assets/roi_crop_selection_preview.png)
+
+### Before / After Step Comparison Slider
+
+Compare the input or any previous pipeline step with your current output:
+
+- **Split Mode**: Interactive vertical wipe divider allowing side-by-side before/after comparison.
+- **Diff Mode**: Absolute difference heatmap highlighting exact pixel alterations introduced by the operator.
+- **Hold Mode**: Press-and-hold instant toggle between original and processed frames for rapid visual blink tests.
+- **Colormap & Fullscreen**: Inspect subtle contrast shifts with perceptual pseudocolor maps or view comparisons in fullscreen.
+
+![Interactive ROI with Image Analysis and Split View](./../assets/roi_analysis_split_preview.png)
+
+### Sub-Pixel Inspector & Neighborhood Loupe
+
+Hover over any region of the preview to examine high-precision pixel data:
+
+- **Magnified Loupe**: Displays a $5 \times 5$ pixel neighborhood grid centered around the cursor with contrasting boundary rings.
+- **Quantitative Metrics**: Instant readout of RGB channel values, ITU-R BT.601 perceptual luminance, and normalized coordinates.
+- **Seamless Docs Integration**: Explore theoretical formulations and parameter descriptions directly in the in-app Docs pane while verifying pixel values live.
+
+![Interactive ROI with In-App Documentation](./../assets/roi_docs_preview.png)
+
+
