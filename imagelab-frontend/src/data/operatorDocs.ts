@@ -50,12 +50,16 @@ export const operatorDocs: Record<string, OperatorDoc> = {
   },
   geometric_cropimage: {
     name: "Crop Image",
-    description: "Extracts a rectangular region of interest (ROI) from the image.",
+    description:
+      "Extracts a rectangular region of interest (ROI) from the image. You can also select and adjust the bounding box interactively on the preview canvas using the ROI tool in the preview toolbar, then click 'Apply to Block' to automatically populate these coordinate fields.",
     parameters: [
       { name: "X, Y", description: "Top-left coordinates for the crop area." },
       { name: "Width, Height", description: "Dimensions of the cropped bounding box." },
     ],
-    useCases: ["Isolating specific objects, removing image borders."],
+    useCases: [
+      "Isolating specific objects, removing image borders.",
+      "Visually drafting and refining bounding boxes with the interactive ROI preview tool.",
+    ],
   },
   geometric_rotateimage: {
     name: "Rotate Image",
@@ -208,12 +212,16 @@ export const operatorDocs: Record<string, OperatorDoc> = {
   },
   drawingoperations_drawrectangle: {
     name: "Draw Rectangle",
-    description: "Draws a simple, thick, or filled up-right rectangle.",
+    description:
+      "Draws a simple, thick, or filled up-right rectangle. You can interactively draft coordinates on the image canvas using the ROI selection tool in the preview toolbar and transfer coordinates directly into the block.",
     parameters: [
       { name: "Top-Left", description: "Starting corner coordinates." },
       { name: "Bottom-Right", description: "Opposite corner coordinates." },
     ],
-    useCases: ["Creating bounding boxes for detected objects."],
+    useCases: [
+      "Creating bounding boxes for detected objects.",
+      "Visual annotation and marking target regions using interactive canvas selection.",
+    ],
   },
 
   // --- Blurring ---
