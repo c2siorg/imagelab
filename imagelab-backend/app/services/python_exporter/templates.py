@@ -793,16 +793,28 @@ def _salt_pepper(params: dict, var: str) -> tuple[list[str], bool]:
 
 @register("augmentation_sepiafilter")
 def _sepia(params: dict, var: str) -> tuple[list[str], bool]:
+    # Same steps as the SepiaFilter operator: the matrix is in BGR order, the result is
+    # blended with the original by intensity, and the alpha channel is kept
+    intensity = max(0.0, min(1.0, safe_float(params.get("intensity", 1.0), 1.0)))
+    if intensity == 0.0:
+        return [f"{var} = {var}.copy()"], False
     code = [
-        f"if {var}.ndim == 2:",
+        "_sepia_alpha = None",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    _sepia_alpha = {var}[:, :, 3].copy()",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
+        f"elif {var}.ndim == 2:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
         "_sepia_matrix = np.array([",
-        "    [0.272, 0.534, 0.131],",
-        "    [0.349, 0.686, 0.168],",
-        "    [0.393, 0.769, 0.189]",
+        "    [0.131, 0.534, 0.272],",
+        "    [0.168, 0.686, 0.349],",
+        "    [0.189, 0.769, 0.393]",
         "], dtype=np.float32)",
-        f"{var} = cv2.transform({var}, _sepia_matrix)",
-        f"{var} = np.clip({var}, 0, 255).astype(np.uint8)",
+        f"_sepia_src = {var}.astype(np.float32)",
+        "_sepia = np.clip(cv2.transform(_sepia_src, _sepia_matrix), 0, 255)",
+        f"{var} = ((1.0 - {intensity}) * _sepia_src + {intensity} * _sepia).astype(np.uint8)",
+        "if _sepia_alpha is not None:",
+        f"    {var} = cv2.merge([{var}[:, :, 0], {var}[:, :, 1], {var}[:, :, 2], _sepia_alpha])",
     ]
     return code, True
 
