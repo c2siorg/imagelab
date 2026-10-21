@@ -119,6 +119,11 @@ def _get_bgr_color(params: dict, key: str = "rgbcolors_input", default: str = "#
         return hex_to_bgr(default)
 
 
+def _draw_color_line(color: tuple[int, int, int], var: str) -> str:
+    """Emit the draw color: opaque on images with an alpha channel, like hex_to_draw_color in the app."""
+    return f"_color = {color} + ((255,) if {var}.ndim == 3 and {var}.shape[2] == 4 else ())"
+
+
 # Template generator handlers
 OPERATOR_TEMPLATES: dict[str, Callable[[dict, str], tuple[list[str], bool]]] = {}
 
@@ -433,7 +438,8 @@ def _contours(params: dict, var: str) -> tuple[list[str], bool]:
         f"_contours, _ = cv2.findContours(_gray, {mode}, {method})",
         f"if {var}.ndim == 2:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
-        f"cv2.drawContours({var}, _contours, -1, {color}, {thickness})",
+        _draw_color_line(color, var),
+        f"cv2.drawContours({var}, _contours, -1, _color, {thickness})",
     ]
     return code, True
 
@@ -478,11 +484,12 @@ def _drawline(params: dict, var: str) -> tuple[list[str], bool]:
     x2 = safe_int(params.get("ending_point_x", 0), 0)
     y2 = safe_int(params.get("ending_point_y", 0), 0)
     color = _get_bgr_color(params)
-    thickness = safe_int(params.get("thickness", 2), 2)
+    thickness = max(1, safe_int(params.get("thickness", 2), 2))
     code = [
         f"if {var}.ndim == 2:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
-        f"cv2.line({var}, ({x1}, {y1}), ({x2}, {y2}), {color}, {thickness})",
+        _draw_color_line(color, var),
+        f"cv2.line({var}, ({x1}, {y1}), ({x2}, {y2}), _color, {thickness})",
     ]
     return code, False
 
@@ -491,13 +498,14 @@ def _drawline(params: dict, var: str) -> tuple[list[str], bool]:
 def _drawcircle(params: dict, var: str) -> tuple[list[str], bool]:
     cx = safe_int(params.get("center_point_x", 0), 0)
     cy = safe_int(params.get("center_point_y", 0), 0)
-    radius = safe_int(params.get("radius", 5), 5)
+    radius = max(0, safe_int(params.get("radius", 5), 5))
     color = _get_bgr_color(params)
     thickness = safe_int(params.get("thickness", 2), 2)
     code = [
         f"if {var}.ndim == 2:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
-        f"cv2.circle({var}, ({cx}, {cy}), {radius}, {color}, {thickness})",
+        _draw_color_line(color, var),
+        f"cv2.circle({var}, ({cx}, {cy}), {radius}, _color, {thickness})",
     ]
     return code, False
 
@@ -514,7 +522,8 @@ def _drawellipse(params: dict, var: str) -> tuple[list[str], bool]:
     code = [
         f"if {var}.ndim == 2:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
-        f"cv2.ellipse({var}, ({cx}, {cy}), ({width}, {height}), {angle}, 0, 360, {color}, {thickness})",
+        _draw_color_line(color, var),
+        f"cv2.ellipse({var}, ({cx}, {cy}), ({width}, {height}), {angle}, 0, 360, _color, {thickness})",
     ]
     return code, False
 
@@ -526,11 +535,12 @@ def _drawrect(params: dict, var: str) -> tuple[list[str], bool]:
     x2 = safe_int(params.get("ending_point_x", 0), 0)
     y2 = safe_int(params.get("ending_point_y", 0), 0)
     color = _get_bgr_color(params)
-    thickness = safe_int(params.get("thickness", 2), 2)
+    thickness = max(1, safe_int(params.get("thickness", 2), 2))
     code = [
         f"if {var}.ndim == 2:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
-        f"cv2.rectangle({var}, ({x1}, {y1}), ({x2}, {y2}), {color}, {thickness})",
+        _draw_color_line(color, var),
+        f"cv2.rectangle({var}, ({x1}, {y1}), ({x2}, {y2}), _color, {thickness})",
     ]
     return code, False
 
@@ -542,11 +552,12 @@ def _drawarrow(params: dict, var: str) -> tuple[list[str], bool]:
     x2 = safe_int(params.get("ending_point_x", 0), 0)
     y2 = safe_int(params.get("ending_point_y", 0), 0)
     color = _get_bgr_color(params)
-    thickness = safe_int(params.get("thickness", 2), 2)
+    thickness = max(1, safe_int(params.get("thickness", 2), 2))
     code = [
         f"if {var}.ndim == 2:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
-        f"cv2.arrowedLine({var}, ({x1}, {y1}), ({x2}, {y2}), {color}, {thickness})",
+        _draw_color_line(color, var),
+        f"cv2.arrowedLine({var}, ({x1}, {y1}), ({x2}, {y2}), _color, {thickness})",
     ]
     return code, False
 
@@ -555,14 +566,17 @@ def _drawarrow(params: dict, var: str) -> tuple[list[str], bool]:
 def _drawtext(params: dict, var: str) -> tuple[list[str], bool]:
     text = str(params.get("draw_text", "Image Lab"))
     x = safe_int(params.get("starting_point_x", 0), 0)
-    y = safe_int(params.get("starting_point_y", 50), 50)
-    scale = safe_float(params.get("scale", 1.0), 1.0)
+    scale = max(0.1, safe_float(params.get("scale", 1.0), 1.0))
     color = _get_bgr_color(params)
-    thickness = safe_int(params.get("thickness", 2), 2)
+    thickness = max(1, safe_int(params.get("thickness", 2), 2))
+    (_, text_height), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, scale, thickness)
+    y = safe_int(params.get("starting_point_y", text_height + baseline), text_height + baseline)
     code = [
         f"if {var}.ndim == 2:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
-        f"cv2.putText({var}, {text!r}, ({x}, {y}), cv2.FONT_HERSHEY_SIMPLEX, {scale}, {color}, {thickness})",
+        _draw_color_line(color, var),
+        f"cv2.putText({var}, {text!r}, ({x}, {y}), cv2.FONT_HERSHEY_SIMPLEX, {scale}, _color, {thickness}, "
+        "cv2.LINE_AA)",
     ]
     return code, False
 
