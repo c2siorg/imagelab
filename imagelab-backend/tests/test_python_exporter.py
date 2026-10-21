@@ -289,6 +289,45 @@ def test_all_62_operator_templates_individually_exercised():
             raise AssertionError(f"Operator {op_name} produced invalid Python code:\n{code}") from e
 
 
+def test_exported_operators_match_the_app():
+    """Exported scripts for these operators must give the same image as the app, for BGR, BGRA and gray input."""
+    cases = [
+        ("imageconversions_clahe", {"clipLimit": 3.0, "tileGridSizeX": 4, "tileGridSizeY": 6}),
+        ("filtering_gaborfilter", {"kernelSize": 21, "sigma": 5.0, "theta": 45, "lambda_": 10.0, "gamma": 0.5}),
+        ("sobelderivatives_soblederivate", {"type": "HORIZONTAL"}),
+        ("sobelderivatives_soblederivate", {"type": "VERTICAL"}),
+        ("sobelderivatives_soblederivate", {"type": "BOTH"}),
+        ("sobelderivatives_scharrderivate", {"type": "HORIZONTAL"}),
+        ("sobelderivatives_scharrderivate", {"type": "VERTICAL"}),
+        ("sobelderivatives_prewittoperator", {}),
+    ]
+    bgr = np.random.default_rng(1).integers(0, 256, (40, 48, 3), dtype=np.uint8)
+    cv2.circle(bgr, (24, 20), 10, (255, 255, 255), -1)
+    images = [bgr, np.dstack([bgr, np.full((40, 48), 90, dtype=np.uint8)]), cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)]
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        script_path = os.path.join(tmpdir, "run_script.py")
+        input_path = os.path.join(tmpdir, "input.png")
+        output_path = os.path.join(tmpdir, "output.png")
+        for op_type, params in cases:
+            code, _ = export_pipeline_to_python([PipelineStep(type=op_type, params=params)], op_type)
+            with open(script_path, "w", encoding="utf-8") as f:
+                f.write(code)
+            for test_img in images:
+                cv2.imwrite(input_path, test_img)
+                result = subprocess.run(
+                    [sys.executable, script_path, "--input", input_path, "--output", output_path],
+                    capture_output=True,
+                    text=True,
+                )
+                assert result.returncode == 0, f"{op_type} {params} script failed: {result.stderr}"
+
+                expected = OPERATOR_REGISTRY[op_type](dict(params)).compute(test_img.copy())
+                output = cv2.imread(output_path, cv2.IMREAD_UNCHANGED)
+                assert output.shape == expected.shape, f"{op_type} {params}: {output.shape} != {expected.shape}"
+                np.testing.assert_array_equal(output, expected, err_msg=f"{op_type} {params}")
+
+
 def test_hostile_filenames_prevent_code_injection():
     """Verify filenames with quotes, newlines, and Python statements do not inject code."""
     hostile_input = 'input.jpg"; import os; os.system("echo PWNED"); x="'
