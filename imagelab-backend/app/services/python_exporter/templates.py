@@ -220,19 +220,21 @@ def _hist_eq(params: dict, var: str) -> tuple[list[str], bool]:
 @register("imageconvertions_clahe")
 @register("imageconversions_clahe")
 def _clahe(params: dict, var: str) -> tuple[list[str], bool]:
+    # Same as the ClaheImage operator: colour images are equalized on the L channel of LAB
     clip_limit = safe_float(params.get("clipLimit"), 2.0)
     grid_x = safe_int(params.get("tileGridSizeX"), 8)
     grid_y = safe_int(params.get("tileGridSizeY"), 8)
     code = [
         f"_clahe = cv2.createCLAHE(clipLimit={clip_limit}, tileGridSize=({grid_x}, {grid_y}))",
-        f"if {var}.ndim == 2:",
-        f"    {var} = _clahe.apply({var})",
-        f"elif {var}.ndim == 3 and {var}.shape[2] in (3, 4):",
-        f"    _ycrcb = cv2.cvtColor({var}, cv2.COLOR_BGR2YCrCb if {var}.shape[2] == 3 else cv2.COLOR_BGRA2YCrCb)",
-        "    _ycrcb[:, :, 0] = _clahe.apply(_ycrcb[:, :, 0])",
-        f"    {var} = cv2.cvtColor(_ycrcb, cv2.COLOR_YCrCb2BGR if {var}.shape[2] == 3 else cv2.COLOR_YCrCb2BGRA)",
+        f"if {var}.ndim == 3 and {var}.shape[2] in (3, 4):",
+        f"    _lab = cv2.cvtColor(np.ascontiguousarray({var}[:, :, :3]), cv2.COLOR_BGR2LAB)",
+        "    _lab[:, :, 0] = _clahe.apply(_lab[:, :, 0])",
+        "    _bgr = cv2.cvtColor(_lab, cv2.COLOR_LAB2BGR)",
+        f"    {var} = np.dstack([_bgr, {var}[:, :, 3]]) if {var}.shape[2] == 4 else _bgr",
+        "else:",
+        f"    {var} = _clahe.apply({var}[:, :, 0] if {var}.ndim == 3 else {var})",
     ]
-    return code, False
+    return code, True
 
 
 @register("imageconvertions_channelsplit")
@@ -402,15 +404,32 @@ def _sharpen(params: dict, var: str) -> tuple[list[str], bool]:
 
 @register("filtering_gaborfilter")
 def _gabor(params: dict, var: str) -> tuple[list[str], bool]:
-    ksize = safe_int(params.get("kernelSize", 21), 21)
-    sigma = safe_float(params.get("sigma", 5.0), 5.0)
+    # Same as the GaborFilter operator: theta is in degrees, the filter runs on the grayscale
+    # image, and the absolute response is normalized to 0-255
+    ksize = max(1, min(safe_int(params.get("kernelSize", 21), 21), 31))
+    if ksize % 2 == 0:
+        ksize = max(1, ksize - 1)
+    sigma = max(0.1, safe_float(params.get("sigma", 5.0), 5.0))
     theta = safe_float(params.get("theta", 0.0), 0.0)
-    lambd = safe_float(params.get("lambda_", 10.0), 10.0)
-    gamma = safe_float(params.get("gamma", 0.5), 0.5)
+    lambd = max(1.0, safe_float(params.get("lambda_", 10.0), 10.0))
+    gamma = max(0.01, safe_float(params.get("gamma", 0.5), 0.5))
     code = [
-        f"_gabor = cv2.getGaborKernel(({ksize}, {ksize}), {sigma}, {theta}, {lambd}, {gamma}, 0, ktype=cv2.CV_32F)",
-        f"_filtered = cv2.filter2D({var}, cv2.CV_32F, _gabor)",
-        f"{var} = np.clip(_filtered, 0, 255).astype(np.uint8)",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
+        f"_h, _w = {var}.shape[:2]",
+        "_scale = min(800 / _w, 800 / _h, 1.0)",
+        f"_work = {var}",
+        "if _scale < 1.0:",
+        f"    _work = cv2.resize({var}, (max(1, int(_w * _scale)), max(1, int(_h * _scale))), "
+        "interpolation=cv2.INTER_AREA)",
+        f"_gabor = cv2.getGaborKernel(({ksize}, {ksize}), {sigma}, np.deg2rad({theta}), {lambd}, {gamma}, "
+        "psi=0, ktype=cv2.CV_32F)",
+        "_gray = cv2.cvtColor(_work, cv2.COLOR_BGR2GRAY) if _work.ndim == 3 else _work",
+        "_filtered = cv2.filter2D(_gray.astype(np.float32), cv2.CV_32F, _gabor)",
+        "_gabor_out = cv2.normalize(np.abs(_filtered), None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)",
+        f"{var} = cv2.cvtColor(_gabor_out, cv2.COLOR_GRAY2BGR)",
+        "if _scale < 1.0:",
+        f"    {var} = cv2.resize({var}, (_w, _h), interpolation=cv2.INTER_LINEAR)",
     ]
     return code, True
 
@@ -692,29 +711,55 @@ def _border_each(params: dict, var: str) -> tuple[list[str], bool]:
 # ── Sobel Derivatives & Laplacian ─────────────────────────────────────────────
 @register("sobelderivatives_soblederivate")
 def _sobel(params: dict, var: str) -> tuple[list[str], bool]:
-    ddepth = safe_int(params.get("ddepth", cv2.CV_64F), cv2.CV_64F)
+    # Same as the SobelDerivative operator: grayscale input, uint8 output via convertScaleAbs
+    ddepth = safe_int(params.get("ddepth", 0), 0) or cv2.CV_64F
     direction = str(params.get("type", "HORIZONTAL")).upper()
-    dx, dy = (1, 0) if direction == "HORIZONTAL" else (0, 1)
-    ksize = safe_int(params.get("ksize", 3), 3)
-    return [f"{var} = cv2.Sobel({var}, {ddepth}, {dx}, {dy}, ksize={ksize})"], False
+    code = [
+        f"if {var}.ndim == 3:",
+        f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY)",
+        "else:",
+        f"    _gray = {var}",
+    ]
+    if direction == "HORIZONTAL":
+        code.append(f"{var} = cv2.convertScaleAbs(cv2.Sobel(_gray, {ddepth}, 1, 0))")
+    elif direction == "VERTICAL":
+        code.append(f"{var} = cv2.convertScaleAbs(cv2.Sobel(_gray, {ddepth}, 0, 1))")
+    else:
+        code.append(
+            f"{var} = cv2.convertScaleAbs(np.hypot(cv2.Sobel(_gray, {ddepth}, 1, 0), cv2.Sobel(_gray, {ddepth}, 0, 1)))"
+        )
+    return code, True
 
 
 @register("sobelderivatives_scharrderivate")
 def _scharr(params: dict, var: str) -> tuple[list[str], bool]:
-    ddepth = safe_int(params.get("ddepth", cv2.CV_64F), cv2.CV_64F)
+    # Same as the ScharrDerivative operator: grayscale input, uint8 output via convertScaleAbs
+    ddepth = safe_int(params.get("ddepth", 0), 0) or cv2.CV_64F
     direction = str(params.get("type", "HORIZONTAL")).upper()
     dx, dy = (1, 0) if direction == "HORIZONTAL" else (0, 1)
-    return [f"{var} = cv2.Scharr({var}, {ddepth}, {dx}, {dy})"], False
+    code = [
+        f"if {var}.ndim == 3:",
+        f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY)",
+        "else:",
+        f"    _gray = {var}",
+        f"{var} = cv2.convertScaleAbs(cv2.Scharr(_gray, {ddepth}, {dx}, {dy}))",
+    ]
+    return code, False
 
 
 @register("sobelderivatives_prewittoperator")
 def _prewitt(params: dict, var: str) -> tuple[list[str], bool]:
+    # Same as the PrewittOperator: grayscale input, magnitude clipped to 0-255
     code = [
-        "_kx = np.array([[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]], dtype=np.float32)",
-        "_ky = np.array([[-1, -1, -1], [0, 0, 0], [1, 1, 1]], dtype=np.float32)",
-        f"_gx = cv2.filter2D({var}, cv2.CV_32F, _kx)",
-        f"_gy = cv2.filter2D({var}, cv2.CV_32F, _ky)",
-        f"{var} = cv2.convertScaleAbs(cv2.magnitude(_gx, _gy))",
+        f"if {var}.ndim == 3:",
+        f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY)",
+        "else:",
+        f"    _gray = {var}",
+        "_kx = np.array([[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]], dtype=np.float64)",
+        "_ky = np.array([[-1, -1, -1], [0, 0, 0], [1, 1, 1]], dtype=np.float64)",
+        "_gx = cv2.filter2D(_gray, cv2.CV_64F, _kx)",
+        "_gy = cv2.filter2D(_gray, cv2.CV_64F, _ky)",
+        f"{var} = np.minimum(np.hypot(_gx, _gy), 255).astype(np.uint8)",
     ]
     return code, True
 
