@@ -272,6 +272,51 @@ def test_resilient_hex_color_handling():
     ast.parse(code_invalid)
 
 
+def test_exported_drawing_matches_the_app():
+    """Exported drawing and contour steps must give the same image as the app, including on images with alpha."""
+    color = {"rgbcolors_input": "#2828cc", "thickness": 2}
+    cases = [
+        ("drawingoperations_drawline", {**color, "starting_point_x1": 2, "starting_point_y1": 3, "ending_point_x": 40}),
+        (
+            "drawingoperations_drawarrowline",
+            {**color, "starting_point_x": 5, "ending_point_x": 40, "ending_point_y": 30},
+        ),
+        ("drawingoperations_drawcircle", {**color, "radius": 10, "center_point_x": 24, "center_point_y": 20}),
+        ("drawingoperations_drawellipse", {**color, "width": 15, "height": 8, "angle": 30, "center_point_x": 24}),
+        (
+            "drawingoperations_drawrectangle",
+            {**color, "starting_point_x": 4, "ending_point_x": 30, "ending_point_y": 25},
+        ),
+        ("drawingoperations_drawtext", {**color, "draw_text": "Lab", "scale": 1, "starting_point_y": 30}),
+        ("filtering_contourdetection", {"rgbcolors_input": "#00ff00", "thickness": 2, "mode": "TREE"}),
+    ]
+    bgr = np.zeros((40, 48, 3), dtype=np.uint8)
+    cv2.rectangle(bgr, (10, 10), (30, 30), (200, 150, 100), -1)
+    images = [bgr, np.dstack([bgr, np.full((40, 48), 90, dtype=np.uint8)]), cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)]
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        script_path = os.path.join(tmpdir, "run_script.py")
+        input_path = os.path.join(tmpdir, "input.png")
+        output_path = os.path.join(tmpdir, "output.png")
+        for op_type, params in cases:
+            code, _ = export_pipeline_to_python([PipelineStep(type=op_type, params=params)], op_type)
+            with open(script_path, "w", encoding="utf-8") as f:
+                f.write(code)
+            for test_img in images:
+                cv2.imwrite(input_path, test_img)
+                result = subprocess.run(
+                    [sys.executable, script_path, "--input", input_path, "--output", output_path],
+                    capture_output=True,
+                    text=True,
+                )
+                assert result.returncode == 0, f"{op_type} script failed: {result.stderr}"
+
+                expected = OPERATOR_REGISTRY[op_type](dict(params)).compute(test_img.copy())
+                np.testing.assert_array_equal(
+                    cv2.imread(output_path, cv2.IMREAD_UNCHANGED), expected, err_msg=f"{op_type} {test_img.shape}"
+                )
+
+
 def test_all_62_operator_templates_individually_exercised():
     """Verify each registered operator template in OPERATOR_TEMPLATES individually generates valid Python AST."""
     from app.services.python_exporter.templates import OPERATOR_TEMPLATES
