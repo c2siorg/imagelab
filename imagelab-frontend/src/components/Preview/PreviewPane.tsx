@@ -1,8 +1,24 @@
 import { useRef, useState } from "react";
-import { Camera, Image, ImageDown, Timer, Trash2, Upload, ZoomIn, ZoomOut } from "lucide-react";
+import type * as Blockly from "blockly";
+import {
+  Camera,
+  Crop,
+  Crosshair,
+  Image,
+  ImageDown,
+  SplitSquareHorizontal,
+  Timer,
+  Trash2,
+  Upload,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 import { usePipelineStore } from "../../store/pipelineStore";
 import { getImageFormatFromMimeType } from "../../utils/imageData";
-import ImageDisplay from "./ImageDisplay";
+import CanvasRoiAnnotator from "./CanvasRoiAnnotator";
+import ImageComparisonModal from "./ImageComparisonModal";
+import ImageComparisonSlider from "./ImageComparisonSlider";
+import PixelInspectorOverlay from "./PixelInspectorOverlay";
 
 function ZoomControls({
   disabled,
@@ -35,17 +51,23 @@ function ZoomControls({
   );
 }
 
-// Operator types follow 'category_operationName' convention; strip the category prefix for display.
 function getStepLabel(operatorType: string): string {
   const underscoreIndex = operatorType.indexOf("_");
   return underscoreIndex !== -1 ? operatorType.slice(underscoreIndex + 1) : operatorType;
 }
 
-export default function PreviewPane() {
+export interface PreviewPaneProps {
+  workspace?: Blockly.WorkspaceSvg | null;
+}
+
+export default function PreviewPane({ workspace = null }: PreviewPaneProps) {
   const {
     originalImage,
     imageFormat,
     processedImage,
+    activeStepImage,
+    activeStepIndex,
+    isInspectingStep,
     error,
     errorStep,
     clearImage,
@@ -54,9 +76,20 @@ export default function PreviewPane() {
     setOriginalImage,
     openCameraModal,
   } = usePipelineStore();
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isRoiActive, setIsRoiActive] = useState<boolean>(false);
+  const [isCompareActive, setIsCompareActive] = useState<boolean>(false);
+  const [isComparisonModalOpen, setIsComparisonModalOpen] = useState<boolean>(false);
+  const [isInspectorActive, setIsInspectorActive] = useState<boolean>(false);
+
   const [originalZoom, setOriginalZoom] = useState<number | null>(null);
   const [processedZoom, setProcessedZoom] = useState<number | null>(null);
+
+  const originalContainerRef = useRef<HTMLDivElement | null>(null);
+  const originalImageRef = useRef<HTMLImageElement | null>(null);
+  const processedContainerRef = useRef<HTMLDivElement | null>(null);
+  const processedImageRef = useRef<HTMLImageElement | null>(null);
 
   const zoomIn = (setter: React.Dispatch<React.SetStateAction<number | null>>) => () =>
     setter((prev) => Math.min((prev ?? 300) + 100, 2500));
@@ -86,59 +119,100 @@ export default function PreviewPane() {
     });
   };
 
+  const originalSrc = originalImage ? `data:image/${imageFormat};base64,${originalImage}` : "";
+  const targetImage = isInspectingStep && activeStepImage ? activeStepImage : processedImage;
+  const processedSrc = targetImage ? `data:image/${imageFormat};base64,${targetImage}` : "";
+  const processedLabel =
+    isInspectingStep && activeStepIndex !== null ? `Step ${activeStepIndex}` : "Processed";
+
   return (
     <div className="w-80 h-full bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0">
-      {/* Original image — top half */}
+      {/* Original Image Card — Top Half */}
       <div className="flex-1 flex flex-col min-h-0 border-b border-gray-200 dark:border-gray-700">
-        <div className="px-3 py-1.5 border-b border-gray-200 dark:border-gray-700 flex items-center gap-1.5">
-          <Image size={14} className="text-gray-400" />
-          <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            Original
-          </h2>
-          {isReadOnly && (
-            <div className="ml-auto flex items-center gap-1">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileUpload}
-                aria-label="Upload image file"
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="p-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-gray-400 hover:text-indigo-500 transition-colors"
-                title="Upload image"
-                aria-label="Upload image"
-              >
-                <Upload size={14} />
-              </button>
-              <button
-                type="button"
-                onClick={handleCameraOpen}
-                className="p-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-gray-400 hover:text-indigo-500 transition-colors"
-                title="Capture image"
-                aria-label="Capture image"
-              >
-                <Camera size={14} />
-              </button>
-            </div>
-          )}
-          {originalImage && (
+        <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-1.5">
+            <Image size={14} className="text-gray-400" />
+            <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Original
+            </h2>
+          </div>
+          <div className="flex items-center gap-1">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept="image/*"
+              className="hidden"
+            />
+            <button
+              onClick={handleCameraOpen}
+              className="p-1 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+              title="Capture from camera"
+            >
+              <Camera size={14} />
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="p-1 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+              title="Upload image"
+            >
+              <Upload size={14} />
+            </button>
+            <button
+              onClick={() => setIsRoiActive((prev) => !prev)}
+              disabled={!originalImage}
+              className={`p-1 rounded cursor-pointer transition-colors ${
+                isRoiActive
+                  ? "bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 ring-1 ring-indigo-500/30"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              } disabled:opacity-40 disabled:cursor-not-allowed`}
+              title="Interactive Canvas ROI Tool (Crop / Bounding Box)"
+            >
+              <Crop size={14} />
+            </button>
             <button
               onClick={clearImage}
-              className={`${isReadOnly ? "" : "ml-auto"} p-1 rounded cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-colors`}
-              title="Remove image"
-              aria-label="Remove image"
+              disabled={!originalImage || isReadOnly}
+              className="p-1 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Clear image"
             >
               <Trash2 size={14} />
             </button>
-          )}
+          </div>
         </div>
-        <div className="flex-1 flex items-center justify-center p-3 bg-gray-50 dark:bg-gray-900 overflow-auto">
+
+        <div
+          ref={originalContainerRef}
+          className="flex-1 relative flex items-center justify-center p-3 bg-gray-50 dark:bg-gray-900 overflow-hidden"
+        >
           {originalImage ? (
-            <ImageDisplay image={originalImage} format={imageFormat} zoomWidth={originalZoom} />
+            isRoiActive ? (
+              <CanvasRoiAnnotator
+                imageSrc={originalSrc}
+                workspace={workspace}
+                onClose={() => setIsRoiActive(false)}
+              />
+            ) : (
+              <>
+                <img
+                  ref={originalImageRef}
+                  src={originalSrc}
+                  alt="Original"
+                  className={
+                    originalZoom
+                      ? "cursor-zoom-in"
+                      : "max-w-full max-h-full object-contain cursor-zoom-in hover:opacity-95 transition-opacity"
+                  }
+                  style={originalZoom ? { width: `${originalZoom}px` } : undefined}
+                />
+                <PixelInspectorOverlay
+                  imageRef={originalImageRef}
+                  containerRef={originalContainerRef}
+                  active={isInspectorActive}
+                  imageSrc={originalSrc}
+                />
+              </>
+            )
           ) : (
             <p className="text-sm text-center text-gray-500 dark:text-gray-400">
               Drag a Read Image block from the Basic category of the Blocks panel, then click its
@@ -146,6 +220,7 @@ export default function PreviewPane() {
             </p>
           )}
         </div>
+
         <ZoomControls
           disabled={!originalImage}
           onZoomIn={zoomIn(setOriginalZoom)}
@@ -153,13 +228,13 @@ export default function PreviewPane() {
         />
       </div>
 
-      {/* Processed image — bottom half */}
+      {/* Processed Image Card — Bottom Half */}
       <div className="flex-1 flex flex-col min-h-0">
         <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-1.5">
             <ImageDown size={14} className="text-gray-400" />
             <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Processed
+              {processedLabel}
             </h2>
             {timings && !error && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-[11px] font-medium text-green-700 dark:text-green-400 ml-1 mt-[-1px]">
@@ -174,10 +249,70 @@ export default function PreviewPane() {
               </span>
             )}
           </div>
+
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setIsCompareActive((prev) => !prev)}
+              disabled={!originalImage || !targetImage}
+              className={`p-1 rounded cursor-pointer transition-colors ${
+                isCompareActive
+                  ? "bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 ring-1 ring-indigo-500/30"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              } disabled:opacity-40 disabled:cursor-not-allowed`}
+              title="Inline Before/After Split Comparison & Difference Heatmap"
+            >
+              <SplitSquareHorizontal size={14} />
+            </button>
+            <button
+              onClick={() => setIsInspectorActive((prev) => !prev)}
+              disabled={!targetImage}
+              className={`p-1 rounded cursor-pointer transition-colors ${
+                isInspectorActive
+                  ? "bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 ring-1 ring-indigo-500/30"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              } disabled:opacity-40 disabled:cursor-not-allowed`}
+              title="Pixel Inspector & 5x5 Neighborhood Grid"
+            >
+              <Crosshair size={14} />
+            </button>
+          </div>
         </div>
-        <div className="flex-1 flex items-center justify-center p-3 bg-gray-50 dark:bg-gray-900 overflow-auto">
-          {processedImage ? (
-            <ImageDisplay image={processedImage} format={imageFormat} zoomWidth={processedZoom} />
+
+        <div
+          ref={processedContainerRef}
+          className="flex-1 relative flex items-center justify-center p-3 bg-gray-50 dark:bg-gray-900 overflow-hidden"
+        >
+          {targetImage ? (
+            isCompareActive && originalSrc ? (
+              <ImageComparisonSlider
+                originalSrc={originalSrc}
+                processedSrc={processedSrc}
+                originalLabel="Original"
+                processedLabel={processedLabel}
+                onExpand={() => setIsComparisonModalOpen(true)}
+                onClose={() => setIsCompareActive(false)}
+              />
+            ) : (
+              <>
+                <img
+                  ref={processedImageRef}
+                  src={processedSrc}
+                  alt={processedLabel}
+                  className={
+                    processedZoom
+                      ? "cursor-zoom-in"
+                      : "max-w-full max-h-full object-contain cursor-zoom-in hover:opacity-95 transition-opacity"
+                  }
+                  style={processedZoom ? { width: `${processedZoom}px` } : undefined}
+                />
+                <PixelInspectorOverlay
+                  imageRef={processedImageRef}
+                  containerRef={processedContainerRef}
+                  active={isInspectorActive}
+                  imageSrc={processedSrc}
+                />
+              </>
+            )
           ) : (
             <p className="text-sm text-center text-gray-500 dark:text-gray-400">
               {originalImage
@@ -186,6 +321,7 @@ export default function PreviewPane() {
             </p>
           )}
         </div>
+
         {error && (
           <div className="px-3 py-2 bg-red-50 dark:bg-red-900/30 border-t border-red-200 dark:border-red-800">
             <p className="text-xs text-red-600 dark:text-red-400 font-semibold mb-0.5">
@@ -194,6 +330,7 @@ export default function PreviewPane() {
             <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
           </div>
         )}
+
         {timings && timings.steps.length > 0 && (
           <div className="px-3 py-2 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
             <details className="group">
@@ -234,12 +371,24 @@ export default function PreviewPane() {
             </details>
           </div>
         )}
+
         <ZoomControls
-          disabled={!processedImage}
+          disabled={!targetImage}
           onZoomIn={zoomIn(setProcessedZoom)}
           onZoomOut={zoomOut(setProcessedZoom)}
         />
       </div>
+
+      {isComparisonModalOpen && originalSrc && processedSrc && (
+        <ImageComparisonModal
+          isOpen={isComparisonModalOpen}
+          onClose={() => setIsComparisonModalOpen(false)}
+          originalSrc={originalSrc}
+          processedSrc={processedSrc}
+          originalLabel="Original"
+          processedLabel={processedLabel}
+        />
+      )}
     </div>
   );
 }
