@@ -63,12 +63,12 @@ def create_execution(request: PipelineRequest, session: SessionDep):
             status_code=200,
             content={
                 "success": False,
-                "execution_id": "",
+                "execution_id": e.execution_id,
                 "error": e.user_friendly_message,
-                "step": 0,
+                "step": e.step,
                 "error_block_id": e.step_id,
                 "timings": {"total_ms": 0, "steps": []},
-                "step_results": [],
+                "step_results": [result.model_dump() for result in e.step_results],
             },
         )
     except ValueError as e:

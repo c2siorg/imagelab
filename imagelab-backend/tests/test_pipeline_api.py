@@ -96,6 +96,20 @@ def test_error_response_has_step(client, png_b64):
     assert isinstance(data["step"], int)
 
 
+def test_invalid_param_error_reports_failing_step_and_earlier_results(client, png_b64):
+    median_step = {"type": "blurring_applymedianblur", "block_id": "median-block", "params": {"kernelSize": 1}}
+    r = post(client, png_b64, [GRAY_STEP_WITH_ID, median_step])
+    assert r.status_code == 200
+    data = r.json()
+    assert data["success"] is False
+    assert data["step"] == 2
+    assert data["error_block_id"] == "median-block"
+    assert data["execution_id"]
+    assert [result["block_id"] for result in data["step_results"]] == ["gray-block", "median-block"]
+    assert data["step_results"][0]["success"] is True
+    assert data["step_results"][1]["success"] is False
+
+
 def test_execution_inspect_returns_full_image_and_analysis(client, png_b64):
     r = client.post(
         "/api/v1/pipeline/executions",

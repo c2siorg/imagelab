@@ -18,10 +18,21 @@ class AppException(Exception):
 class PipelineExecutionError(Exception):
     """Structured error for pipeline step execution failures."""
 
-    def __init__(self, step_id: str, step_type: str, user_friendly_message: str):
+    def __init__(
+        self,
+        step_id: str,
+        step_type: str,
+        user_friendly_message: str,
+        step: int | None = None,
+        execution_id: str = "",
+        step_results: list | None = None,
+    ):
         self.step_id = step_id
         self.step_type = step_type
         self.user_friendly_message = user_friendly_message
+        self.step = step
+        self.execution_id = execution_id
+        self.step_results = step_results or []
         super().__init__(user_friendly_message)
 
 
