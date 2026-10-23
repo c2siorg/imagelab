@@ -156,43 +156,101 @@ def _grayimage(params: dict, var: str) -> tuple[list[str], bool]:
 @register("imageconvertions_bgrtohsv")
 @register("imageconversions_bgrtohsv")
 def _bgrtohsv(params: dict, var: str) -> tuple[list[str], bool]:
-    return [f"{var} = cv2.cvtColor({var}, cv2.COLOR_BGR2HSV)"], False
+    # Mirrors BgrToHsv: gray input goes to BGR first, alpha is dropped for BGRA
+    code = [
+        f"if {var}.ndim == 2:",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
+        f"{var} = cv2.cvtColor({var}, cv2.COLOR_BGR2HSV)",
+    ]
+    return code, False
 
 
 @register("imageconvertions_hsvtobgr")
 @register("imageconversions_hsvtobgr")
 def _hsvtobgr(params: dict, var: str) -> tuple[list[str], bool]:
-    return [f"{var} = cv2.cvtColor({var}, cv2.COLOR_HSV2BGR)"], False
+    # Mirrors HsvToBgr: gray input is only up-converted to BGR, alpha is dropped for BGRA
+    code = [
+        f"if {var}.ndim == 2:",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        "else:",
+        f"    if {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"        {var} = {var}[:, :, :3]",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_HSV2BGR)",
+    ]
+    return code, False
 
 
 @register("imageconvertions_bgrtolab")
 @register("imageconversions_bgrtolab")
 def _bgrtolab(params: dict, var: str) -> tuple[list[str], bool]:
-    return [f"{var} = cv2.cvtColor({var}, cv2.COLOR_BGR2Lab)"], False
+    # Mirrors BgrToLab: gray input goes to BGR first, alpha is dropped for BGRA
+    code = [
+        f"if {var}.ndim == 2:",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
+        f"{var} = cv2.cvtColor({var}, cv2.COLOR_BGR2LAB)",
+    ]
+    return code, False
 
 
 @register("imageconvertions_labtobgr")
 @register("imageconversions_labtobgr")
 def _labtobgr(params: dict, var: str) -> tuple[list[str], bool]:
-    return [f"{var} = cv2.cvtColor({var}, cv2.COLOR_Lab2BGR)"], False
+    # Mirrors LabToBgr: gray input is only up-converted to BGR, alpha is dropped for BGRA
+    code = [
+        f"if {var}.ndim == 2:",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        "else:",
+        f"    if {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"        {var} = {var}[:, :, :3]",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_Lab2BGR)",
+    ]
+    return code, False
 
 
 @register("imageconvertions_bgrtoycrcb")
 @register("imageconversions_bgrtoycrcb")
 def _bgrtoycrcb(params: dict, var: str) -> tuple[list[str], bool]:
-    return [f"{var} = cv2.cvtColor({var}, cv2.COLOR_BGR2YCrCb)"], False
+    # Mirrors BgrToYcrcb: gray input goes to BGR first, alpha is dropped for BGRA
+    code = [
+        f"if {var}.ndim == 2:",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
+        f"{var} = cv2.cvtColor({var}, cv2.COLOR_BGR2YCrCb)",
+    ]
+    return code, False
 
 
 @register("imageconvertions_ycrcbtobgr")
 @register("imageconversions_ycrcbtobgr")
 def _ycrcbtobgr(params: dict, var: str) -> tuple[list[str], bool]:
-    return [f"{var} = cv2.cvtColor({var}, cv2.COLOR_YCrCb2BGR)"], False
+    # Mirrors YcrcbToBgr: gray input is only up-converted to BGR, alpha is dropped for BGRA
+    code = [
+        f"if {var}.ndim == 2:",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        "else:",
+        f"    if {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"        {var} = {var}[:, :, :3]",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_YCrCb2BGR)",
+    ]
+    return code, False
 
 
 @register("imageconvertions_invertimage")
 @register("imageconversions_invertimage")
 def _invertimage(params: dict, var: str) -> tuple[list[str], bool]:
-    return [f"{var} = cv2.bitwise_not({var})"], False
+    # For BGRA the app preserves the alpha channel and inverts only BGR
+    code = [
+        f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    {var} = np.concatenate([cv2.bitwise_not({var}[:, :, :3]), {var}[:, :, 3:4]], axis=2)",
+        "else:",
+        f"    {var} = cv2.bitwise_not({var})",
+    ]
+    return code, True
 
 
 @register("imageconvertions_brightnessandcontrast")
@@ -206,15 +264,21 @@ def _brightness_contrast(params: dict, var: str) -> tuple[list[str], bool]:
 @register("imageconvertions_histogramequalization")
 @register("imageconversions_histogramequalization")
 def _hist_eq(params: dict, var: str) -> tuple[list[str], bool]:
+    # Mirrors HistogramEqualization: BGRA keeps alpha untouched
     code = [
+        f"{var}_alpha = {var}[:, :, 3] if {var}.ndim == 3 and {var}.shape[2] == 4 else None",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    {var} = {var}[:, :, :3]",
         f"if {var}.ndim == 2:",
         f"    {var} = cv2.equalizeHist({var})",
-        f"elif {var}.ndim == 3 and {var}.shape[2] in (3, 4):",
-        f"    _ycrcb = cv2.cvtColor({var}, cv2.COLOR_BGR2YCrCb if {var}.shape[2] == 3 else cv2.COLOR_BGRA2YCrCb)",
+        f"elif {var}.ndim == 3:",
+        f"    _ycrcb = cv2.cvtColor({var}, cv2.COLOR_BGR2YCrCb)",
         "    _ycrcb[:, :, 0] = cv2.equalizeHist(_ycrcb[:, :, 0])",
-        f"    {var} = cv2.cvtColor(_ycrcb, cv2.COLOR_YCrCb2BGR if {var}.shape[2] == 3 else cv2.COLOR_YCrCb2BGRA)",
+        f"    {var} = cv2.cvtColor(_ycrcb, cv2.COLOR_YCrCb2BGR)",
+        f"if {var}_alpha is not None:",
+        f"    {var} = np.dstack([{var}, {var}_alpha])",
     ]
-    return code, False
+    return code, True
 
 
 @register("imageconvertions_clahe")
@@ -252,7 +316,15 @@ def _channel_split(params: dict, var: str) -> tuple[list[str], bool]:
 def _colormaps(params: dict, var: str) -> tuple[list[str], bool]:
     cm_name = str(params.get("type", "HOT")).upper()
     cm_const = COLORMAP_MAP.get(cm_name, "cv2.COLORMAP_HOT")
-    return [f"{var} = cv2.applyColorMap({var}, {cm_const})"], False
+    # Mirrors ColorMaps: any color input is reduced to grayscale before the colormap
+    code = [
+        f"if {var}.ndim == 3:",
+        f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGRA2GRAY if {var}.shape[2] == 4 else cv2.COLOR_BGR2GRAY)",
+        "else:",
+        f"    _gray = {var}",
+        f"{var} = cv2.applyColorMap(_gray, {cm_const})",
+    ]
+    return code, False
 
 
 @register("imageconvertions_graytobinary")
@@ -316,7 +388,13 @@ def _bilateral(params: dict, var: str) -> tuple[list[str], bool]:
     d = safe_int(params.get("filterSize", 5), 5)
     sigma_c = safe_float(params.get("sigmaColor", 75), 75.0)
     sigma_s = safe_float(params.get("sigmaSpace", 75), 75.0)
-    return [f"{var} = cv2.bilateralFilter({var}, {d}, {sigma_c}, {sigma_s})"], False
+    # Mirrors BilateralFilter: BGRA input is converted to BGR first
+    code = [
+        f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
+        f"{var} = cv2.bilateralFilter({var}, {d}, {sigma_c}, {sigma_s})",
+    ]
+    return code, False
 
 
 @register("filtering_boxfilter")
@@ -373,10 +451,17 @@ def _morph(params: dict, var: str) -> tuple[list[str], bool]:
     op = MORPH_OP_MAP.get(morph_name, "cv2.MORPH_TOPHAT")
     ksize = safe_int(params.get("kernelSize", 5), 5)
     iters = safe_int(params.get("iteration", 1), 1)
-    code = [
-        f"_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, ({ksize}, {ksize}))",
-        f"{var} = cv2.morphologyEx({var}, {op}, _kernel, iterations={iters})",
-    ]
+    code = []
+    # Mirrors Morphological: Tophat / Gradient / Blackhat drop alpha first
+    if morph_name in ("GRADIENT", "TOPHAT", "BLACKHAT"):
+        code.append(f"if {var}.ndim == 3 and {var}.shape[2] == 4:")
+        code.append(f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)")
+    code.extend(
+        [
+            f"_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, ({ksize}, {ksize}))",
+            f"{var} = cv2.morphologyEx({var}, {op}, _kernel, iterations={iters})",
+        ]
+    )
     return code, False
 
 
@@ -393,9 +478,17 @@ def _pyrup(params: dict, var: str) -> tuple[list[str], bool]:
 @register("filtering_sharpen")
 def _sharpen(params: dict, var: str) -> tuple[list[str], bool]:
     strength = safe_float(params.get("strength", 1.0), 1.0)
+    # Clamp to the same bounds as Sharpen
+    strength = max(0.0, min(2.0, strength))
+    # Mirrors Sharpen: fixed kernel, BGRA to BGR, and strength blends the
+    # sharpened image with the original
     code = [
-        f"_kernel = np.array([[0, -1, 0], [-1, 4 + {strength}, -1], [0, -1, 0]], dtype=np.float32)",
-        f"{var} = cv2.filter2D({var}, -1, _kernel)",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
+        "_kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], dtype=np.float32)",
+        f"_sharpened = cv2.filter2D({var}, -1, _kernel)",
+        f"{var} = cv2.addWeighted({var}, {1.0 - strength}, _sharpened, {strength}, 0)",
+        f"{var} = np.clip({var}, 0, 255).astype(np.uint8)",
     ]
     return code, True
 
@@ -814,7 +907,15 @@ def _kmeans(params: dict, var: str) -> tuple[list[str], bool]:
     max_iter = safe_int(params.get("max_iter", 100), 100)
     eps = safe_float(params.get("epsilon", 0.2), 0.2)
     attempts = safe_int(params.get("attempts", 3), 3)
+    # Clamp to the same bounds as KMeansSegmentation
+    k = max(2, min(10, k))
+    max_iter = max(1, min(500, max_iter))
+    eps = max(0.01, min(10.0, eps))
+    attempts = max(1, min(10, attempts))
+    # Mirrors KMeansSegmentation: BGRA to BGR, gray to BGR
     code = [
+        f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
         f"if {var}.ndim == 2:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
         f"_data = {var}.reshape((-1, 3)).astype(np.float32)",
@@ -830,10 +931,30 @@ def _meanshift(params: dict, var: str) -> tuple[list[str], bool]:
     sp = safe_int(params.get("sp", 21), 21)
     sr = safe_int(params.get("sr", 51), 51)
     max_level = safe_int(params.get("maxLevel", 1), 1)
+    # Clamp to the same bounds as MeanShiftSegmentation
+    sp = max(1, min(sp, 200))
+    sr = max(1, min(sr, 300))
+    max_level = max(0, min(max_level, 4))
+    # Mirrors MeanShiftSegmentation: BGRA to BGR, gray to BGR, and processing
+    # happens on a max 800px working copy that is upscaled afterwards
     code = [
+        f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
         f"if {var}.ndim == 2:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
-        f"{var} = cv2.pyrMeanShiftFiltering({var}, sp={sp}, sr={sr}, maxLevel={max_level})",
+        f"_h, _w = {var}.shape[:2]",
+        "_scale = min(800 / _w, 800 / _h, 1.0)",
+        "if _scale < 1.0:",
+        "    _working = cv2.resize(",
+        f"        {var}, (max(1, int(_w * _scale)), max(1, int(_h * _scale))), interpolation=cv2.INTER_AREA",
+        "    )",
+        "else:",
+        f"    _working = {var}.copy()",
+        f"_small = cv2.pyrMeanShiftFiltering(_working, sp={sp}, sr={sr}, maxLevel={max_level})",
+        "if _scale < 1.0:",
+        f"    {var} = cv2.resize(_small, (_w, _h), interpolation=cv2.INTER_LINEAR)",
+        "else:",
+        f"    {var} = _small",
     ]
     return code, False
 
@@ -841,23 +962,34 @@ def _meanshift(params: dict, var: str) -> tuple[list[str], bool]:
 @register("segmentation_watershed")
 def _watershed(params: dict, var: str) -> tuple[list[str], bool]:
     fg_thresh = safe_float(params.get("foreground_threshold", 0.5), 0.5)
+    # Clamp to the same bounds as Watershed
+    fg_thresh = max(0.1, min(0.9, fg_thresh))
+    # Mirrors Watershed: BGRA to BGR, gray to BGR, and a dilated boundary marker
     code = [
-        f"_bgr = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR) if {var}.ndim == 2 else {var}.copy()",
-        "_gray = cv2.cvtColor(_bgr, cv2.COLOR_BGR2GRAY)",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
+        f"if {var}.ndim == 2:",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"_gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY)",
         "_, _thresh = cv2.threshold(_gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)",
         "_kernel = np.ones((3, 3), np.uint8)",
         "_opening = cv2.morphologyEx(_thresh, cv2.MORPH_OPEN, _kernel, iterations=2)",
         "_sure_bg = cv2.dilate(_opening, _kernel, iterations=3)",
         "_dist = cv2.distanceTransform(_opening, cv2.DIST_L2, 5)",
-        f"_, _sure_fg = cv2.threshold(_dist, {fg_thresh} * _dist.max(), 255, 0)",
-        "_sure_fg = np.uint8(_sure_fg)",
-        "_unknown = cv2.subtract(_sure_bg, _sure_fg)",
-        "_, _markers = cv2.connectedComponents(_sure_fg)",
-        "_markers = _markers + 1",
-        "_markers[_unknown == 255] = 0",
-        "_markers = cv2.watershed(_bgr, _markers)",
-        "_bgr[_markers == -1] = [0, 0, 255]",
-        f"{var} = _bgr",
+        "if _dist.max() == 0:",
+        f"    {var} = {var}.copy()",
+        "else:",
+        f"    _, _sure_fg = cv2.threshold(_dist, {fg_thresh} * _dist.max(), 255, 0)",
+        "    _sure_fg = np.uint8(_sure_fg)",
+        "    _unknown = cv2.subtract(_sure_bg, _sure_fg)",
+        "    _, _markers = cv2.connectedComponents(_sure_fg)",
+        "    _markers = _markers + 1",
+        "    _markers[_unknown == 255] = 0",
+        f"    _markers = cv2.watershed({var}, _markers)",
+        f"    _result = {var}.copy()",
+        "    _thick_boundary = cv2.dilate((_markers == -1).astype(np.uint8), np.ones((5, 5), np.uint8))",
+        "    _result[_thick_boundary == 1] = [0, 0, 255]",
+        f"    {var} = _result",
     ]
     return code, True
 
