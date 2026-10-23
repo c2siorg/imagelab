@@ -433,3 +433,84 @@ def test_api_hostile_payload_sanitization(client):
     assert "\x00" not in data["filename"]
     tree = ast.parse(data["code"])
     assert isinstance(tree, ast.Module)
+
+
+def test_gaussian_noise_exporter_uses_sigma_and_preserves_alpha():
+    """Verify Gaussian noise export uses sigma parameter and preserves the alpha channel on BGRA images."""
+    step = PipelineStep(type="augmentation_gaussiannoise", params={"mean": 5.0, "sigma": 40.0})
+    code, unsupported = export_pipeline_to_python([step], "Gaussian Noise Pipeline")
+    assert unsupported == []
+    assert "40.0" in code
+    ast.parse(code)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        script_path = os.path.join(tmpdir, "gaussian_script.py")
+        input_path = os.path.join(tmpdir, "in.png")
+        output_path = os.path.join(tmpdir, "out.png")
+
+        # 4-channel BGRA image with distinct alpha
+        bgra_img = np.full((30, 30, 4), 100, dtype=np.uint8)
+        bgra_img[:, :, 3] = 185
+        cv2.imwrite(input_path, bgra_img)
+
+        with open(script_path, "w", encoding="utf-8") as f:
+            f.write(code)
+
+        result = subprocess.run(
+            [sys.executable, script_path, "--input", input_path, "--output", output_path],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, f"Script failed: {result.stderr}"
+        out_img = cv2.imread(output_path, cv2.IMREAD_UNCHANGED)
+        assert out_img.shape == (30, 30, 4)
+        assert np.all(out_img[:, :, 3] == 185), "Alpha channel was corrupted by Gaussian noise"
+
+        # Also verify grayscale 2D input
+        gray_img = np.full((30, 30), 120, dtype=np.uint8)
+        cv2.imwrite(input_path, gray_img)
+        result = subprocess.run(
+            [sys.executable, script_path, "--input", input_path, "--output", output_path],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0
+        out_gray = cv2.imread(output_path, cv2.IMREAD_UNCHANGED)
+        assert out_gray.shape == (30, 30)
+
+
+def test_salt_pepper_noise_exporter_uses_density_and_preserves_alpha():
+    """Verify Salt & Pepper export uses density parameter and keeps alpha intact without creating transparent pixels."""
+    step = PipelineStep(type="augmentation_saltpeppernoise", params={"density": 0.2})
+    code, unsupported = export_pipeline_to_python([step], "Salt Pepper Pipeline")
+    assert unsupported == []
+    assert "0.2" in code
+    ast.parse(code)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        script_path = os.path.join(tmpdir, "sp_script.py")
+        input_path = os.path.join(tmpdir, "in.png")
+        output_path = os.path.join(tmpdir, "out.png")
+
+        # 4-channel BGRA image with constant alpha
+        bgra_img = np.full((40, 40, 4), 128, dtype=np.uint8)
+        bgra_img[:, :, 3] = 210
+        cv2.imwrite(input_path, bgra_img)
+
+        with open(script_path, "w", encoding="utf-8") as f:
+            f.write(code)
+
+        result = subprocess.run(
+            [sys.executable, script_path, "--input", input_path, "--output", output_path],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, f"Script failed: {result.stderr}"
+        out_img = cv2.imread(output_path, cv2.IMREAD_UNCHANGED)
+        assert out_img.shape == (40, 40, 4)
+        assert np.all(out_img[:, :, 3] == 210), "Alpha channel was zeroed out by salt and pepper noise"
+
+        # Verify salt (255) and pepper (0) exist in BGR channels
+        bgr = out_img[:, :, :3]
+        assert np.any(bgr == 255), "Expected white salt pixels in output"
+        assert np.any(bgr == 0), "Expected black pepper pixels in output"

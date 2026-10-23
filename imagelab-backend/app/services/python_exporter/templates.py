@@ -766,27 +766,50 @@ def _distance_transform(params: dict, var: str) -> tuple[list[str], bool]:
 @register("augmentation_gaussiannoise")
 def _gaussian_noise(params: dict, var: str) -> tuple[list[str], bool]:
     mean = safe_float(params.get("mean", 0.0), 0.0)
-    std = safe_float(params.get("std", 25.0), 25.0)
+    sigma = max(1.0, safe_float(params.get("sigma", params.get("std", 25.0)), 25.0))
     code = [
-        f"_noise = np.random.normal({mean}, {std}, {var}.shape).astype(np.float32)",
-        f"{var} = np.clip({var}.astype(np.float32) + _noise, 0, 255).astype(np.uint8)",
+        f"_has_alpha = {var}.ndim == 3 and {var}.shape[2] == 4",
+        "if _has_alpha:",
+        f"    _alpha = {var}[:, :, 3].copy()",
+        f"    _base = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
+        "else:",
+        f"    _base = {var}",
+        f"_noise = np.random.normal({mean}, {sigma}, _base.shape).astype(np.float32)",
+        "_noisy = np.clip(_base.astype(np.float32) + _noise, 0, 255).astype(np.uint8)",
+        "if _has_alpha:",
+        f"    {var} = np.dstack([_noisy, _alpha])",
+        "else:",
+        f"    {var} = _noisy",
     ]
     return code, True
 
 
 @register("augmentation_saltpeppernoise")
 def _salt_pepper(params: dict, var: str) -> tuple[list[str], bool]:
-    amount = safe_float(params.get("amount", 0.05), 0.05)
-    s_vs_p = safe_float(params.get("s_vs_p", 0.5), 0.5)
+    density = max(0.0, min(1.0, safe_float(params.get("density", params.get("amount", 0.05)), 0.05)))
     code = [
-        f"_noisy = {var}.copy()",
-        f"_num_salt = int(np.ceil({amount} * {var}.size * {s_vs_p}))",
-        f"_num_pepper = int(np.ceil({amount} * {var}.size * (1.0 - {s_vs_p})))",
-        f"_coords_s = [np.random.randint(0, _d, _num_salt) for _d in {var}.shape[:2]]",
-        "_noisy[tuple(_coords_s)] = 255",
-        f"_coords_p = [np.random.randint(0, _d, _num_pepper) for _d in {var}.shape[:2]]",
-        "_noisy[tuple(_coords_p)] = 0",
-        f"{var} = _noisy",
+        f"_has_alpha = {var}.ndim == 3 and {var}.shape[2] == 4",
+        "if _has_alpha:",
+        f"    _alpha = {var}[:, :, 3].copy()",
+        f"    _base = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
+        "else:",
+        f"    _base = {var}.copy()",
+        "_h, _w = _base.shape[:2]",
+        "_total_pixels = _h * _w",
+        f"_num_affected = int(_total_pixels * {density})",
+        "_num_affected -= _num_affected % 2",
+        "if _num_affected > 0:",
+        "    _flat = np.random.choice(_total_pixels, _num_affected, replace=False)",
+        "    _salt_flat = _flat[: _num_affected // 2]",
+        "    _pepper_flat = _flat[_num_affected // 2 :]",
+        "    _sr, _sc = np.unravel_index(_salt_flat, (_h, _w))",
+        "    _pr, _pc = np.unravel_index(_pepper_flat, (_h, _w))",
+        "    _base[_sr, _sc] = 255",
+        "    _base[_pr, _pc] = 0",
+        "if _has_alpha:",
+        f"    {var} = np.dstack([_base, _alpha])",
+        "else:",
+        f"    {var} = _base",
     ]
     return code, True
 
