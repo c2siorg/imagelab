@@ -11,7 +11,7 @@ import numpy as np
 
 from app.models.graph import GraphEdge, GraphNode, PipelineGraph
 from app.models.pipeline import PipelineStep
-from app.operators.registry import OPERATOR_REGISTRY
+from app.operators.registry import OPERATOR_REGISTRY, get_operator
 from app.services.python_exporter import (
     export_graph_to_python,
     export_pipeline_to_python,
@@ -575,3 +575,108 @@ def test_exported_brightness_and_contrast_matches_the_operator():
 
         expected = OPERATOR_REGISTRY["imageconversions_brightnessandcontrast"](params).compute(test_img)
         np.testing.assert_array_equal(cv2.imread(output_path), expected)
+
+
+def _run_exported_pipeline(code: str, image: np.ndarray) -> np.ndarray:
+    """Execute an exported script's run_pipeline on an image in-process."""
+    namespace: dict = {}
+    exec(compile(code, "<exported_script>", "exec"), namespace)
+    return namespace["run_pipeline"](image)
+
+
+def _bgra_image() -> np.ndarray:
+    """Deterministic BGRA test image with shape (24, 24, 4)."""
+    h, w = 24, 24
+    blue = np.tile(np.linspace(0, 255, w, dtype=np.uint8), (h, 1))
+    green = np.tile(np.linspace(255, 0, w, dtype=np.uint8), (h, 1)).T
+    red = np.rot90(blue).copy()
+    alpha = np.full((h, w), 200, dtype=np.uint8)
+    return np.dstack([blue, green, red, alpha])
+
+
+def _gray_image() -> np.ndarray:
+    h, w = 24, 24
+    return np.tile(np.linspace(0, 255, w, dtype=np.uint8), (h, 1))
+
+
+def test_exported_operators_match_app_on_alpha_images():
+    """Exported scripts must reproduce the app exactly for BGRA input (#441)."""
+    image = _bgra_image()
+    cases = [
+        ("imageconversions_histogramequalization", {}),
+        ("imageconversions_colormaps", {}),
+        ("imageconversions_invertimage", {}),
+        ("filtering_morphological", {"type": "TOPHAT"}),
+        ("filtering_morphological", {"type": "OPEN"}),
+        ("filtering_sharpen", {"strength": 1.5}),
+        ("filtering_bilateral", {}),
+        ("segmentation_meanshift", {}),
+        ("segmentation_watershed", {}),
+    ]
+    for op_type, params in cases:
+        operator = get_operator(op_type)(params)
+        expected = operator.compute(image.copy())
+        code, unsupported = export_pipeline_to_python([PipelineStep(type=op_type, params=params)])
+        assert unsupported == [], f"{op_type} unexpectedly unsupported"
+        result = _run_exported_pipeline(code, image.copy())
+        assert result.shape == expected.shape, f"{op_type}: shape mismatch"
+        np.testing.assert_array_equal(
+            result, expected, err_msg=f"{op_type}: exported script output differs from the app"
+        )
+
+
+def test_exported_operators_match_app_on_grayscale_images():
+    """Exported scripts must reproduce the app exactly for 2-D grayscale input (#441)."""
+    image = _gray_image()
+    cases = [
+        ("imageconversions_hsvtobgr", {}),
+        ("imageconversions_labtobgr", {}),
+        ("imageconversions_ycrcbtobgr", {}),
+        ("imageconversions_bgrtohsv", {}),
+        ("imageconversions_bgrtolab", {}),
+        ("imageconversions_bgrtoycrcb", {}),
+        ("imageconversions_histogramequalization", {}),
+        ("imageconversions_colormaps", {}),
+    ]
+    for op_type, params in cases:
+        operator = get_operator(op_type)(params)
+        expected = operator.compute(image.copy())
+        code, unsupported = export_pipeline_to_python([PipelineStep(type=op_type, params=params)])
+        assert unsupported == [], f"{op_type} unexpectedly unsupported"
+        result = _run_exported_pipeline(code, image.copy())
+        assert result.shape == expected.shape, f"{op_type}: shape mismatch"
+        np.testing.assert_array_equal(
+            result, expected, err_msg=f"{op_type}: exported script output differs from the app"
+        )
+
+
+def test_exported_watershed_handles_flat_regions():
+    """Exported watershed must follow the app's early return when no foreground exists."""
+    blank_bgra = np.zeros((12, 12, 4), dtype=np.uint8)
+    operator = get_operator("segmentation_watershed")({})
+    expected = operator.compute(blank_bgra.copy())
+    code, unsupported = export_pipeline_to_python([PipelineStep(type="segmentation_watershed", params={})])
+    assert unsupported == []
+    result = _run_exported_pipeline(code, blank_bgra.copy())
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_exported_sharpen_respects_strength_on_bgr():
+    """Exported sharpen must blend the sharpened image with the original by strength."""
+    image = _bgra_image()[:, :, :3]
+    operator = get_operator("filtering_sharpen")({"strength": 2.0})
+    expected = operator.compute(image.copy())
+    code, unsupported = export_pipeline_to_python([PipelineStep(type="filtering_sharpen", params={"strength": 2.0})])
+    assert unsupported == []
+    result = _run_exported_pipeline(code, image.copy())
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_exported_kmeans_returns_three_channels_for_alpha_input():
+    """Exported kmeans must collapse BGRA to 3 channels like the app does."""
+    image = _bgra_image()
+    code, unsupported = export_pipeline_to_python([PipelineStep(type="segmentation_kmeans", params={})])
+    assert unsupported == []
+    result = _run_exported_pipeline(code, image.copy())
+    assert result.shape == (24, 24, 3)
+    assert result.dtype == np.uint8
