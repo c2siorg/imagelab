@@ -53,6 +53,7 @@ export const categories: CategoryInfo[] = [
       { type: "imageconversions_ycrcbtobgr", label: "YCrCb to BGR" },
       { type: "imageconversions_invertimage", label: "Invert Image" },
       { type: "imageconversions_brightnessandcontrast", label: "Brightness and Contrast" },
+      { type: "imageconversions_gammacorrection", label: "Gamma Correction" },
     ],
   },
   {
