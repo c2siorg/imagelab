@@ -16,6 +16,7 @@ from app.operators.conversions.channel_split import ChannelSplit
 from app.operators.conversions.clahe import ClaheImage
 from app.operators.conversions.color_maps import ColorMaps
 from app.operators.conversions.color_to_binary import ColorToBinary
+from app.operators.conversions.gamma_correction import GammaCorrection
 from app.operators.conversions.gray_image import GrayImage
 from app.operators.conversions.gray_to_binary import GrayToBinary
 from app.operators.conversions.histogram_equalization import HistogramEqualization
@@ -92,6 +93,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "imageconversions_ycrcbtobgr": YcrcbToBgr,
     "imageconversions_invertimage": InvertImage,
     "imageconversions_brightnessandcontrast": BrightnessAndContrast,
+    "imageconversions_gammacorrection": GammaCorrection,
     # Drawing
     "drawingoperations_drawline": DrawLine,
     "drawingoperations_drawcircle": DrawCircle,

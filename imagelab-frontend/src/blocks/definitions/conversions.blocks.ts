@@ -105,6 +105,18 @@ export const conversionsBlocks = [
       "Adjusts the brightness and contrast of an image - Brightness controls the overall lightness or darkness of an image, while contrast controls the difference in intensity between different parts of the image. Increasing brightness makes the image lighter, and increasing contrast makes the differences between light and dark areas more pronounced.",
   },
   {
+    type: "imageconversions_gammacorrection",
+    message0: "Apply gamma correction with gamma %1",
+    args0: [
+      { type: "field_number", name: "gamma", value: 1.0, min: 0.1, max: 5.0, precision: 0.1 },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "conversions_style",
+    tooltip:
+      "Adjusts the midtones of an image with a gamma curve - Each pixel value v becomes 255 * (v / 255) ^ (1 / gamma). Gamma above 1 brightens the midtones, gamma below 1 darkens them, and 1.0 leaves the image unchanged. Unlike brightness, black and white stay the same, so highlights are not clipped. The alpha channel is preserved.",
+  },
+  {
     type: "imageconversions_colortobinary",
     message0:
       "Convert colored image to a binary one %1 by %2 type %3 with threshold value %4 and max value %5",

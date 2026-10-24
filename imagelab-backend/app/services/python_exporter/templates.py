@@ -203,6 +203,19 @@ def _brightness_contrast(params: dict, var: str) -> tuple[list[str], bool]:
     return [f"{var} = cv2.convertScaleAbs({var}, alpha={contrast}, beta={brightness})"], False
 
 
+@register("imageconversions_gammacorrection")
+def _gamma_correction(params: dict, var: str) -> tuple[list[str], bool]:
+    gamma = safe_float(params.get("gamma"), 1.0)
+    code = [
+        f"_gamma_table = np.clip(np.round(255 * (np.arange(256) / 255) ** (1 / {gamma})), 0, 255).astype(np.uint8)",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    {var} = np.concatenate([cv2.LUT({var}[:, :, :3], _gamma_table), {var}[:, :, 3:4]], axis=2)",
+        "else:",
+        f"    {var} = cv2.LUT({var}, _gamma_table)",
+    ]
+    return code, True
+
+
 @register("imageconvertions_histogramequalization")
 @register("imageconversions_histogramequalization")
 def _hist_eq(params: dict, var: str) -> tuple[list[str], bool]:
