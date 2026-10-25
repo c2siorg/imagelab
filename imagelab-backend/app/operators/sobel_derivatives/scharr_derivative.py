@@ -10,9 +10,9 @@ class ScharrDerivative(BaseOperator):
         """Apply the Scharr derivative operator.
 
         Returns a uint8 grayscale image with values in [0, 255].
-        BGRA images are converted to grayscale before applying Scharr.
+        BGRA and 1-channel 3D images are converted to 2D grayscale before applying Scharr.
         """
-        direction = self.params.get("type", "HORIZONTAL")
+        direction = str(self.params.get("type", "HORIZONTAL")).upper()
         ddepth = int(self.params.get("ddepth", 0))
         if ddepth == 0:
             ddepth = cv2.CV_64F
