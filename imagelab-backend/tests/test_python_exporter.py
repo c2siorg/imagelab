@@ -8,6 +8,7 @@ import tempfile
 
 import cv2
 import numpy as np
+import pytest
 
 from app.models.graph import GraphEdge, GraphNode, PipelineGraph
 from app.models.pipeline import PipelineStep
@@ -761,3 +762,39 @@ def test_salt_pepper_noise_exporter_uses_density_and_preserves_alpha():
         bgr = out_img[:, :, :3]
         assert np.any(bgr == 255), "Expected white salt pixels in output"
         assert np.any(bgr == 0), "Expected black pepper pixels in output"
+
+
+@pytest.mark.parametrize(
+    ("step_type", "params"),
+    [
+        ("blurring_applyblur", {"widthSize": 5, "heightSize": 3, "pointX": 0, "pointY": 0}),
+        ("filtering_boxfilter", {"width": 5, "height": 3, "depth": -1, "point_x": 4, "point_y": 0}),
+        ("filtering_erosion", {"kernelSize": 4, "iteration": 1, "point_x": 0, "point_y": 0}),
+        ("filtering_dilation", {"kernelSize": 3, "iteration": 2, "point_x": 2, "point_y": 1}),
+    ],
+)
+def test_exported_script_matches_operator_with_anchor(step_type, params):
+    """The exported script uses the same anchor and kernel as the operator, so both give the same image."""
+    rng = np.random.default_rng(0)
+    image = rng.integers(0, 256, size=(24, 32, 3), dtype=np.uint8)
+    expected = OPERATOR_REGISTRY[step_type](params).compute(image)
+
+    code, _ = export_pipeline_to_python([PipelineStep(type=step_type, params=params)], "Anchor Test")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        script_path = os.path.join(tmpdir, "run_script.py")
+        input_path = os.path.join(tmpdir, "input.png")
+        output_path = os.path.join(tmpdir, "output.png")
+        cv2.imwrite(input_path, image)
+        with open(script_path, "w", encoding="utf-8") as f:
+            f.write(code)
+
+        result = subprocess.run(
+            [sys.executable, script_path, "--input", input_path, "--output", output_path],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, f"Script failed: {result.stderr}"
+        exported = cv2.imread(output_path)
+
+    assert np.array_equal(exported, expected)
