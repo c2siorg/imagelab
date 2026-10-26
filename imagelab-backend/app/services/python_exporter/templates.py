@@ -387,7 +387,9 @@ def _colortobinary(params: dict, var: str) -> tuple[list[str], bool]:
 def _blur(params: dict, var: str) -> tuple[list[str], bool]:
     w = safe_int(params.get("widthSize", 3), 3)
     h = safe_int(params.get("heightSize", 3), 3)
-    return [f"{var} = cv2.blur({var}, ({w}, {h}))"], False
+    px = safe_int(params.get("pointX", -1), -1)
+    py = safe_int(params.get("pointY", -1), -1)
+    return [f"{var} = cv2.blur({var}, ({w}, {h}), anchor=({px}, {py}))"], False
 
 
 @register("blurring_applygaussianblur")
@@ -427,7 +429,9 @@ def _boxfilter(params: dict, var: str) -> tuple[list[str], bool]:
     w = safe_int(params.get("width", 3), 3)
     h = safe_int(params.get("height", 3), 3)
     depth = safe_int(params.get("depth", -1), -1)
-    return [f"{var} = cv2.boxFilter({var}, {depth}, ({w}, {h}))"], False
+    px = safe_int(params.get("point_x", -1), -1)
+    py = safe_int(params.get("point_y", -1), -1)
+    return [f"{var} = cv2.boxFilter({var}, {depth}, ({w}, {h}), anchor=({px}, {py}))"], False
 
 
 @register("filtering_cannyedge")
@@ -448,24 +452,33 @@ def _canny(params: dict, var: str) -> tuple[list[str], bool]:
     return code, True
 
 
+def _morph_kernel_params(params: dict) -> tuple[int, int, int, int]:
+    """Kernel size, iterations and anchor as the Erosion and Dilation operators read them."""
+    ksize = max(1, safe_int(params.get("kernelSize", 5), 5))
+    if ksize % 2 == 0:
+        ksize += 1
+    iters = max(1, safe_int(params.get("iteration", 1), 1))
+    px = safe_int(params.get("point_x", -1), -1)
+    py = safe_int(params.get("point_y", -1), -1)
+    return ksize, iters, px, py
+
+
 @register("filtering_dilation")
 def _dilate(params: dict, var: str) -> tuple[list[str], bool]:
-    ksize = safe_int(params.get("kernelSize", 5), 5)
-    iters = safe_int(params.get("iteration", 1), 1)
+    ksize, iters, px, py = _morph_kernel_params(params)
     code = [
         f"_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, ({ksize}, {ksize}))",
-        f"{var} = cv2.dilate({var}, _kernel, iterations={iters})",
+        f"{var} = cv2.dilate({var}, _kernel, anchor=({px}, {py}), iterations={iters})",
     ]
     return code, False
 
 
 @register("filtering_erosion")
 def _erode(params: dict, var: str) -> tuple[list[str], bool]:
-    ksize = safe_int(params.get("kernelSize", 5), 5)
-    iters = safe_int(params.get("iteration", 1), 1)
+    ksize, iters, px, py = _morph_kernel_params(params)
     code = [
         f"_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, ({ksize}, {ksize}))",
-        f"{var} = cv2.erode({var}, _kernel, iterations={iters})",
+        f"{var} = cv2.erode({var}, _kernel, anchor=({px}, {py}), iterations={iters})",
     ]
     return code, False
 
