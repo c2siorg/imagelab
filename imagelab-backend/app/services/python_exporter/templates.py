@@ -1120,6 +1120,68 @@ def _watershed(params: dict, var: str) -> tuple[list[str], bool]:
 
 
 # ── Detection ─────────────────────────────────────────────────────────────────
+@register("detection_cornerdetection")
+def _cornerdetection(params: dict, var: str) -> tuple[list[str], bool]:
+    method = str(params.get("method", "SHI_TOMASI")).upper()
+    if method not in ("SHI_TOMASI", "HARRIS"):
+        method = "SHI_TOMASI"
+    use_harris = method == "HARRIS"
+
+    max_corners = safe_int(params.get("maxCorners", 50), 50)
+    max_corners = max(1, min(1000, max_corners))
+
+    quality_level = safe_float(params.get("qualityLevel", 0.01), 0.01)
+    quality_level = max(0.001, min(1.0, quality_level))
+
+    min_distance = safe_float(params.get("minDistance", 10.0), 10.0)
+    min_distance = max(1.0, min(500.0, min_distance))
+
+    block_size = safe_int(params.get("blockSize", 3), 3)
+    if block_size < 3:
+        block_size = 3
+    elif block_size % 2 == 0:
+        block_size += 1
+    block_size = min(31, block_size)
+
+    k = safe_float(params.get("k", 0.04), 0.04)
+    k = max(0.01, min(0.2, k))
+
+    radius = safe_int(params.get("radius", 4), 4)
+    radius = max(1, min(50, radius))
+
+    thickness = safe_int(params.get("thickness", -1), -1)
+    if thickness != -1 and thickness < 1:
+        thickness = -1
+
+    color = _get_bgr_color(params, default="#ff0000")
+
+    code = [
+        f"if {var}.ndim == 2:",
+        f"    _gray = {var}",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"    _draw_color = {color}",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    _gray = {var}[:, :, 0]",
+        f"    {var} = cv2.cvtColor(_gray, cv2.COLOR_GRAY2BGR)",
+        f"    _draw_color = {color}",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGRA2GRAY)",
+        f"    _draw_color = (*{color}, 255)",
+        "else:",
+        f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY)",
+        f"    _draw_color = {color}",
+        "_corners = cv2.goodFeaturesToTrack(",
+        f"    _gray, maxCorners={max_corners}, qualityLevel={quality_level}, minDistance={min_distance},",
+        f"    blockSize={block_size}, useHarrisDetector={use_harris}, k={k}",
+        ")",
+        "if _corners is not None:",
+        "    for _pt in _corners:",
+        "        _x, _y = map(int, _pt.ravel())",
+        f"        cv2.circle({var}, (_x, _y), {radius}, _draw_color, {thickness})",
+    ]
+    return code, False
+
+
 @register("detection_eyedetection")
 def _eyedetection(params: dict, var: str) -> tuple[list[str], bool]:
     sf = safe_float(params.get("scaleFactor", 1.1), 1.1)

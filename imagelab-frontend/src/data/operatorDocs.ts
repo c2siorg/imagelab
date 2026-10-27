@@ -673,4 +673,47 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       "Demonstrating classical Haar feature-based cascade object detection in educational curricula.",
     ],
   },
+  detection_cornerdetection: {
+    name: "Corner Detection",
+    description:
+      "Detects salient corner features in an image using the Shi-Tomasi (minimum eigenvalue) or Harris corner detection algorithms. Converts the image to grayscale to find strong feature points (cv2.goodFeaturesToTrack) and marks them on the image with circle indicators.",
+    parameters: [
+      {
+        name: "Method",
+        description:
+          "Corner scoring metric: 'Shi-Tomasi' computes the minimum eigenvalue min(λ1, λ2), which is robust for tracking; 'Harris' evaluates the corner response R = det(M) - k * trace(M)^2.",
+      },
+      {
+        name: "Max Corners",
+        description:
+          "Maximum number of corners to return. If more corners are detected, the strongest ones are retained. Range: 1 to 1000. Default: 50.",
+      },
+      {
+        name: "Quality Level",
+        description:
+          "Minimal accepted quality of image corners, expressed as a fraction of the highest eigenvalue/response in the image. Corners below this threshold are rejected. Range: 0.001 to 1.0. Default: 0.01.",
+      },
+      {
+        name: "Min Distance",
+        description:
+          "Minimum possible Euclidean distance between returned corners in pixels. Enforces spatial dispersion and prevents clustering. Range: 1 to 500. Default: 10.",
+      },
+      {
+        name: "Marker Color",
+        description:
+          "RGB color of the circular markers drawn on detected corners. Default: red (#ff0000).",
+      },
+      {
+        name: "Marker Radius",
+        description: "Radius of the circular markers in pixels. Range: 1 to 20. Default: 4.",
+      },
+    ],
+    formula: "Shi-Tomasi: R = min(λ1, λ2) | Harris: R = det(M) - k * (trace(M))^2",
+    useCases: [
+      "Extracting keypoints for motion tracking, optical flow (Lucas-Kanade), and video stabilization.",
+      "Detecting structural interest points for image alignment, stitching, and homography estimation.",
+      "Feature analysis in calibration targets, checkerboards, and polygonal object inspection.",
+      "Teaching fundamental corner and interest point concepts in computer vision courses.",
+    ],
+  },
 };
