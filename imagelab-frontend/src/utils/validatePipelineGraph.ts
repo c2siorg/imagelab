@@ -282,7 +282,11 @@ export function validatePipelineGraph(
       }
 
       // Calculate output channels for this node
-      outputs[nodeId] = OPERATOR_OUTPUT_CHANNELS[nodeType] ?? primary;
+      if (nodeType === "detection_cornerdetection") {
+        outputs[nodeId] = primary === 4 ? 4 : 3;
+      } else {
+        outputs[nodeId] = OPERATOR_OUTPUT_CHANNELS[nodeType] ?? primary;
+      }
     }
   } catch (error) {
     // This fires for structural graph errors (e.g. an edge whose source/target node

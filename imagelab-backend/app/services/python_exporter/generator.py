@@ -95,6 +95,7 @@ OPERATOR_NAMES: dict[str, str] = {
     "augmentation_gaussiannoise": "Gaussian Noise",
     "augmentation_saltpeppernoise": "Salt & Pepper Noise",
     "augmentation_sepiafilter": "Sepia Filter",
+    "detection_cornerdetection": "Corner Detection (Shi-Tomasi / Harris)",
     "detection_eyedetection": "Eye Detection (Haar Cascade)",
     "detection_smiledetection": "Smile Detection (Haar Cascade)",
     "detection_facedetection": "Face Detection (Haar Cascade)",

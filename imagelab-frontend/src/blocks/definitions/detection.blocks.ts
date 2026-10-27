@@ -94,4 +94,41 @@ export const detectionBlocks = [
     tooltip:
       "Detects smiles in faces using Haar cascades - First detects faces, then searches for smiles only in the lower portion of each face to reduce false positives. Draws bounding boxes around detected smiles. Scale factor controls detection precision (smaller = slower but more accurate), min neighbors affects detection quality (higher = fewer false positives), and min width/height set minimum detection size. Enable 'Draw face boxes' to also show face bounding boxes.",
   },
+  {
+    type: "detection_cornerdetection",
+    message0:
+      "Detect corners using %1 %2 Max corners %3 %4 Quality level %5 %6 Min distance %7 %8 Marker color %9 %10 Marker radius %11",
+    args0: [
+      {
+        type: "field_dropdown",
+        name: "method",
+        options: [
+          ["Shi-Tomasi", "SHI_TOMASI"],
+          ["Harris", "HARRIS"],
+        ],
+      },
+      { type: "input_dummy" },
+      { type: "field_number", name: "maxCorners", value: 50, min: 1, max: 1000 },
+      { type: "input_dummy" },
+      {
+        type: "field_number",
+        name: "qualityLevel",
+        value: 0.01,
+        min: 0.001,
+        max: 1.0,
+        precision: 0.001,
+      },
+      { type: "input_dummy" },
+      { type: "field_number", name: "minDistance", value: 10, min: 1, max: 500 },
+      { type: "input_dummy" },
+      { type: "field_colour", name: "rgbcolors_input", colour: "#ff0000" },
+      { type: "input_dummy" },
+      { type: "field_number", name: "radius", value: 4, min: 1, max: 20 },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "detection_style",
+    tooltip:
+      "Detects image corners using Shi-Tomasi or Harris corner detection algorithms. Converts the image to grayscale to find strong feature points (goodFeaturesToTrack) and draws circular markers at the detected corner coordinates. Method selects the scoring metric (Shi-Tomasi minimum eigenvalue or Harris corner response), max corners sets an upper limit on returned points, quality level filters out candidates relative to the best corner, and min distance enforces spacing between corners.",
+  },
 ];

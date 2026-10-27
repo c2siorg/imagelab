@@ -345,7 +345,10 @@ def _validate_graph(
             ]
             outputs[node_id] = channel_values[0] if node_type == "macro_if_else" else max(channel_values)
         else:
-            outputs[node_id] = OPERATOR_OUTPUT_CHANNELS.get(node_type, primary)
+            if node_type == "detection_cornerdetection":
+                outputs[node_id] = 4 if primary == 4 else 3
+            else:
+                outputs[node_id] = OPERATOR_OUTPUT_CHANNELS.get(node_type, primary)
     return outputs
 
 
