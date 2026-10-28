@@ -872,6 +872,50 @@ def _otsu(params: dict, var: str) -> tuple[list[str], bool]:
     return code, False
 
 
+@register("thresholding_inrange")
+def _in_range(params: dict, var: str) -> tuple[list[str], bool]:
+    l1 = max(0, min(255, safe_int(params.get("lower1", 0), 0)))
+    u1 = max(0, min(255, safe_int(params.get("upper1", 255), 255)))
+    l2 = max(0, min(255, safe_int(params.get("lower2", 0), 0)))
+    u2 = max(0, min(255, safe_int(params.get("upper2", 255), 255)))
+    l3 = max(0, min(255, safe_int(params.get("lower3", 0), 0)))
+    u3 = max(0, min(255, safe_int(params.get("upper3", 255), 255)))
+    output_mode = str(params.get("outputMode", "mask")).strip().lower()
+
+    if output_mode == "masked_image":
+        code = [
+            f"if {var}.ndim == 2:",
+            f"    _mask = cv2.inRange({var}, np.array([{l1}], dtype=np.uint8), np.array([{u1}], dtype=np.uint8))",
+            f"    {var} = cv2.bitwise_and({var}, {var}, mask=_mask)",
+            f"elif {var}.shape[2] == 4:",
+            f"    _bgr = {var}[:, :, :3]",
+            f"    _alpha = {var}[:, :, 3]",
+            f"    _lower = np.array([{l1}, {l2}, {l3}], dtype=np.uint8)",
+            f"    _upper = np.array([{u1}, {u2}, {u3}], dtype=np.uint8)",
+            "    _mask = cv2.inRange(_bgr, _lower, _upper)",
+            "    _masked_bgr = cv2.bitwise_and(_bgr, _bgr, mask=_mask)",
+            "    _masked_alpha = cv2.bitwise_and(_alpha, _alpha, mask=_mask)",
+            f"    {var} = np.dstack([_masked_bgr, _masked_alpha])",
+            "else:",
+            f"    _lower = np.array([{l1}, {l2}, {l3}], dtype=np.uint8)",
+            f"    _upper = np.array([{u1}, {u2}, {u3}], dtype=np.uint8)",
+            f"    _mask = cv2.inRange({var}, _lower, _upper)",
+            f"    {var} = cv2.bitwise_and({var}, {var}, mask=_mask)",
+        ]
+    else:
+        code = [
+            f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+            f"    _src = {var} if {var}.ndim == 2 else {var}[:, :, 0]",
+            f"    {var} = cv2.inRange(_src, np.array([{l1}], dtype=np.uint8), np.array([{u1}], dtype=np.uint8))",
+            "else:",
+            f"    _src = {var}[:, :, :3] if {var}.shape[2] == 4 else {var}",
+            f"    _lower = np.array([{l1}, {l2}, {l3}], dtype=np.uint8)",
+            f"    _upper = np.array([{u1}, {u2}, {u3}], dtype=np.uint8)",
+            f"    {var} = cv2.inRange(_src, _lower, _upper)",
+        ]
+    return code, True
+
+
 @register("thresholding_applyborders")
 def _borders(params: dict, var: str) -> tuple[list[str], bool]:
     top = safe_int(params.get("borderTop", 0), 0)

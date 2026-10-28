@@ -523,6 +523,33 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       "Bimodal images where foreground and background pixel distributions are well separated.",
     ],
   },
+  thresholding_inrange: {
+    name: "In-Range Color Mask",
+    description:
+      "Performs multi-channel range thresholding using cv2.inRange. Evaluates whether pixel channel values fall within user-defined lower and upper boundaries. Pixels inside the boundary range are mapped to 255 (active), while all out-of-range pixels are mapped to 0. Supports extracting a 1-channel binary mask or producing a masked color image directly.",
+    parameters: [
+      {
+        name: "Lower 1, 2, 3",
+        description:
+          "Lower threshold bounds for channels 1, 2, and 3 (0-255). For grayscale images, only Channel 1 is evaluated. For BGR, corresponds to Blue, Channel 2, and Red; for HSV, corresponds to Hue (0-179), Saturation (0-255), and Value (0-255).",
+      },
+      {
+        name: "Upper 1, 2, 3",
+        description:
+          "Upper threshold bounds for channels 1, 2, and 3 (0-255). Must be greater than or equal to their respective lower bounds.",
+      },
+      {
+        name: "Output Mode",
+        description:
+          "Selects output format: 'Binary Mask' (1-channel binary image 0/255 for morphological filtering and contour detection) or 'Masked Image' (multi-channel input image with out-of-range pixels blacked out).",
+      },
+    ],
+    useCases: [
+      "Color-based object segmentation and tracking (e.g. isolating specific colored markers, toys, or clothing items in HSV space).",
+      "Skin tone segmentation in YCrCb or HSV colorspaces for gesture and feature analysis.",
+      "Chroma keying and background isolation prior to contour detection or image blending.",
+    ],
+  },
 
   // --- Sobel Derivatives ---
   // NOTE: 'soblederivate' and 'scharrderivate' match the pre-existing block-type naming in categories.ts (intentional misspelling)

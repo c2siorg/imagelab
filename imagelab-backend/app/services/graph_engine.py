@@ -40,6 +40,7 @@ OPERATOR_OUTPUT_CHANNELS = {
     "imageconversions_graytobinary": 1,
     "imageconversions_channelsplit": 1,
     "thresholding_adaptivethreshold": 1,
+    "thresholding_inrange": 1,
     "thresholding_otsuthreshold": 1,
     "sobelderivatives_soblederivate": 1,
     "sobelderivatives_scharrderivate": 1,
@@ -324,7 +325,9 @@ def _validate_graph(
                     f"Type mismatch on node '{node_id}' ({node_type}), port '{port}': "
                     f"expected channels in {allowed}, got {channels} channels."
                 )
-        if node_type in CONTROL_BRANCHES:
+        if node_type == "thresholding_inrange":
+            outputs[node_id] = 1 if node.params.get("outputMode", "mask") == "mask" else primary
+        elif node_type in CONTROL_BRANCHES:
             required = CONTROL_BRANCHES[node_type]
             if set(node.branches) != set(required):
                 raise GraphTypeError(f"Control node '{node_id}' requires branches {required}.")
