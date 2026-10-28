@@ -798,3 +798,42 @@ def test_exported_script_matches_operator_with_anchor(step_type, params):
         exported = cv2.imread(output_path)
 
     assert np.array_equal(exported, expected)
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"lower1": 50, "upper1": 200, "outputMode": "mask"},
+        {
+            "lower1": 30,
+            "upper1": 180,
+            "lower2": 40,
+            "upper2": 190,
+            "lower3": 50,
+            "upper3": 210,
+            "outputMode": "mask",
+        },
+        {
+            "lower1": 30,
+            "upper1": 180,
+            "lower2": 40,
+            "upper2": 190,
+            "lower3": 50,
+            "upper3": 210,
+            "outputMode": "masked_image",
+        },
+    ],
+)
+def test_exported_in_range_matches_operator(params):
+    """The exported Python script for In-Range thresholding matches InRangeThreshold exactly."""
+    rng = np.random.default_rng(42)
+    image = rng.integers(0, 256, size=(20, 20, 3), dtype=np.uint8)
+    expected = OPERATOR_REGISTRY["thresholding_inrange"](params).compute(image.copy())
+
+    code, unsupported = export_pipeline_to_python(
+        [PipelineStep(type="thresholding_inrange", params=params)], "In-Range Test"
+    )
+    assert unsupported == []
+
+    result = _run_exported_pipeline(code, image.copy())
+    np.testing.assert_array_equal(result, expected)

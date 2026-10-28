@@ -39,6 +39,7 @@ const OPERATOR_OUTPUT_CHANNELS: Record<string, number> = {
   imageconversions_graytobinary: 1,
   imageconversions_channelsplit: 1,
   thresholding_adaptivethreshold: 1,
+  thresholding_inrange: 1,
   thresholding_otsuthreshold: 1,
   sobelderivatives_soblederivate: 1,
   sobelderivatives_scharrderivate: 1,
@@ -282,7 +283,9 @@ export function validatePipelineGraph(
       }
 
       // Calculate output channels for this node
-      if (nodeType === "detection_cornerdetection") {
+      if (nodeType === "thresholding_inrange") {
+        outputs[nodeId] = (node.params?.outputMode as string) === "masked_image" ? primary : 1;
+      } else if (nodeType === "detection_cornerdetection") {
         outputs[nodeId] = primary === 4 ? 4 : 3;
       } else if (nodeType === "filtering_houghlines" || nodeType === "filtering_houghcircles") {
         outputs[nodeId] = primary === 1 ? 3 : primary;
