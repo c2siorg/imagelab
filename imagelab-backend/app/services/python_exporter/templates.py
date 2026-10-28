@@ -619,6 +619,58 @@ def _houghlines(params: dict, var: str) -> tuple[list[str], bool]:
     return code, True
 
 
+@register("filtering_houghcircles")
+def _houghcircles(params: dict, var: str) -> tuple[list[str], bool]:
+    dp = max(0.5, min(10.0, safe_float(params.get("dp", 1.2), 1.2)))
+    min_dist = max(1.0, min(10000.0, safe_float(params.get("minDist", 20.0), 20.0)))
+    param1 = max(1.0, min(1000.0, safe_float(params.get("param1", 100.0), 100.0)))
+    param2 = max(1.0, min(1000.0, safe_float(params.get("param2", 30.0), 30.0)))
+    min_radius = max(0, min(10000, safe_int(params.get("minRadius", 0), 0)))
+    max_radius = max(0, min(10000, safe_int(params.get("maxRadius", 0), 0)))
+    thickness = max(1, min(50, safe_int(params.get("thickness", 2), 2)))
+    center_radius = max(1, min(50, safe_int(params.get("centerRadius", 3), 3)))
+    raw_draw_centers = params.get("drawCenters", True)
+    draw_centers = (
+        raw_draw_centers.lower() in ("true", "1", "yes")
+        if isinstance(raw_draw_centers, str)
+        else bool(raw_draw_centers)
+    )
+
+    circle_color = _get_bgr_color(params, "circleColor", "#00ff00")
+    if "color" in params and "circleColor" not in params:
+        circle_color = _get_bgr_color(params, "color", "#00ff00")
+
+    center_color = _get_bgr_color(params, "centerColor", "#ff0000")
+
+    code = [
+        f"if {var}.ndim == 3:",
+        f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY)",
+        "else:",
+        f"    _gray = {var}",
+        "if _gray.dtype != np.uint8:",
+        "    _gray = np.clip(_gray, 0, 255).astype(np.uint8)",
+        "_blurred = cv2.medianBlur(_gray, 5)",
+        (
+            f"_circles = cv2.HoughCircles(_blurred, cv2.HOUGH_GRADIENT, "
+            f"dp={dp}, minDist={min_dist}, param1={param1}, param2={param2}, "
+            f"minRadius={min_radius}, maxRadius={max_radius})"
+        ),
+        f"if {var}.ndim == 2:",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"_circle_color = {circle_color} + ((255,) if {var}.ndim == 3 and {var}.shape[2] == 4 else ())",
+        f"_center_color = {center_color} + ((255,) if {var}.ndim == 3 and {var}.shape[2] == 4 else ())",
+        "if _circles is not None:",
+        "    _circles = np.round(_circles[0, :]).astype(int)",
+        "    for _c in _circles:",
+        "        _x, _y, _r = int(_c[0]), int(_c[1]), int(_c[2])",
+        f"        cv2.circle({var}, (_x, _y), _r, _circle_color, {thickness})",
+    ]
+    if draw_centers:
+        code.append(f"        cv2.circle({var}, (_x, _y), {center_radius}, _center_color, -1)")
+
+    return code, True
+
+
 # ── Drawing ───────────────────────────────────────────────────────────────────
 @register("drawingoperations_drawline")
 def _drawline(params: dict, var: str) -> tuple[list[str], bool]:

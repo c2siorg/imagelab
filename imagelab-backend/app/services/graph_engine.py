@@ -344,6 +344,8 @@ def _validate_graph(
                 next(reversed(result.values()), primary) if result else primary for result in branch_outputs
             ]
             outputs[node_id] = channel_values[0] if node_type == "macro_if_else" else max(channel_values)
+        elif node_type in ("filtering_houghlines", "filtering_houghcircles"):
+            outputs[node_id] = 3 if primary == 1 else primary
         else:
             if node_type == "detection_cornerdetection":
                 outputs[node_id] = 4 if primary == 4 else 3

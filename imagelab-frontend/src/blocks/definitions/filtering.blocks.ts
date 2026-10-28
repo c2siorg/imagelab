@@ -210,4 +210,30 @@ export const filteringBlocks = [
     tooltip:
       "Detects straight line segments with the probabilistic Hough transform (cv2.HoughLinesP) and draws them on the image. The image is converted to grayscale and run through Canny (fixed thresholds 50/150) before the transform. rho and theta are the distance (px) and angle (degrees) resolution of the accumulator, threshold is the minimum number of votes for a line, min line length discards shorter segments and max line gap joins collinear segments separated by at most that many pixels.",
   },
+  {
+    type: "filtering_houghcircles",
+    message0:
+      "Hough Circle Detection | dp %1 min distance %2 %3 canny threshold (param1) %4 accumulator threshold (param2) %5 %6 min radius %7 max radius %8 %9 color %10 thickness %11 %12 draw centers %13 center color %14",
+    args0: [
+      { type: "field_number", name: "dp", value: 1.2, min: 0.5, max: 10, precision: 0.1 },
+      { type: "field_number", name: "minDist", value: 20, min: 1, max: 10000 },
+      { type: "input_dummy" },
+      { type: "field_number", name: "param1", value: 100, min: 1, max: 1000 },
+      { type: "field_number", name: "param2", value: 30, min: 1, max: 1000 },
+      { type: "input_dummy" },
+      { type: "field_number", name: "minRadius", value: 0, min: 0, max: 10000 },
+      { type: "field_number", name: "maxRadius", value: 0, min: 0, max: 10000 },
+      { type: "input_dummy" },
+      { type: "field_colour", name: "circleColor", colour: "#00ff00" },
+      { type: "field_number", name: "thickness", value: 2, min: 1, max: 50 },
+      { type: "input_dummy" },
+      { type: "field_checkbox", name: "drawCenters", checked: true },
+      { type: "field_colour", name: "centerColor", colour: "#ff0000" },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "filtering_style",
+    tooltip:
+      "Detects circular objects using the circular Hough transform (cv2.HoughCircles with cv2.HOUGH_GRADIENT) and draws the circle outlines and center markers on the image. dp is the inverse ratio of accumulator resolution to image resolution, minDist is the minimum distance between centers of detected circles, param1 is the higher Canny threshold, param2 is the accumulator voting threshold for circle centers, and minRadius / maxRadius bound the circle sizes (0 for unbounded).",
+  },
 ];
