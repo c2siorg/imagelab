@@ -16,6 +16,9 @@ export interface BatchJobSummary {
   updated_at: number;
   duration_seconds: number;
   results: BatchResultItem[];
+  current_filename?: string | null;
+  current_frame?: number;
+  total_frames_estimate?: number | null;
 }
 
 export interface BatchJobResponse {

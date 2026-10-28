@@ -2,6 +2,7 @@ import asyncio
 import io
 import json
 import os
+import threading
 import time
 import zipfile
 from contextlib import asynccontextmanager
@@ -15,8 +16,10 @@ from fastapi.testclient import TestClient
 
 from app.exceptions import register_exception_handlers
 from app.models.graph import PipelineGraph
+from app.models.pipeline import PipelineStep
 from app.routers import batch as batch_router
 from app.services import batch_executor
+from app.services.pipeline_executor import _EXECUTION_CACHE
 
 
 # Create a no-DB test application
@@ -57,17 +60,31 @@ def test_create_batch_job_missing_files(client):
     assert r.json()["detail"] == "No files uploaded"
 
 
+def test_create_batch_job_rejects_video_upload_over_size_limit(client, temp_jobs_dir, monkeypatch):
+    monkeypatch.setattr(batch_router, "MAX_VIDEO_UPLOAD_BYTES", 4)
+    response = client.post(
+        "/api/v1/batch-jobs",
+        data={"pipeline": "[]", "image_format": "png"},
+        files=[("files", ("oversize.mp4", b"12345", "video/mp4"))],
+    )
+
+    assert response.status_code == 413
+    assert "maximum allowed size of 4 bytes" in response.json()["detail"]
+    assert list(temp_jobs_dir.iterdir()) == []
+
+
 @pytest.mark.asyncio
 async def test_upload_names_preserve_all_files_and_unique_output_stems(temp_jobs_dir):
-    from fastapi import BackgroundTasks, UploadFile
+    from fastapi import BackgroundTasks, Request, UploadFile
 
     filenames = ["photo.png", "photo.png", "photo.jpg", "photo_1.png", "PHOTO.png"]
     uploads = [
         UploadFile(file=io.BytesIO(f"image-{index}".encode()), filename=name) for index, name in enumerate(filenames)
     ]
     background_tasks = BackgroundTasks()
+    dummy_request = Request({"type": "http", "headers": []})
     response = await batch_router.create_batch_job(
-        background_tasks=background_tasks, pipeline="[]", image_format="png", files=uploads
+        request=dummy_request, background_tasks=background_tasks, pipeline="[]", image_format="png", files=uploads
     )
 
     expected = ["photo.png", "photo_1.png", "photo_2.jpg", "photo_1_1.png", "PHOTO_3.png"]
@@ -82,6 +99,16 @@ async def test_upload_names_preserve_all_files_and_unique_output_stems(temp_jobs
     assert len(set(output_stems)) == len(uploads)
 
 
+def test_create_batch_job_missing_pipeline_returns_422(client):
+    files = [("files", ("image1.png", b"dummy_content", "image/png"))]
+    r = client.post(
+        "/api/v1/batch-jobs",
+        data={"image_format": "png"},
+        files=files,
+    )
+    assert r.status_code == 422
+
+
 def test_create_batch_job_invalid_pipeline_json(client):
     files = [("files", ("image1.png", b"dummy_content", "image/png"))]
     r = client.post(
@@ -93,18 +120,31 @@ def test_create_batch_job_invalid_pipeline_json(client):
     assert "Invalid pipeline JSON" in r.json()["detail"]
 
 
+def test_create_batch_job_oversized_content_length_rejected(client):
+    files = [("files", ("image1.png", b"dummy", "image/png"))]
+    r = client.post(
+        "/api/v1/batch-jobs",
+        data={"pipeline": "[]", "image_format": "png"},
+        files=files,
+        headers={"content-length": str(2 * 1024 * 1024 * 1024)},
+    )
+    assert r.status_code == 413
+    assert "exceeds the maximum allowed payload size" in r.json()["detail"]
+
+
 @pytest.mark.anyio
 async def test_create_batch_job_empty_filenames(client):
-    from fastapi import BackgroundTasks, HTTPException, UploadFile
+    from fastapi import BackgroundTasks, HTTPException, Request, UploadFile
 
     bg_tasks = BackgroundTasks()
+    dummy_request = Request({"type": "http", "headers": []})
     mock_file = UploadFile(file=io.BytesIO(b"dummy"), filename="")
     with pytest.raises(HTTPException) as exc_info:
         await batch_router.create_batch_job(
-            background_tasks=bg_tasks, pipeline="[]", image_format="png", files=[mock_file]
+            request=dummy_request, background_tasks=bg_tasks, pipeline="[]", image_format="png", files=[mock_file]
         )
     assert exc_info.value.status_code == 400
-    assert exc_info.value.detail == "No valid images uploaded"
+    assert exc_info.value.detail == "No valid images or videos uploaded"
 
 
 def test_create_batch_job_success(client):
@@ -287,6 +327,277 @@ def _make_png_bytes() -> bytes:
     img = np.full((10, 10, 3), 255, dtype=np.uint8)
     _, buf = cv2.imencode(".png", img)
     return buf.tobytes()
+
+
+def _write_test_video(path: str, frame_count: int = 4, fps: float = 8.0) -> bool:
+    writer = cv2.VideoWriter(path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (32, 24))
+    if not writer.isOpened():
+        writer.release()
+        return False
+    for index in range(frame_count):
+        writer.write(np.full((24, 32, 3), index * 40, dtype=np.uint8))
+    writer.release()
+    return True
+
+
+@pytest.mark.anyio
+async def test_run_batch_job_processes_video_streaming_to_silent_mp4(temp_jobs_dir, monkeypatch):
+    job_id = "test_video_success"
+    job_dir = os.path.join(str(temp_jobs_dir), job_id)
+    inputs_dir = os.path.join(job_dir, "inputs")
+    os.makedirs(inputs_dir)
+    input_path = os.path.join(inputs_dir, "clip.mp4")
+    if not _write_test_video(input_path):
+        pytest.skip("Installed OpenCV build cannot create mp4v test videos")
+
+    progress_snapshots = []
+    writer_thread_ids = []
+    event_loop_thread_id = threading.get_ident()
+    write_summary = batch_executor.write_summary_atomic
+    cached_executions = set(_EXECUTION_CACHE)
+
+    def record_summary(job_id, summary_data):
+        writer_thread_ids.append(threading.get_ident())
+        progress_snapshots.append(dict(summary_data))
+        write_summary(job_id, summary_data)
+
+    monkeypatch.setattr(batch_executor, "write_summary_atomic", record_summary)
+    with patch("app.services.batch_executor.JOBS_DIR", str(temp_jobs_dir)):
+        await batch_executor.run_batch_job(job_id, ["clip.mp4"], PipelineGraph(nodes=[], edges=[]), "png")
+
+    with open(os.path.join(job_dir, "summary.json"), encoding="utf-8") as f:
+        summary = json.load(f)
+    result = summary["results"][0]
+    assert summary["status"] == "completed"
+    assert summary["processed_files"] == 1
+    assert result["success"] is True
+    assert result["output_filename"] == "clip_processed.mp4"
+    assert any(
+        progress["current_filename"] == "clip.mp4"
+        and progress["current_frame"] >= 1
+        and progress["total_frames_estimate"] == 4
+        for progress in progress_snapshots
+    )
+    assert set(_EXECUTION_CACHE) == cached_executions
+    assert writer_thread_ids
+    assert all(thread_id != event_loop_thread_id for thread_id in writer_thread_ids)
+
+    output_path = os.path.join(job_dir, "outputs", result["output_filename"])
+    capture = cv2.VideoCapture(output_path)
+    assert capture.isOpened()
+    assert capture.get(cv2.CAP_PROP_FPS) == pytest.approx(8.0, rel=0.05)
+    assert int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)) == 32
+    assert int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT)) == 24
+    decoded_frames = 0
+    while True:
+        success, _ = capture.read()
+        if not success:
+            break
+        decoded_frames += 1
+    capture.release()
+    assert decoded_frames == 4
+
+    with zipfile.ZipFile(os.path.join(job_dir, "batch.zip")) as archive:
+        assert f"outputs/{result['output_filename']}" in archive.namelist()
+
+
+@pytest.mark.anyio
+async def test_video_job_reports_unreadable_input(temp_jobs_dir):
+    job_id = "test_video_unreadable"
+    job_dir = os.path.join(str(temp_jobs_dir), job_id)
+    inputs_dir = os.path.join(job_dir, "inputs")
+    os.makedirs(inputs_dir)
+    with open(os.path.join(inputs_dir, "broken.mp4"), "wb") as f:
+        f.write(b"not a video")
+
+    await batch_executor.run_batch_job(job_id, ["broken.mp4"], PipelineGraph(nodes=[], edges=[]), "png")
+
+    with open(os.path.join(job_dir, "summary.json"), encoding="utf-8") as f:
+        summary = json.load(f)
+    assert summary["status"] == "failed"
+    assert "Could not open video" in summary["results"][0]["error"]
+
+
+@pytest.mark.anyio
+async def test_video_job_reports_unsupported_mp4_writer(temp_jobs_dir, monkeypatch):
+    job_id = "test_video_writer_unsupported"
+    job_dir = os.path.join(str(temp_jobs_dir), job_id)
+    inputs_dir = os.path.join(job_dir, "inputs")
+    os.makedirs(inputs_dir)
+    input_path = os.path.join(inputs_dir, "clip.mp4")
+    if not _write_test_video(input_path):
+        pytest.skip("Installed OpenCV build cannot create mp4v test videos")
+
+    class UnsupportedWriter:
+        def isOpened(self):
+            return False
+
+        def release(self):
+            pass
+
+    monkeypatch.setattr(batch_executor.cv2, "VideoWriter", lambda *args: UnsupportedWriter())
+    await batch_executor.run_batch_job(job_id, ["clip.mp4"], PipelineGraph(nodes=[], edges=[]), "png")
+
+    with open(os.path.join(job_dir, "summary.json"), encoding="utf-8") as f:
+        summary = json.load(f)
+    assert summary["status"] == "failed"
+    assert "may not support MP4 encoding" in summary["results"][0]["error"]
+
+
+@pytest.mark.anyio
+async def test_video_job_uses_processed_frame_dimensions(temp_jobs_dir, monkeypatch):
+    job_id = "test_video_resized_output"
+    job_dir = os.path.join(str(temp_jobs_dir), job_id)
+    inputs_dir = os.path.join(job_dir, "inputs")
+    os.makedirs(inputs_dir)
+    input_path = os.path.join(inputs_dir, "clip.mp4")
+    if not _write_test_video(input_path, frame_count=2):
+        pytest.skip("Installed OpenCV build cannot create mp4v test videos")
+
+    def resize_processed_frame(image, pipeline):
+        return np.zeros((12, 16, 3), dtype=np.uint8)
+
+    monkeypatch.setattr(batch_executor, "execute_pipeline_array", resize_processed_frame)
+    await batch_executor.run_batch_job(job_id, ["clip.mp4"], PipelineGraph(nodes=[], edges=[]), "png")
+
+    with open(os.path.join(job_dir, "summary.json"), encoding="utf-8") as f:
+        summary = json.load(f)
+    assert summary["status"] == "completed"
+    capture = cv2.VideoCapture(os.path.join(job_dir, "outputs", "clip_processed.mp4"))
+    assert capture.isOpened()
+    assert int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)) == 16
+    assert int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT)) == 12
+    capture.release()
+
+
+@pytest.mark.anyio
+async def test_video_job_rejects_inconsistent_processed_frame_dimensions(temp_jobs_dir, monkeypatch):
+    job_id = "test_video_inconsistent_dimensions"
+    job_dir = os.path.join(str(temp_jobs_dir), job_id)
+    inputs_dir = os.path.join(job_dir, "inputs")
+    os.makedirs(inputs_dir)
+    input_path = os.path.join(inputs_dir, "clip.mp4")
+    if not _write_test_video(input_path, frame_count=2):
+        pytest.skip("Installed OpenCV build cannot create mp4v test videos")
+
+    frame_index = 0
+
+    def change_frame_dimensions(image, pipeline):
+        nonlocal frame_index
+        frame_index += 1
+        width = 32 if frame_index == 1 else 34
+        return np.zeros((24, width, 3), dtype=np.uint8)
+
+    monkeypatch.setattr(batch_executor, "execute_pipeline_array", change_frame_dimensions)
+    await batch_executor.run_batch_job(job_id, ["clip.mp4"], PipelineGraph(nodes=[], edges=[]), "png")
+
+    with open(os.path.join(job_dir, "summary.json"), encoding="utf-8") as f:
+        summary = json.load(f)
+    assert summary["status"] == "failed"
+    assert "Processed frame dimensions changed at frame 2" in summary["results"][0]["error"]
+    assert not os.path.exists(os.path.join(job_dir, "outputs", "clip_processed.mp4"))
+    assert not os.path.exists(os.path.join(job_dir, "outputs", ".clip_processed.tmp.mp4"))
+
+
+@pytest.mark.anyio
+async def test_video_job_enforces_metadata_frame_and_duration_limits(temp_jobs_dir, monkeypatch):
+    job_id = "test_video_limits"
+    job_dir = os.path.join(str(temp_jobs_dir), job_id)
+    inputs_dir = os.path.join(job_dir, "inputs")
+    os.makedirs(inputs_dir)
+    input_path = os.path.join(inputs_dir, "clip.mp4")
+    if not _write_test_video(input_path, frame_count=4):
+        pytest.skip("Installed OpenCV build cannot create mp4v test videos")
+
+    monkeypatch.setattr(batch_executor, "MAX_VIDEO_FRAMES", 3)
+    await batch_executor.run_batch_job(job_id, ["clip.mp4"], PipelineGraph(nodes=[], edges=[]), "png")
+
+    with open(os.path.join(job_dir, "summary.json"), encoding="utf-8") as f:
+        summary = json.load(f)
+    assert summary["status"] == "failed"
+    assert "maximum allowed frame count of 3" in summary["results"][0]["error"]
+
+    monkeypatch.setattr(batch_executor, "MAX_VIDEO_FRAMES", 18_000)
+    monkeypatch.setattr(batch_executor, "MAX_VIDEO_DURATION_SECONDS", 0.1)
+    await batch_executor.run_batch_job(job_id, ["clip.mp4"], PipelineGraph(nodes=[], edges=[]), "png")
+    with open(os.path.join(job_dir, "summary.json"), encoding="utf-8") as f:
+        duration_summary = json.load(f)
+    assert duration_summary["status"] == "failed"
+    assert "maximum allowed duration of 0.1 seconds" in duration_summary["results"][0]["error"]
+
+
+@pytest.mark.anyio
+async def test_run_batch_job_processes_mixed_image_and_video(temp_jobs_dir):
+    job_id = "test_mixed_media"
+    job_dir = os.path.join(str(temp_jobs_dir), job_id)
+    inputs_dir = os.path.join(job_dir, "inputs")
+    os.makedirs(inputs_dir)
+    with open(os.path.join(inputs_dir, "still.png"), "wb") as f:
+        f.write(_make_png_bytes())
+    video_path = os.path.join(inputs_dir, "clip.mp4")
+    if not _write_test_video(video_path, frame_count=2):
+        pytest.skip("Installed OpenCV build cannot create mp4v test videos")
+
+    await batch_executor.run_batch_job(job_id, ["still.png", "clip.mp4"], PipelineGraph(nodes=[], edges=[]), "png")
+
+    with open(os.path.join(job_dir, "summary.json"), encoding="utf-8") as f:
+        summary = json.load(f)
+    assert summary["status"] == "completed"
+    assert summary["success_count"] == 2
+    assert {result["output_filename"] for result in summary["results"]} == {
+        "still_processed.png",
+        "clip_processed.mp4",
+    }
+
+
+@pytest.mark.anyio
+async def test_video_job_reports_pipeline_failure_with_frame_number(temp_jobs_dir, monkeypatch):
+    job_id = "test_video_pipeline_failure"
+    job_dir = os.path.join(str(temp_jobs_dir), job_id)
+    inputs_dir = os.path.join(job_dir, "inputs")
+    os.makedirs(inputs_dir)
+    input_path = os.path.join(inputs_dir, "clip.mp4")
+    if not _write_test_video(input_path, frame_count=1):
+        pytest.skip("Installed OpenCV build cannot create mp4v test videos")
+
+    monkeypatch.setattr(
+        batch_executor,
+        "_compile_batch_pipeline",
+        lambda graph, input_channels: [PipelineStep(type="missing_operator")],
+    )
+    await batch_executor.run_batch_job(job_id, ["clip.mp4"], PipelineGraph(nodes=[], edges=[]), "png")
+
+    with open(os.path.join(job_dir, "summary.json"), encoding="utf-8") as f:
+        summary = json.load(f)
+    assert summary["status"] == "failed"
+    assert "Frame 1:" in summary["results"][0]["error"]
+    assert "Unknown operator 'missing_operator'" in summary["results"][0]["error"]
+
+
+@pytest.mark.anyio
+async def test_video_acquires_video_slot_before_general_worker_slot(monkeypatch):
+    entered = []
+
+    class RecordingSemaphore:
+        def __init__(self, name):
+            self.name = name
+
+        async def __aenter__(self):
+            entered.append(self.name)
+
+        async def __aexit__(self, exc_type, exc, traceback):
+            return False
+
+    monkeypatch.setattr(batch_executor, "video_semaphore", RecordingSemaphore("video"))
+    monkeypatch.setattr(batch_executor, "semaphore", RecordingSemaphore("worker"))
+    monkeypatch.setattr(batch_executor, "_process_video_file", lambda *args: "clip_processed.mp4")
+
+    result = await batch_executor.process_single_video(
+        "job", "clip.mp4", PipelineGraph(nodes=[], edges=[]), lambda *_: None
+    )
+
+    assert entered == ["video", "worker"]
+    assert result["success"] is True
 
 
 @pytest.mark.anyio
@@ -618,3 +929,149 @@ def test_cleanup_expired_batch_jobs(tmp_path):
     # Assert active folders remain
     assert os.path.exists(str(active_dir))
     assert os.path.exists(str(mtime_active_dir))
+
+
+def test_execute_pipeline_array_direct():
+    """Verify execute_pipeline_array transforms raw numpy images directly with operators."""
+    img = np.full((50, 50, 3), 100, dtype=np.uint8)
+    pipeline = [PipelineStep(type="imageconversions_invertimage", params={})]
+
+    result = batch_executor.execute_pipeline_array(img, pipeline)
+    assert result.shape == (50, 50, 3)
+    assert result.dtype == np.uint8
+    np.testing.assert_array_equal(result, np.full((50, 50, 3), 155, dtype=np.uint8))
+
+
+def test_execute_pipeline_array_unknown_operator_raises_error():
+    """Verify execute_pipeline_array raises PipelineExecutionError when encountering unknown operators."""
+    from app.exceptions import PipelineExecutionError
+
+    img = np.full((20, 20, 3), 255, dtype=np.uint8)
+    pipeline = [PipelineStep(type="non_existent_operator_xyz", params={})]
+
+    with pytest.raises(PipelineExecutionError) as exc_info:
+        batch_executor.execute_pipeline_array(img, pipeline)
+
+    assert "Unknown operator" in exc_info.value.user_friendly_message
+
+
+@pytest.mark.anyio
+async def test_video_job_with_real_operator_pipeline(temp_jobs_dir):
+    """Verify video batch execution processes frames through real operators in the graph."""
+    job_id = "test_video_real_ops"
+    job_dir = os.path.join(str(temp_jobs_dir), job_id)
+    inputs_dir = os.path.join(job_dir, "inputs")
+    os.makedirs(inputs_dir)
+    input_path = os.path.join(inputs_dir, "input.mp4")
+
+    # Write a test video where all pixels are 100
+    writer = cv2.VideoWriter(input_path, cv2.VideoWriter_fourcc(*"mp4v"), 8.0, (32, 24))
+    if not writer.isOpened():
+        writer.release()
+        pytest.skip("Installed OpenCV build cannot create mp4v test videos")
+    for _ in range(3):
+        writer.write(np.full((24, 32, 3), 100, dtype=np.uint8))
+    writer.release()
+
+    real_graph = PipelineGraph(
+        nodes=[
+            {"id": "inv", "type": "imageconversions_invertimage", "params": {}},
+        ],
+        edges=[],
+    )
+
+    with patch("app.services.batch_executor.JOBS_DIR", str(temp_jobs_dir)):
+        await batch_executor.run_batch_job(job_id, ["input.mp4"], real_graph, "png")
+
+    with open(os.path.join(job_dir, "summary.json"), encoding="utf-8") as f:
+        summary = json.load(f)
+
+    assert summary["status"] == "completed"
+    assert summary["processed_files"] == 1
+    result = summary["results"][0]
+    assert result["success"] is True
+
+    output_path = os.path.join(job_dir, "outputs", result["output_filename"])
+    capture = cv2.VideoCapture(output_path)
+    assert capture.isOpened()
+    success, frame = capture.read()
+    capture.release()
+    assert success
+    assert frame.shape == (24, 32, 3)
+    # 255 - 100 = 155 (allowing slight codec tolerance due to mp4 compression)
+    assert np.mean(frame) == pytest.approx(155, abs=5)
+
+
+def test_compile_batch_pipeline_channel_counts():
+    """Verify _compile_batch_pipeline compiles graphs correctly for varying input channel counts."""
+    graph = PipelineGraph(
+        nodes=[{"id": "step1", "type": "imageconversions_invertimage", "params": {}}],
+        edges=[],
+    )
+    compiled_3ch = batch_executor._compile_batch_pipeline(graph, input_channels=3)
+    assert len(compiled_3ch) == 1
+    assert compiled_3ch[0].type == "imageconversions_invertimage"
+
+    compiled_1ch = batch_executor._compile_batch_pipeline(graph, input_channels=1)
+    assert len(compiled_1ch) == 1
+
+
+@pytest.mark.anyio
+async def test_video_job_truncated_stream_fails_with_error(temp_jobs_dir, monkeypatch):
+    """Verify premature video stream truncation is caught and reported as corrupted."""
+    job_id = "test_video_truncated"
+    job_dir = os.path.join(str(temp_jobs_dir), job_id)
+    inputs_dir = os.path.join(job_dir, "inputs")
+    os.makedirs(inputs_dir)
+    input_path = os.path.join(inputs_dir, "truncated.mp4")
+
+    writer = cv2.VideoWriter(input_path, cv2.VideoWriter_fourcc(*"mp4v"), 8.0, (32, 24))
+    if not writer.isOpened():
+        writer.release()
+        pytest.skip("Installed OpenCV build cannot create mp4v test videos")
+    for _ in range(20):
+        writer.write(np.zeros((24, 32, 3), dtype=np.uint8))
+    writer.release()
+
+    real_graph = PipelineGraph(nodes=[], edges=[])
+
+    original_videocapture = cv2.VideoCapture
+
+    class TruncatedCapture:
+        def __init__(self, path):
+            self._real = original_videocapture(path)
+            self._reads = 0
+
+        def isOpened(self):
+            return self._real.isOpened()
+
+        def get(self, prop):
+            return self._real.get(prop)
+
+        def read(self):
+            self._reads += 1
+            if self._reads > 3:
+                return False, None
+            return self._real.read()
+
+        def release(self):
+            self._real.release()
+
+    def mock_capture(path):
+        if "inputs" in str(path):
+            return TruncatedCapture(path)
+        return original_videocapture(path)
+
+    monkeypatch.setattr(cv2, "VideoCapture", mock_capture)
+
+    with patch("app.services.batch_executor.JOBS_DIR", str(temp_jobs_dir)):
+        await batch_executor.run_batch_job(job_id, ["truncated.mp4"], real_graph, "png")
+
+    with open(os.path.join(job_dir, "summary.json"), encoding="utf-8") as f:
+        summary = json.load(f)
+
+    assert summary["status"] == "failed"
+    assert summary["failure_count"] == 1
+    result = summary["results"][0]
+    assert result["success"] is False
+    assert "truncated or corrupted" in result["error"]
