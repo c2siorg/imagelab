@@ -1,5 +1,7 @@
+import os
 import time
 import uuid
+from contextlib import suppress
 from threading import RLock
 from urllib.parse import unquote
 
@@ -25,6 +27,32 @@ NOOP_TYPES = {"basic_readimage", "basic_writeimage", "border_for_all", "border_e
 THUMBNAIL_MAX_SIZE = 128
 EXECUTION_CACHE_TTL_SECONDS = 30 * 60
 MAX_EXECUTION_CACHE_ENTRIES = 25
+
+DEFAULT_EXECUTION_CACHE_TOTAL_BYTES = 150 * 1024 * 1024  # 150 MB default global ceiling
+DEFAULT_EXECUTION_CACHE_PER_RUN_BYTES = 25 * 1024 * 1024  # 25 MB per-execution ceiling
+DEFAULT_EXECUTION_CACHE_RAW_PER_RUN_BYTES = 15 * 1024 * 1024  # 15 MB raw array ceiling per run
+
+
+def _parse_cache_byte_limit(env_var: str, default: int) -> int:
+    raw = os.getenv(env_var)
+    if not raw:
+        return default
+    try:
+        val = int(raw.strip())
+        return val if val > 0 else default
+    except (ValueError, TypeError):
+        return default
+
+
+MAX_EXECUTION_CACHE_TOTAL_BYTES = _parse_cache_byte_limit(
+    "EXECUTION_CACHE_MAX_BYTES", DEFAULT_EXECUTION_CACHE_TOTAL_BYTES
+)
+MAX_EXECUTION_CACHE_PER_RUN_BYTES = _parse_cache_byte_limit(
+    "EXECUTION_CACHE_MAX_PER_RUN_BYTES", DEFAULT_EXECUTION_CACHE_PER_RUN_BYTES
+)
+MAX_EXECUTION_CACHE_RAW_PER_RUN_BYTES = _parse_cache_byte_limit(
+    "EXECUTION_CACHE_MAX_RAW_PER_RUN_BYTES", DEFAULT_EXECUTION_CACHE_RAW_PER_RUN_BYTES
+)
 MAX_IMAGE_MEMORY_BYTES = 50 * 1024 * 1024  # 50 MB default threshold
 
 
@@ -187,7 +215,34 @@ def _execute_macro_if_else(step: PipelineStep, image: np.ndarray) -> np.ndarray:
     return _run_sub_pipeline(selected, image)
 
 
-def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
+def encode_image_bytes(image: np.ndarray, fmt: str = "png") -> bytes:
+    fmt = fmt.lower()
+    ext = "jpeg" if fmt == "jpg" else "tiff" if fmt == "tif" else fmt
+    success, buf = cv2.imencode(f".{ext}", image)
+    if not success:
+        raise ValueError(f"Could not encode image as {ext}")
+    return buf.tobytes()
+
+
+def decode_image_bytes(image_bytes: bytes) -> np.ndarray | None:
+    arr = np.frombuffer(image_bytes, dtype=np.uint8)
+    return cv2.imdecode(arr, cv2.IMREAD_UNCHANGED)
+
+
+def _get_entry_bytes(entry: dict[str, object] | None) -> tuple[int, int]:
+    """Return (total_bytes, raw_bytes) for a cached step dictionary."""
+    if not isinstance(entry, dict):
+        return 0, 0
+    arr = entry.get("image_array")
+    if isinstance(arr, np.ndarray):
+        return arr.nbytes, arr.nbytes
+    b = entry.get("image_bytes")
+    if isinstance(b, bytes):
+        return len(b), 0
+    return 0, 0
+
+
+def execute_pipeline(request: PipelineRequest, cache_steps: bool = True) -> PipelineResponse:
     t_start_total = time.perf_counter()
     execution_id = uuid.uuid4().hex
     step_timings: list[StepTiming] = []
@@ -209,6 +264,9 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
             timings=PipelineTimings(total_ms=(t_fail - t_start_total) * 1000, steps=step_timings),
             step_results=step_results,
         )
+
+    cached_bytes_current_run = 0
+    cached_raw_bytes_current_run = 0
 
     for i, step in enumerate(request.pipeline):
         if step.type in NOOP_TYPES:
@@ -235,7 +293,8 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
                             macro_stack=getattr(step, "macro_stack", []),
                         )
                     )
-                    _store_execution(execution_id, full_images)
+                    if cache_steps:
+                        _store_execution(execution_id, full_images)
                     return PipelineResponse(
                         success=False,
                         execution_id=execution_id,
@@ -256,14 +315,65 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
             step_timings.append(StepTiming(step=i + 1, operator_type=step.type, duration_ms=timing_ms))
             thumbnail = encode_thumbnail_base64(image, request.image_format)
             cache_key = step.block_id or str(i + 1)
-            full_images[cache_key] = {
-                "index": i + 1,
-                "block_id": cache_key,
-                "type": step.type,
-                "image_bytes": encode_image_bytes(image, request.image_format),
-                "image_format": request.image_format,
-                "timing_ms": timing_ms,
-            }
+            prev_entry = full_images.get(cache_key)
+            prev_bytes, prev_raw_bytes = _get_entry_bytes(prev_entry)
+
+            can_cache = False
+            cached_entry = None
+
+            if cache_steps:
+                step_raw_bytes = image.nbytes
+                # Tier 1 (Fast path): Store uncompressed NumPy array if within per-run raw budget
+                # and per-run total budget
+                if (
+                    cached_raw_bytes_current_run - prev_raw_bytes + step_raw_bytes
+                    <= MAX_EXECUTION_CACHE_RAW_PER_RUN_BYTES
+                    and cached_bytes_current_run - prev_bytes + step_raw_bytes <= MAX_EXECUTION_CACHE_PER_RUN_BYTES
+                ):
+                    cached_raw_bytes_current_run += step_raw_bytes - prev_raw_bytes
+                    cached_bytes_current_run += step_raw_bytes - prev_bytes
+                    cached_entry = {
+                        "index": i + 1,
+                        "block_id": cache_key,
+                        "type": step.type,
+                        "image_array": image.copy(),
+                        "image_format": request.image_format,
+                        "timing_ms": timing_ms,
+                    }
+                    can_cache = True
+                else:
+                    # Tier 2 (High-resolution fallback): Compress to bytes to preserve inspectability
+                    # without exceeding memory limits for large or multi-step pipelines
+                    try:
+                        compressed_b = encode_image_bytes(image, request.image_format)
+                        step_compressed_bytes = len(compressed_b)
+                        if (
+                            cached_bytes_current_run - prev_bytes + step_compressed_bytes
+                            <= MAX_EXECUTION_CACHE_PER_RUN_BYTES
+                        ):
+                            cached_raw_bytes_current_run -= prev_raw_bytes
+                            cached_bytes_current_run += step_compressed_bytes - prev_bytes
+                            cached_entry = {
+                                "index": i + 1,
+                                "block_id": cache_key,
+                                "type": step.type,
+                                "image_bytes": compressed_b,
+                                "image_format": request.image_format,
+                                "timing_ms": timing_ms,
+                            }
+                            can_cache = True
+                    except (ValueError, cv2.error):
+                        can_cache = False
+
+            if can_cache and cached_entry is not None:
+                full_images[cache_key] = cached_entry
+            else:
+                # If duplicate block_id replacement cannot be cached, pop earlier entry to avoid stale inspection
+                if cache_key in full_images:
+                    full_images.pop(cache_key, None)
+                    cached_bytes_current_run -= prev_bytes
+                    cached_raw_bytes_current_run -= prev_raw_bytes
+
             step_results.append(
                 StepResult(
                     index=i + 1,
@@ -273,7 +383,7 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
                     thumbnail=thumbnail,
                     image_format=request.image_format,
                     timing_ms=timing_ms,
-                    has_full_image=True,
+                    has_full_image=can_cache,
                     macro_stack=getattr(step, "macro_stack", []),
                 )
             )
@@ -292,7 +402,8 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
                     macro_stack=getattr(step, "macro_stack", []),
                 )
             )
-            _store_execution(execution_id, full_images)
+            if cache_steps:
+                _store_execution(execution_id, full_images)
             raise PipelineExecutionError(
                 step_id=step_id,
                 step_type=step.type,
@@ -314,7 +425,8 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
                     macro_stack=getattr(step, "macro_stack", []),
                 )
             )
-            _store_execution(execution_id, full_images)
+            if cache_steps:
+                _store_execution(execution_id, full_images)
             return PipelineResponse(
                 success=False,
                 execution_id=execution_id,
@@ -330,7 +442,8 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
     except Exception as e:
         t_fail = time.perf_counter()
         error_msg = f"Failed to encode result: {type(e).__name__}: {e}"
-        _store_execution(execution_id, full_images)
+        if cache_steps:
+            _store_execution(execution_id, full_images)
         return PipelineResponse(
             success=False,
             execution_id=execution_id,
@@ -341,7 +454,8 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
         )
 
     t_end_total = time.perf_counter()
-    _store_execution(execution_id, full_images)
+    if cache_steps:
+        _store_execution(execution_id, full_images)
 
     return PipelineResponse(
         success=True,
@@ -407,37 +521,36 @@ def inspect_step(execution_id: str, block_id: str):
             return None
         cached["last_accessed_at"] = time.time()
     image_format = str(step["image_format"])
-    image_bytes = step.get("image_bytes")
-    if not isinstance(image_bytes, bytes):
-        return None
-    image = decode_image_bytes(image_bytes)
-    if image is None:
-        return None
+    image_array = step.get("image_array")
+    if isinstance(image_array, np.ndarray):
+        image = image_array
+    else:
+        image_bytes = step.get("image_bytes")
+        if not isinstance(image_bytes, bytes):
+            return None
+        image = decode_image_bytes(image_bytes)
+        if image is None:
+            return None
+
+    image_b64 = encode_image_base64(image, image_format)
+    # When inspecting lossy formats (JPEG), compression introduces quantization
+    # artifacts. We decode the compressed buffer so that reported metrics (analysis & histogram)
+    # match the exact pixel buffer delivered to the client.
+    if image_format.lower() in ("jpeg", "jpg"):
+        with suppress(ValueError, cv2.error):
+            image = decode_base64_image(image_b64)
+
     return {
         "execution_id": execution_id,
         "block_id": block_id,
         "index": int(step["index"]),
         "type": str(step["type"]),
-        "image": encode_image_base64(image, image_format),
+        "image": image_b64,
         "image_format": image_format,
         "timing_ms": step["timing_ms"],
         "analysis": analyze_image(image),
         "histogram": calculate_histogram(image),
     }
-
-
-def encode_image_bytes(image: np.ndarray, fmt: str = "png") -> bytes:
-    fmt = fmt.lower()
-    ext = "jpeg" if fmt == "jpg" else "tiff" if fmt == "tif" else fmt
-    success, buf = cv2.imencode(f".{ext}", image)
-    if not success:
-        raise ValueError(f"Could not encode image as {ext}")
-    return buf.tobytes()
-
-
-def decode_image_bytes(image_bytes: bytes) -> np.ndarray | None:
-    arr = np.frombuffer(image_bytes, dtype=np.uint8)
-    return cv2.imdecode(arr, cv2.IMREAD_UNCHANGED)
 
 
 def analyze_image(image: np.ndarray) -> ImageAnalysis:
@@ -495,7 +608,27 @@ def calculate_histogram(image: np.ndarray) -> ImageHistogram:
     )
 
 
+def _calculate_steps_byte_size(steps: dict[str, dict[str, object]]) -> int:
+    total = 0
+    for step in steps.values():
+        if not isinstance(step, dict):
+            continue
+        arr = step.get("image_array")
+        if isinstance(arr, np.ndarray):
+            total += arr.nbytes
+        else:
+            b = step.get("image_bytes")
+            if isinstance(b, bytes):
+                total += len(b)
+    return total
+
+
 def _store_execution(execution_id: str, steps: dict[str, dict[str, object]]) -> None:
+    if not steps:
+        return
+    execution_size = _calculate_steps_byte_size(steps)
+    if execution_size > MAX_EXECUTION_CACHE_TOTAL_BYTES:
+        return
     _evict_expired_executions()
     now = time.time()
     with _EXECUTION_CACHE_LOCK:
@@ -503,13 +636,27 @@ def _store_execution(execution_id: str, steps: dict[str, dict[str, object]]) -> 
             "created_at": now,
             "last_accessed_at": now,
             "steps": steps,
+            "byte_size": execution_size,
         }
-        if len(_EXECUTION_CACHE) > MAX_EXECUTION_CACHE_ENTRIES:
+
+        # 1. Enforce max entries limit
+        while len(_EXECUTION_CACHE) > MAX_EXECUTION_CACHE_ENTRIES:
             least_recently_used_execution_id = min(
                 _EXECUTION_CACHE,
                 key=lambda key: float(_EXECUTION_CACHE[key].get("last_accessed_at", 0)),
             )
             _EXECUTION_CACHE.pop(least_recently_used_execution_id, None)
+
+        # 2. Enforce total memory byte ceiling
+        current_bytes = sum(int(entry.get("byte_size", 0)) for entry in _EXECUTION_CACHE.values())
+        while current_bytes > MAX_EXECUTION_CACHE_TOTAL_BYTES and _EXECUTION_CACHE:
+            least_recently_used_execution_id = min(
+                _EXECUTION_CACHE,
+                key=lambda key: float(_EXECUTION_CACHE[key].get("last_accessed_at", 0)),
+            )
+            removed = _EXECUTION_CACHE.pop(least_recently_used_execution_id, None)
+            if removed:
+                current_bytes -= int(removed.get("byte_size", 0))
 
 
 def _evict_expired_executions() -> None:
