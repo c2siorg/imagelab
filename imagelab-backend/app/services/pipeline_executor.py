@@ -187,6 +187,23 @@ def _execute_macro_if_else(step: PipelineStep, image: np.ndarray) -> np.ndarray:
     return _run_sub_pipeline(selected, image)
 
 
+def _execute_step(step: PipelineStep, image: np.ndarray) -> np.ndarray:
+    """Execute a single pipeline step (macro or operator) on an image array."""
+    if step.type in NOOP_TYPES:
+        return image
+    if step.type == "macro_blend":
+        image = _execute_macro_blend(step, image)
+    elif step.type == "macro_if_else":
+        image = _execute_macro_if_else(step, image)
+    else:
+        operator_cls = get_operator(step.type)
+        if operator_cls is None:
+            raise ValueError(f"Unknown operator '{step.type}'")
+        image = operator_cls(step.params).compute(image)
+    check_memory_limit(image)
+    return image
+
+
 def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
     t_start_total = time.perf_counter()
     execution_id = uuid.uuid4().hex
@@ -216,41 +233,7 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
 
         try:
             t_step_start = time.perf_counter()
-            if step.type == "macro_blend":
-                image = _execute_macro_blend(step, image)
-            elif step.type == "macro_if_else":
-                image = _execute_macro_if_else(step, image)
-            else:
-                operator_cls = get_operator(step.type)
-                if operator_cls is None:
-                    t_fail = time.perf_counter()
-                    step_results.append(
-                        StepResult(
-                            index=i + 1,
-                            block_id=step.block_id,
-                            type=step.type,
-                            success=False,
-                            image_format=request.image_format,
-                            error=f"Unknown operator '{step.type}'",
-                            macro_stack=getattr(step, "macro_stack", []),
-                        )
-                    )
-                    _store_execution(execution_id, full_images)
-                    return PipelineResponse(
-                        success=False,
-                        execution_id=execution_id,
-                        error=f"Unknown operator '{step.type}' at step {i + 1}",
-                        step=i + 1,
-                        error_block_id=step.block_id,
-                        timings=PipelineTimings(total_ms=(t_fail - t_start_total) * 1000, steps=step_timings),
-                        step_results=step_results,
-                    )
-
-                operator = operator_cls(step.params)
-                image = operator.compute(image)
-
-            check_memory_limit(image)
-
+            image = _execute_step(step, image)
             t_step_end = time.perf_counter()
             timing_ms = (t_step_end - t_step_start) * 1000
             step_timings.append(StepTiming(step=i + 1, operator_type=step.type, duration_ms=timing_ms))
@@ -281,6 +264,29 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
             t_fail = time.perf_counter()
             step_id = step.block_id or str(i + 1)
             error_msg = str(e)
+            if error_msg.startswith("Unknown operator"):
+                step_results.append(
+                    StepResult(
+                        index=i + 1,
+                        block_id=step.block_id,
+                        type=step.type,
+                        success=False,
+                        image_format=request.image_format,
+                        error=error_msg,
+                        macro_stack=getattr(step, "macro_stack", []),
+                    )
+                )
+                _store_execution(execution_id, full_images)
+                return PipelineResponse(
+                    success=False,
+                    execution_id=execution_id,
+                    error=f"{error_msg} at step {i + 1}",
+                    step=i + 1,
+                    error_block_id=step.block_id,
+                    timings=PipelineTimings(total_ms=(t_fail - t_start_total) * 1000, steps=step_timings),
+                    step_results=step_results,
+                )
+
             step_results.append(
                 StepResult(
                     index=i + 1,
@@ -351,6 +357,33 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
         timings=PipelineTimings(total_ms=(t_end_total - t_start_total) * 1000, steps=step_timings),
         step_results=step_results,
     )
+
+
+def execute_pipeline_array(image: np.ndarray, pipeline: list[PipelineStep]) -> np.ndarray:
+    """Run a pipeline directly on an image array without encoding it for transport."""
+    check_memory_limit(image)
+    for index, step in enumerate(pipeline):
+        if step.type in NOOP_TYPES:
+            continue
+
+        try:
+            image = _execute_step(step, image)
+        except ValueError as e:
+            raise PipelineExecutionError(
+                step_id=step.block_id or str(index + 1),
+                step_type=step.type,
+                user_friendly_message=str(e),
+                step=index + 1,
+            ) from e
+        except Exception as e:
+            raise PipelineExecutionError(
+                step_id=step.block_id or str(index + 1),
+                step_type=step.type,
+                user_friendly_message=f"{type(e).__name__}: {e}",
+                step=index + 1,
+            ) from e
+
+    return image
 
 
 def encode_thumbnail_base64(image: np.ndarray, fmt: str = "png") -> str:
