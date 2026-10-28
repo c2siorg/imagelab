@@ -16,6 +16,7 @@ from app.operators.conversions.channel_split import ChannelSplit
 from app.operators.conversions.clahe import ClaheImage
 from app.operators.conversions.color_maps import ColorMaps
 from app.operators.conversions.color_to_binary import ColorToBinary
+from app.operators.conversions.gamma_correction import GammaCorrection
 from app.operators.conversions.gray_image import GrayImage
 from app.operators.conversions.gray_to_binary import GrayToBinary
 from app.operators.conversions.histogram_equalization import HistogramEqualization
@@ -40,7 +41,6 @@ from app.operators.filtering.dilation import Dilation
 from app.operators.filtering.erosion import Erosion
 from app.operators.filtering.gabor_filter import GaborFilter
 from app.operators.filtering.hough_lines import HoughLines
-from app.operators.filtering.laplacian import Laplacian
 from app.operators.filtering.laplacian import Laplacian as FilteringLaplacian
 from app.operators.filtering.morphological import Morphological
 from app.operators.filtering.pyramid_down import PyramidDown
@@ -64,6 +64,7 @@ from app.operators.thresholding.apply_borders import ApplyBorders
 from app.operators.thresholding.apply_threshold import ApplyThreshold
 from app.operators.thresholding.otsu_threshold import OtsuThreshold
 from app.operators.transformation.distance_transform import DistanceTransform
+from app.operators.transformation.laplacian import Laplacian as TransformationLaplacian
 
 OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     # Basic
@@ -92,6 +93,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "imageconversions_ycrcbtobgr": YcrcbToBgr,
     "imageconversions_invertimage": InvertImage,
     "imageconversions_brightnessandcontrast": BrightnessAndContrast,
+    "imageconversions_gammacorrection": GammaCorrection,
     # Drawing
     "drawingoperations_drawline": DrawLine,
     "drawingoperations_drawcircle": DrawCircle,
@@ -136,7 +138,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "sobelderivatives_robertsoperator": RobertsOperator,
     # Transformation
     "transformation_distance": DistanceTransform,
-    "transformation_laplacian": Laplacian,
+    "transformation_laplacian": TransformationLaplacian,
     # Segmentation
     "segmentation_watershed": Watershed,
     "segmentation_kmeans": KMeansSegmentation,

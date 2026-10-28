@@ -9,6 +9,7 @@ import time
 import zipfile
 
 from app.database import engine
+from app.exceptions import PipelineExecutionError
 from app.models.graph import PipelineGraph
 from app.models.pipeline import PipelineRequest
 from app.services.graph_engine import compile_graph
@@ -149,6 +150,13 @@ async def process_single_image(job_id: str, filename: str, graph: PipelineGraph,
                     "output_filename": None,
                     "error": response.error or "Unknown pipeline execution error",
                 }
+        except PipelineExecutionError as e:
+            return {
+                "filename": filename,
+                "success": False,
+                "output_filename": None,
+                "error": e.user_friendly_message,
+            }
         except Exception as e:
             logger.exception(f"Error processing image {filename} in job {job_id}")
             return {

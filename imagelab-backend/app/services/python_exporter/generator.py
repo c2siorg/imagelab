@@ -35,6 +35,7 @@ OPERATOR_NAMES: dict[str, str] = {
     "imageconversions_ycrcbtobgr": "Convert YCrCb to BGR",
     "imageconversions_invertimage": "Invert Image",
     "imageconversions_brightnessandcontrast": "Brightness and Contrast",
+    "imageconversions_gammacorrection": "Gamma Correction",
     "imageconversions_histogramequalization": "Histogram Equalization",
     "imageconversions_clahe": "CLAHE (Contrast Limited Adaptive Histogram Equalization)",
     "imageconversions_channelsplit": "Channel Split",

@@ -8,10 +8,11 @@ import tempfile
 
 import cv2
 import numpy as np
+import pytest
 
 from app.models.graph import GraphEdge, GraphNode, PipelineGraph
 from app.models.pipeline import PipelineStep
-from app.operators.registry import OPERATOR_REGISTRY
+from app.operators.registry import OPERATOR_REGISTRY, get_operator
 from app.services.python_exporter import (
     export_graph_to_python,
     export_pipeline_to_python,
@@ -172,6 +173,36 @@ def test_end_to_end_script_execution():
         assert saved_img.shape[:2] == (80, 80)
 
 
+def test_exported_sepia_matches_the_operator():
+    """The exported script must give the same image as the app for Sepia, with and without alpha."""
+    bgr = np.zeros((16, 16, 3), dtype=np.uint8)
+    bgr[:, :, 0] = np.arange(0, 256, 16, dtype=np.uint8)
+    bgr[:, :, 1] = 100
+    bgr[:, :, 2] = 30
+    bgra = np.dstack([bgr, np.full((16, 16), 128, dtype=np.uint8)])
+
+    for params in ({"intensity": 1.0}, {"intensity": 0.5}):
+        code, _ = export_pipeline_to_python([PipelineStep(type="augmentation_sepiafilter", params=params)], "Sepia")
+        for test_img in (bgr, bgra):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                script_path = os.path.join(tmpdir, "run_script.py")
+                input_path = os.path.join(tmpdir, "input.png")
+                output_path = os.path.join(tmpdir, "output.png")
+                cv2.imwrite(input_path, test_img)
+                with open(script_path, "w", encoding="utf-8") as f:
+                    f.write(code)
+
+                result = subprocess.run(
+                    [sys.executable, script_path, "--input", input_path, "--output", output_path],
+                    capture_output=True,
+                    text=True,
+                )
+                assert result.returncode == 0, f"Script failed: {result.stderr}"
+
+                expected = OPERATOR_REGISTRY["augmentation_sepiafilter"](params).compute(test_img)
+                np.testing.assert_array_equal(cv2.imread(output_path, cv2.IMREAD_UNCHANGED), expected)
+
+
 def test_api_export_python_pipeline_request(client):
     """Test POST /api/v1/pipeline/export-python with pipeline steps."""
     payload = {
@@ -272,6 +303,51 @@ def test_resilient_hex_color_handling():
     ast.parse(code_invalid)
 
 
+def test_exported_drawing_matches_the_app():
+    """Exported drawing and contour steps must give the same image as the app, including on images with alpha."""
+    color = {"rgbcolors_input": "#2828cc", "thickness": 2}
+    cases = [
+        ("drawingoperations_drawline", {**color, "starting_point_x1": 2, "starting_point_y1": 3, "ending_point_x": 40}),
+        (
+            "drawingoperations_drawarrowline",
+            {**color, "starting_point_x": 5, "ending_point_x": 40, "ending_point_y": 30},
+        ),
+        ("drawingoperations_drawcircle", {**color, "radius": 10, "center_point_x": 24, "center_point_y": 20}),
+        ("drawingoperations_drawellipse", {**color, "width": 15, "height": 8, "angle": 30, "center_point_x": 24}),
+        (
+            "drawingoperations_drawrectangle",
+            {**color, "starting_point_x": 4, "ending_point_x": 30, "ending_point_y": 25},
+        ),
+        ("drawingoperations_drawtext", {**color, "draw_text": "Lab", "scale": 1, "starting_point_y": 30}),
+        ("filtering_contourdetection", {"rgbcolors_input": "#00ff00", "thickness": 2, "mode": "TREE"}),
+    ]
+    bgr = np.zeros((40, 48, 3), dtype=np.uint8)
+    cv2.rectangle(bgr, (10, 10), (30, 30), (200, 150, 100), -1)
+    images = [bgr, np.dstack([bgr, np.full((40, 48), 90, dtype=np.uint8)]), cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)]
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        script_path = os.path.join(tmpdir, "run_script.py")
+        input_path = os.path.join(tmpdir, "input.png")
+        output_path = os.path.join(tmpdir, "output.png")
+        for op_type, params in cases:
+            code, _ = export_pipeline_to_python([PipelineStep(type=op_type, params=params)], op_type)
+            with open(script_path, "w", encoding="utf-8") as f:
+                f.write(code)
+            for test_img in images:
+                cv2.imwrite(input_path, test_img)
+                result = subprocess.run(
+                    [sys.executable, script_path, "--input", input_path, "--output", output_path],
+                    capture_output=True,
+                    text=True,
+                )
+                assert result.returncode == 0, f"{op_type} script failed: {result.stderr}"
+
+                expected = OPERATOR_REGISTRY[op_type](dict(params)).compute(test_img.copy())
+                np.testing.assert_array_equal(
+                    cv2.imread(output_path, cv2.IMREAD_UNCHANGED), expected, err_msg=f"{op_type} {test_img.shape}"
+                )
+
+
 def test_all_62_operator_templates_individually_exercised():
     """Verify each registered operator template in OPERATOR_TEMPLATES individually generates valid Python AST."""
     from app.services.python_exporter.templates import OPERATOR_TEMPLATES
@@ -287,6 +363,45 @@ def test_all_62_operator_templates_individually_exercised():
             assert isinstance(tree, ast.Module)
         except SyntaxError as e:
             raise AssertionError(f"Operator {op_name} produced invalid Python code:\n{code}") from e
+
+
+def test_exported_operators_match_the_app():
+    """Exported scripts for these operators must give the same image as the app, for BGR, BGRA and gray input."""
+    cases = [
+        ("imageconversions_clahe", {"clipLimit": 3.0, "tileGridSizeX": 4, "tileGridSizeY": 6}),
+        ("filtering_gaborfilter", {"kernelSize": 21, "sigma": 5.0, "theta": 45, "lambda_": 10.0, "gamma": 0.5}),
+        ("sobelderivatives_soblederivate", {"type": "HORIZONTAL"}),
+        ("sobelderivatives_soblederivate", {"type": "VERTICAL"}),
+        ("sobelderivatives_soblederivate", {"type": "BOTH"}),
+        ("sobelderivatives_scharrderivate", {"type": "HORIZONTAL"}),
+        ("sobelderivatives_scharrderivate", {"type": "VERTICAL"}),
+        ("sobelderivatives_prewittoperator", {}),
+    ]
+    bgr = np.random.default_rng(1).integers(0, 256, (40, 48, 3), dtype=np.uint8)
+    cv2.circle(bgr, (24, 20), 10, (255, 255, 255), -1)
+    images = [bgr, np.dstack([bgr, np.full((40, 48), 90, dtype=np.uint8)]), cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)]
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        script_path = os.path.join(tmpdir, "run_script.py")
+        input_path = os.path.join(tmpdir, "input.png")
+        output_path = os.path.join(tmpdir, "output.png")
+        for op_type, params in cases:
+            code, _ = export_pipeline_to_python([PipelineStep(type=op_type, params=params)], op_type)
+            with open(script_path, "w", encoding="utf-8") as f:
+                f.write(code)
+            for test_img in images:
+                cv2.imwrite(input_path, test_img)
+                result = subprocess.run(
+                    [sys.executable, script_path, "--input", input_path, "--output", output_path],
+                    capture_output=True,
+                    text=True,
+                )
+                assert result.returncode == 0, f"{op_type} {params} script failed: {result.stderr}"
+
+                expected = OPERATOR_REGISTRY[op_type](dict(params)).compute(test_img.copy())
+                output = cv2.imread(output_path, cv2.IMREAD_UNCHANGED)
+                assert output.shape == expected.shape, f"{op_type} {params}: {output.shape} != {expected.shape}"
+                np.testing.assert_array_equal(output, expected, err_msg=f"{op_type} {params}")
 
 
 def test_hostile_filenames_prevent_code_injection():
@@ -433,3 +548,253 @@ def test_api_hostile_payload_sanitization(client):
     assert "\x00" not in data["filename"]
     tree = ast.parse(data["code"])
     assert isinstance(tree, ast.Module)
+
+
+def test_exported_brightness_and_contrast_matches_the_operator():
+    """The exported script must give the same image as the app for Brightness and Contrast."""
+    params = {"brightnessValue": 20, "contrastValue": 1.5}
+    code, _ = export_pipeline_to_python(
+        [PipelineStep(type="imageconversions_brightnessandcontrast", params=params)], "Brightness Contrast"
+    )
+    test_img = np.tile(np.arange(0, 256, 4, dtype=np.uint8), (8, 1))
+    test_img = cv2.merge([test_img, test_img, test_img])
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        script_path = os.path.join(tmpdir, "run_script.py")
+        input_path = os.path.join(tmpdir, "input.png")
+        output_path = os.path.join(tmpdir, "output.png")
+        cv2.imwrite(input_path, test_img)
+        with open(script_path, "w", encoding="utf-8") as f:
+            f.write(code)
+
+        result = subprocess.run(
+            [sys.executable, script_path, "--input", input_path, "--output", output_path],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, f"Script failed: {result.stderr}"
+
+        expected = OPERATOR_REGISTRY["imageconversions_brightnessandcontrast"](params).compute(test_img)
+        np.testing.assert_array_equal(cv2.imread(output_path), expected)
+
+
+def _run_exported_pipeline(code: str, image: np.ndarray) -> np.ndarray:
+    """Execute an exported script's run_pipeline on an image in-process."""
+    namespace: dict = {}
+    exec(compile(code, "<exported_script>", "exec"), namespace)
+    return namespace["run_pipeline"](image)
+
+
+def _bgra_image() -> np.ndarray:
+    """Deterministic BGRA test image with shape (24, 24, 4)."""
+    h, w = 24, 24
+    blue = np.tile(np.linspace(0, 255, w, dtype=np.uint8), (h, 1))
+    green = np.tile(np.linspace(255, 0, w, dtype=np.uint8), (h, 1)).T
+    red = np.rot90(blue).copy()
+    alpha = np.full((h, w), 200, dtype=np.uint8)
+    return np.dstack([blue, green, red, alpha])
+
+
+def _gray_image() -> np.ndarray:
+    h, w = 24, 24
+    return np.tile(np.linspace(0, 255, w, dtype=np.uint8), (h, 1))
+
+
+def test_exported_operators_match_app_on_alpha_images():
+    """Exported scripts must reproduce the app exactly for BGRA input (#441)."""
+    image = _bgra_image()
+    cases = [
+        ("imageconversions_histogramequalization", {}),
+        ("imageconversions_colormaps", {}),
+        ("imageconversions_invertimage", {}),
+        ("filtering_morphological", {"type": "TOPHAT"}),
+        ("filtering_morphological", {"type": "OPEN"}),
+        ("filtering_sharpen", {"strength": 1.5}),
+        ("filtering_bilateral", {}),
+        ("segmentation_meanshift", {}),
+        ("segmentation_watershed", {}),
+    ]
+    for op_type, params in cases:
+        operator = get_operator(op_type)(params)
+        expected = operator.compute(image.copy())
+        code, unsupported = export_pipeline_to_python([PipelineStep(type=op_type, params=params)])
+        assert unsupported == [], f"{op_type} unexpectedly unsupported"
+        result = _run_exported_pipeline(code, image.copy())
+        assert result.shape == expected.shape, f"{op_type}: shape mismatch"
+        np.testing.assert_array_equal(
+            result, expected, err_msg=f"{op_type}: exported script output differs from the app"
+        )
+
+
+def test_exported_operators_match_app_on_grayscale_images():
+    """Exported scripts must reproduce the app exactly for 2-D grayscale input (#441)."""
+    image = _gray_image()
+    cases = [
+        ("imageconversions_hsvtobgr", {}),
+        ("imageconversions_labtobgr", {}),
+        ("imageconversions_ycrcbtobgr", {}),
+        ("imageconversions_bgrtohsv", {}),
+        ("imageconversions_bgrtolab", {}),
+        ("imageconversions_bgrtoycrcb", {}),
+        ("imageconversions_histogramequalization", {}),
+        ("imageconversions_colormaps", {}),
+    ]
+    for op_type, params in cases:
+        operator = get_operator(op_type)(params)
+        expected = operator.compute(image.copy())
+        code, unsupported = export_pipeline_to_python([PipelineStep(type=op_type, params=params)])
+        assert unsupported == [], f"{op_type} unexpectedly unsupported"
+        result = _run_exported_pipeline(code, image.copy())
+        assert result.shape == expected.shape, f"{op_type}: shape mismatch"
+        np.testing.assert_array_equal(
+            result, expected, err_msg=f"{op_type}: exported script output differs from the app"
+        )
+
+
+def test_exported_watershed_handles_flat_regions():
+    """Exported watershed must follow the app's early return when no foreground exists."""
+    blank_bgra = np.zeros((12, 12, 4), dtype=np.uint8)
+    operator = get_operator("segmentation_watershed")({})
+    expected = operator.compute(blank_bgra.copy())
+    code, unsupported = export_pipeline_to_python([PipelineStep(type="segmentation_watershed", params={})])
+    assert unsupported == []
+    result = _run_exported_pipeline(code, blank_bgra.copy())
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_exported_sharpen_respects_strength_on_bgr():
+    """Exported sharpen must blend the sharpened image with the original by strength."""
+    image = _bgra_image()[:, :, :3]
+    operator = get_operator("filtering_sharpen")({"strength": 2.0})
+    expected = operator.compute(image.copy())
+    code, unsupported = export_pipeline_to_python([PipelineStep(type="filtering_sharpen", params={"strength": 2.0})])
+    assert unsupported == []
+    result = _run_exported_pipeline(code, image.copy())
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_exported_kmeans_returns_three_channels_for_alpha_input():
+    """Exported kmeans must collapse BGRA to 3 channels like the app does."""
+    image = _bgra_image()
+    code, unsupported = export_pipeline_to_python([PipelineStep(type="segmentation_kmeans", params={})])
+    assert unsupported == []
+    result = _run_exported_pipeline(code, image.copy())
+    assert result.shape == (24, 24, 3)
+    assert result.dtype == np.uint8
+
+
+def test_gaussian_noise_exporter_uses_sigma_and_preserves_alpha():
+    """Verify Gaussian noise export uses sigma parameter and preserves the alpha channel on BGRA images."""
+    step = PipelineStep(type="augmentation_gaussiannoise", params={"mean": 5.0, "sigma": 40.0})
+    code, unsupported = export_pipeline_to_python([step], "Gaussian Noise Pipeline")
+    assert unsupported == []
+    assert "40.0" in code
+    ast.parse(code)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        script_path = os.path.join(tmpdir, "gaussian_script.py")
+        input_path = os.path.join(tmpdir, "in.png")
+        output_path = os.path.join(tmpdir, "out.png")
+
+        # 4-channel BGRA image with distinct alpha
+        bgra_img = np.full((30, 30, 4), 100, dtype=np.uint8)
+        bgra_img[:, :, 3] = 185
+        cv2.imwrite(input_path, bgra_img)
+
+        with open(script_path, "w", encoding="utf-8") as f:
+            f.write(code)
+
+        result = subprocess.run(
+            [sys.executable, script_path, "--input", input_path, "--output", output_path],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, f"Script failed: {result.stderr}"
+        out_img = cv2.imread(output_path, cv2.IMREAD_UNCHANGED)
+        assert out_img.shape == (30, 30, 4)
+        assert np.all(out_img[:, :, 3] == 185), "Alpha channel was corrupted by Gaussian noise"
+
+        # Also verify grayscale 2D input
+        gray_img = np.full((30, 30), 120, dtype=np.uint8)
+        cv2.imwrite(input_path, gray_img)
+        result = subprocess.run(
+            [sys.executable, script_path, "--input", input_path, "--output", output_path],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0
+        out_gray = cv2.imread(output_path, cv2.IMREAD_UNCHANGED)
+        assert out_gray.shape == (30, 30)
+
+
+def test_salt_pepper_noise_exporter_uses_density_and_preserves_alpha():
+    """Verify Salt & Pepper export uses density parameter and keeps alpha intact without creating transparent pixels."""
+    step = PipelineStep(type="augmentation_saltpeppernoise", params={"density": 0.2})
+    code, unsupported = export_pipeline_to_python([step], "Salt Pepper Pipeline")
+    assert unsupported == []
+    assert "0.2" in code
+    ast.parse(code)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        script_path = os.path.join(tmpdir, "sp_script.py")
+        input_path = os.path.join(tmpdir, "in.png")
+        output_path = os.path.join(tmpdir, "out.png")
+
+        # 4-channel BGRA image with constant alpha
+        bgra_img = np.full((40, 40, 4), 128, dtype=np.uint8)
+        bgra_img[:, :, 3] = 210
+        cv2.imwrite(input_path, bgra_img)
+
+        with open(script_path, "w", encoding="utf-8") as f:
+            f.write(code)
+
+        result = subprocess.run(
+            [sys.executable, script_path, "--input", input_path, "--output", output_path],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, f"Script failed: {result.stderr}"
+        out_img = cv2.imread(output_path, cv2.IMREAD_UNCHANGED)
+        assert out_img.shape == (40, 40, 4)
+        assert np.all(out_img[:, :, 3] == 210), "Alpha channel was zeroed out by salt and pepper noise"
+
+        # Verify salt (255) and pepper (0) exist in BGR channels
+        bgr = out_img[:, :, :3]
+        assert np.any(bgr == 255), "Expected white salt pixels in output"
+        assert np.any(bgr == 0), "Expected black pepper pixels in output"
+
+
+@pytest.mark.parametrize(
+    ("step_type", "params"),
+    [
+        ("blurring_applyblur", {"widthSize": 5, "heightSize": 3, "pointX": 0, "pointY": 0}),
+        ("filtering_boxfilter", {"width": 5, "height": 3, "depth": -1, "point_x": 4, "point_y": 0}),
+        ("filtering_erosion", {"kernelSize": 4, "iteration": 1, "point_x": 0, "point_y": 0}),
+        ("filtering_dilation", {"kernelSize": 3, "iteration": 2, "point_x": 2, "point_y": 1}),
+    ],
+)
+def test_exported_script_matches_operator_with_anchor(step_type, params):
+    """The exported script uses the same anchor and kernel as the operator, so both give the same image."""
+    rng = np.random.default_rng(0)
+    image = rng.integers(0, 256, size=(24, 32, 3), dtype=np.uint8)
+    expected = OPERATOR_REGISTRY[step_type](params).compute(image)
+
+    code, _ = export_pipeline_to_python([PipelineStep(type=step_type, params=params)], "Anchor Test")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        script_path = os.path.join(tmpdir, "run_script.py")
+        input_path = os.path.join(tmpdir, "input.png")
+        output_path = os.path.join(tmpdir, "output.png")
+        cv2.imwrite(input_path, image)
+        with open(script_path, "w", encoding="utf-8") as f:
+            f.write(code)
+
+        result = subprocess.run(
+            [sys.executable, script_path, "--input", input_path, "--output", output_path],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, f"Script failed: {result.stderr}"
+        exported = cv2.imread(output_path)
+
+    assert np.array_equal(exported, expected)

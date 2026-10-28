@@ -297,6 +297,9 @@ def execute_pipeline(request: PipelineRequest) -> PipelineResponse:
                 step_id=step_id,
                 step_type=step.type,
                 user_friendly_message=error_msg,
+                step=i + 1,
+                execution_id=execution_id,
+                step_results=step_results,
             ) from e
         except Exception as e:
             t_fail = time.perf_counter()

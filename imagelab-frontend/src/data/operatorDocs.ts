@@ -163,6 +163,24 @@ export const operatorDocs: Record<string, OperatorDoc> = {
   },
 
   // --- Drawing ---
+  imageconversions_gammacorrection: {
+    name: "Gamma Correction",
+    description:
+      "Brightens or darkens the midtones of an image with a gamma curve, while keeping pure black and pure white unchanged.",
+    parameters: [
+      {
+        name: "Gamma",
+        description:
+          "Strength of the curve (0.1 to 5.0). Above 1 brightens the midtones, below 1 darkens them, 1.0 makes no change.",
+      },
+    ],
+    formula: "output = 255 × (input / 255) ^ (1 / γ)",
+    useCases: [
+      "Revealing detail in dark, underexposed photos without blowing out the highlights.",
+      "Comparing a non-linear adjustment with the linear Brightness and Contrast block.",
+    ],
+  },
+
   drawingoperations_drawline: {
     name: "Draw Line",
     description: "Draws a straight line segment connecting two points on the image.",

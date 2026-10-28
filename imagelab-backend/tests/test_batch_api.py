@@ -14,6 +14,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.exceptions import register_exception_handlers
+from app.models.graph import PipelineGraph
 from app.routers import batch as batch_router
 from app.services import batch_executor
 
@@ -336,6 +337,31 @@ async def test_run_batch_job_all_failures(temp_jobs_dir):
     assert summary["status"] == "failed"
     assert summary["success_count"] == 0
     assert summary["failure_count"] == 2
+
+
+@pytest.mark.anyio
+async def test_run_batch_job_reports_invalid_setting_without_unexpected_prefix(temp_jobs_dir):
+    """A block with an invalid setting must report its validation message, not "Unexpected error"."""
+    job_id = "test_invalid_setting"
+    inputs_dir = os.path.join(str(temp_jobs_dir), job_id, "inputs")
+    os.makedirs(inputs_dir)
+    with open(os.path.join(inputs_dir, "photo.png"), "wb") as f:
+        f.write(_make_png_bytes())
+
+    graph = PipelineGraph(
+        nodes=[{"id": "median-block", "type": "blurring_applymedianblur", "params": {"kernelSize": 1}}],
+        edges=[],
+    )
+    with patch("app.services.batch_executor.JOBS_DIR", str(temp_jobs_dir)):
+        await batch_executor.run_batch_job(job_id, ["photo.png"], graph, "png")
+
+    with open(os.path.join(str(temp_jobs_dir), job_id, "summary.json"), encoding="utf-8") as f:
+        summary = json.load(f)
+
+    error = summary["results"][0]["error"]
+    assert summary["failure_count"] == 1
+    assert "kernelSize" in error
+    assert not error.startswith("Unexpected error")
 
 
 @pytest.mark.anyio

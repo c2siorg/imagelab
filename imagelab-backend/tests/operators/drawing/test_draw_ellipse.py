@@ -84,3 +84,62 @@ def test_defaults_do_not_raise() -> None:
     """DrawEllipse with an empty params dict should not raise an exception."""
     img = np.zeros((200, 200, 3), dtype=np.uint8)
     DrawEllipse({}).compute(img)
+
+
+@pytest.mark.parametrize(
+    ("width", "height"),
+    [
+        (-10, 20),
+        (20, -10),
+        (-50, -50),
+    ],
+)
+def test_negative_dimensions_clamped_without_crash(width: int, height: int) -> None:
+    """Negative semi-axes dimensions must be clamped to 0 without raising cv2.error."""
+    img = np.zeros((100, 100, 3), dtype=np.uint8)
+    params = {"center_point_x": 50, "center_point_y": 50, "width": width, "height": height}
+    out = DrawEllipse(params).compute(img)
+    assert out.shape == img.shape
+    assert out.dtype == np.uint8
+
+
+@pytest.mark.parametrize("thickness", [0, -2, -10])
+def test_invalid_thickness_clamped_without_crash(thickness: int) -> None:
+    """Invalid thickness values (0 or < -1) must be clamped to at least 1 without cv2.error."""
+    img = np.zeros((100, 100, 3), dtype=np.uint8)
+    params = {"center_point_x": 50, "center_point_y": 50, "width": 30, "height": 20, "thickness": thickness}
+    out = DrawEllipse(params).compute(img)
+    assert out.shape == img.shape
+    assert out.dtype == np.uint8
+
+
+def test_filled_ellipse_thickness_minus_one() -> None:
+    """thickness=-1 is cv2.FILLED and should fill the ellipse interior."""
+    img = np.zeros((100, 100, 3), dtype=np.uint8)
+    params = {
+        "center_point_x": 50,
+        "center_point_y": 50,
+        "width": 30,
+        "height": 20,
+        "thickness": -1,
+        "rgbcolors_input": "#ffffff",
+    }
+    out = DrawEllipse(params).compute(img)
+    # The center of the filled ellipse should be drawn with color #ffffff (255, 255, 255)
+    assert np.all(out[50, 50] == 255)
+
+
+def test_non_integer_parameters_handled_gracefully() -> None:
+    """Non-integer/corrupt params should fall back to safe defaults without crashing."""
+    img = np.zeros((100, 100, 3), dtype=np.uint8)
+    params = {
+        "center_point_x": "bad",
+        "center_point_y": None,
+        "width": "invalid",
+        "height": None,
+        "thickness": "none",
+        "angle": "abc",
+    }
+    out = DrawEllipse(params).compute(img)
+    assert out.shape == img.shape
+    assert out.dtype == np.uint8

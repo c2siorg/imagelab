@@ -31,11 +31,12 @@ export const blurringBlocks = [
   {
     type: "blurring_applymedianblur",
     message0: "Apply median Blur with kernel value of %1",
-    args0: [{ type: "field_number", name: "kernelSize", value: 5, min: 1 }],
+    args0: [{ type: "field_number", name: "kernelSize", value: 5, min: 3 }],
     previousStatement: null,
     nextStatement: null,
     style: "blurring_style",
+    extensions: ["odd_kernel_validator"],
     tooltip:
-      "Applies median blur (kernel size must be odd) - Replaces each pixel with the median value of its neighbors defined by the kernel size. The kernel size must be an odd number (e.g., 1, 3, 5) to ensure a central pixel. This filter is effective at reducing salt-and-pepper noise while preserving edges.",
+      "Applies median blur (kernel size must be odd) - Replaces each pixel with the median value of its neighbors defined by the kernel size. The kernel size must be an odd number of at least 3 (e.g., 3, 5, 7) to ensure a central pixel. Even values are automatically rounded up to the nearest odd number. This filter is effective at reducing salt-and-pepper noise while preserving edges.",
   },
 ];
