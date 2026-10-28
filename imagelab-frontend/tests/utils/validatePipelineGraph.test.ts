@@ -559,4 +559,88 @@ describe("validatePipelineGraph", () => {
       });
     });
   });
+
+  describe("In-Range thresholding channel propagation", () => {
+    it("allows default mask output to connect to 1-channel operators", () => {
+      const graph: PipelineGraph = {
+        nodes: [
+          { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
+          {
+            id: "2",
+            type: "thresholding_inrange",
+            op: "thresholding_inrange",
+            params: { outputMode: "mask" },
+          },
+          {
+            id: "3",
+            type: "thresholding_adaptivethreshold",
+            op: "thresholding_adaptivethreshold",
+            params: {},
+          },
+        ],
+        edges: [
+          { from: "1", to: "2" },
+          { from: "2", to: "3" },
+        ],
+      };
+      const result = validatePipelineGraph(graph, 3);
+      expect(result.valid).toBe(true);
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    it("allows masked_image output to preserve color channels and feed color operators", () => {
+      const graph: PipelineGraph = {
+        nodes: [
+          { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
+          {
+            id: "2",
+            type: "thresholding_inrange",
+            op: "thresholding_inrange",
+            params: { outputMode: "masked_image" },
+          },
+          {
+            id: "3",
+            type: "imageconversions_bgrtohsv",
+            op: "imageconversions_bgrtohsv",
+            params: {},
+          },
+        ],
+        edges: [
+          { from: "1", to: "2" },
+          { from: "2", to: "3" },
+        ],
+      };
+      const result = validatePipelineGraph(graph, 3);
+      expect(result.valid).toBe(true);
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    it("warns when default mask output feeds into color-only operator", () => {
+      const graph: PipelineGraph = {
+        nodes: [
+          { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
+          {
+            id: "2",
+            type: "thresholding_inrange",
+            op: "thresholding_inrange",
+            params: { outputMode: "mask" },
+          },
+          {
+            id: "3",
+            type: "imageconversions_bgrtohsv",
+            op: "imageconversions_bgrtohsv",
+            params: {},
+          },
+        ],
+        edges: [
+          { from: "1", to: "2" },
+          { from: "2", to: "3" },
+        ],
+      };
+      const result = validatePipelineGraph(graph, 3);
+      expect(result.valid).toBe(false);
+      const warning = result.warnings.find((w) => w.nodeId === "3");
+      expect(warning).toBeDefined();
+    });
+  });
 });

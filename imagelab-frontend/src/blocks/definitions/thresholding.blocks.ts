@@ -43,6 +43,31 @@ export const thresholdingBlocks = [
     tooltip: "Automatically calculates optimal threshold using Otsu's method",
   },
   {
+    type: "thresholding_inrange",
+    message0: "In-Range mask Lower: [%1, %2, %3] Upper: [%4, %5, %6] Output: %7",
+    args0: [
+      { type: "field_number", name: "lower1", value: 0, min: 0, max: 255 },
+      { type: "field_number", name: "lower2", value: 0, min: 0, max: 255 },
+      { type: "field_number", name: "lower3", value: 0, min: 0, max: 255 },
+      { type: "field_number", name: "upper1", value: 255, min: 0, max: 255 },
+      { type: "field_number", name: "upper2", value: 255, min: 0, max: 255 },
+      { type: "field_number", name: "upper3", value: 255, min: 0, max: 255 },
+      {
+        type: "field_dropdown",
+        name: "outputMode",
+        options: [
+          ["Binary Mask", "mask"],
+          ["Masked Image", "masked_image"],
+        ],
+      },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "thresholding_style",
+    tooltip:
+      "Performs multi-channel range thresholding using cv2.inRange. Pixels falling between lower and upper channel boundaries become 255 (active), while other pixels become 0. In 'Binary Mask' mode, outputs a 1-channel binary mask. In 'Masked Image' mode, applies the mask to the input image, preserving matching color regions and blacking out non-matching background.",
+  },
+  {
     type: "thresholding_applyborders",
     message0: "Apply borders %1",
     args0: [
