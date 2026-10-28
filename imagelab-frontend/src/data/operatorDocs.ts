@@ -382,6 +382,65 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       "Measuring structural lines in architectural or engineering photos.",
     ],
   },
+  filtering_houghcircles: {
+    name: "Hough Circle Detection",
+    description:
+      "Detects circular objects in an image using the circular Hough transform (cv2.HoughCircles with cv2.HOUGH_GRADIENT). The image is converted to grayscale, smoothed with a median blur to reduce noise, and analyzed for circular edges. Detected circles and centers are drawn onto a copy of the image. Grayscale inputs are promoted to BGR so annotations appear in colour, and BGRA inputs preserve transparency.",
+    parameters: [
+      {
+        name: "dp",
+        description:
+          "Inverse ratio of accumulator resolution to image resolution. 1 means same resolution, 2 means half resolution. Range: 0.5 to 10. Default: 1.2.",
+      },
+      {
+        name: "Min Distance",
+        description:
+          "Minimum distance in pixels between the centers of detected circles. Range: 1 to 10000. Default: 20.",
+      },
+      {
+        name: "Canny Threshold (param1)",
+        description:
+          "Upper threshold passed to the internal Canny edge detector (lower threshold is half this value). Range: 1 to 1000. Default: 100.",
+      },
+      {
+        name: "Accumulator Threshold (param2)",
+        description:
+          "Accumulator threshold for circle centers at detection stage; smaller values detect more false circles. Range: 1 to 1000. Default: 30.",
+      },
+      {
+        name: "Min Radius",
+        description: "Minimum circle radius in pixels to detect. Range: 0 to 10000. Default: 0.",
+      },
+      {
+        name: "Max Radius",
+        description:
+          "Maximum circle radius in pixels to detect (0 for unbounded). Range: 0 to 10000. Default: 0.",
+      },
+      {
+        name: "Circle Color",
+        description: "Colour used to draw the circular outlines. Default: green (#00ff00).",
+      },
+      {
+        name: "Thickness",
+        description:
+          "Outline thickness of the drawn circles in pixels. Range: 1 to 50. Default: 2.",
+      },
+      {
+        name: "Draw Centers",
+        description: "Whether to draw small markers at the detected circle centers. Default: true.",
+      },
+      {
+        name: "Center Color",
+        description: "Colour used to draw the center markers. Default: red (#ff0000).",
+      },
+    ],
+    useCases: [
+      "Detecting coins, buttons, and circular industrial parts.",
+      "Locating pupils and irises in biometric imaging.",
+      "Tracking spherical balls or circular targets in robotic applications.",
+      "Cell and bubble counting in microscopy and biomedical research.",
+    ],
+  },
 
   // --- Thresholding ---
   thresholding_adaptivethreshold: {

@@ -64,6 +64,7 @@ OPERATOR_NAMES: dict[str, str] = {
     "filtering_bilateral": "Bilateral Filter",
     "filtering_cannyedge": "Canny Edge Detection",
     "filtering_houghlines": "Hough Line Transform",
+    "filtering_houghcircles": "Hough Circle Transform",
     "filtering_sharpen": "Sharpen Filter",
     "filtering_pyramiddown": "Pyramid Down",
     "filtering_pyramidup": "Pyramid Up",
