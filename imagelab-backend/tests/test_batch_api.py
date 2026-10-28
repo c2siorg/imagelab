@@ -16,7 +16,7 @@ from fastapi.testclient import TestClient
 from app.exceptions import register_exception_handlers
 from app.models.graph import PipelineGraph
 from app.routers import batch as batch_router
-from app.services import batch_executor
+from app.services import batch_executor, pipeline_executor
 
 
 # Create a no-DB test application
@@ -618,3 +618,32 @@ def test_cleanup_expired_batch_jobs(tmp_path):
     # Assert active folders remain
     assert os.path.exists(str(active_dir))
     assert os.path.exists(str(mtime_active_dir))
+
+
+@pytest.mark.anyio
+async def test_batch_processing_does_not_pollute_execution_cache(temp_jobs_dir):
+    """Verify that batch execution sets cache_steps=False and does not pollute _EXECUTION_CACHE."""
+    pipeline_executor._EXECUTION_CACHE.clear()
+    job_id = "test_no_cache_pollution"
+    job_dir = os.path.join(str(temp_jobs_dir), job_id)
+    inputs_dir = os.path.join(job_dir, "inputs")
+    os.makedirs(inputs_dir)
+
+    with open(os.path.join(inputs_dir, "test.png"), "wb") as f:
+        f.write(_make_png_bytes())
+
+    seen_cache_flags = []
+    real_execute = batch_executor.execute_pipeline
+
+    def spy_execute(req, cache_steps=True):
+        seen_cache_flags.append(cache_steps)
+        return real_execute(req, cache_steps=cache_steps)
+
+    with (
+        patch("app.services.batch_executor.JOBS_DIR", str(temp_jobs_dir)),
+        patch("app.services.batch_executor.execute_pipeline", spy_execute),
+    ):
+        await batch_executor.run_batch_job(job_id, ["test.png"], [], "png")
+
+    assert seen_cache_flags == [False]
+    assert len(pipeline_executor._EXECUTION_CACHE) == 0
