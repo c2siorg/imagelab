@@ -161,8 +161,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     ],
     useCases: ["Feature extraction where color is irrelevant."],
   },
-
-  // --- Drawing ---
   imageconversions_gammacorrection: {
     name: "Gamma Correction",
     description:
@@ -181,6 +179,7 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     ],
   },
 
+  // --- Drawing ---
   drawingoperations_drawline: {
     name: "Draw Line",
     description: "Draws a straight line segment connecting two points on the image.",

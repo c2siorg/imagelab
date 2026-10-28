@@ -273,7 +273,8 @@ def _brightness_contrast(params: dict, var: str) -> tuple[list[str], bool]:
 
 @register("imageconversions_gammacorrection")
 def _gamma_correction(params: dict, var: str) -> tuple[list[str], bool]:
-    gamma = safe_float(params.get("gamma"), 1.0)
+    # Clamp to the operator's 0.1-5.0 range so gamma=0 can't emit a 1 / 0.0 division
+    gamma = min(5.0, max(0.1, safe_float(params.get("gamma"), 1.0)))
     code = [
         f"_gamma_table = np.clip(np.round(255 * (np.arange(256) / 255) ** (1 / {gamma})), 0, 255).astype(np.uint8)",
         f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
