@@ -798,3 +798,27 @@ def test_exported_script_matches_operator_with_anchor(step_type, params):
         exported = cv2.imread(output_path)
 
     assert np.array_equal(exported, expected)
+
+
+@pytest.mark.parametrize("gamma", [0.5, 1.0, 2.0])
+@pytest.mark.parametrize("make_image", [_gray_image, lambda: _bgra_image()[:, :, :3].copy(), _bgra_image])
+def test_exported_gamma_correction_matches_the_operator(gamma, make_image):
+    """The exported Gamma Correction gives the same image as the app for gray, BGR and BGRA input."""
+    image = make_image()
+    params = {"gamma": gamma}
+    code, _ = export_pipeline_to_python([PipelineStep(type="imageconversions_gammacorrection", params=params)], "Gamma")
+
+    expected = OPERATOR_REGISTRY["imageconversions_gammacorrection"](params).compute(image)
+    np.testing.assert_array_equal(_run_exported_pipeline(code, image), expected)
+
+
+@pytest.mark.parametrize(("gamma", "clamped"), [(0, 0.1), (-3, 0.1), (100, 5.0)])
+def test_exported_gamma_correction_clamps_out_of_range_gamma(gamma, clamped):
+    """An out-of-range gamma (e.g. 0 from an old saved workflow) is clamped instead of dividing by zero."""
+    image = _bgra_image()
+    code, _ = export_pipeline_to_python(
+        [PipelineStep(type="imageconversions_gammacorrection", params={"gamma": gamma})], "Gamma"
+    )
+
+    expected = OPERATOR_REGISTRY["imageconversions_gammacorrection"]({"gamma": clamped}).compute(image)
+    np.testing.assert_array_equal(_run_exported_pipeline(code, image), expected)
