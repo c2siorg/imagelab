@@ -2,21 +2,10 @@
  * @vitest-environment jsdom
  */
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-  act,
-  cleanup,
-} from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act, cleanup } from "@testing-library/react";
 import React from "react";
 import BatchProcessingModal from "../src/components/BatchProcessingModal";
-import {
-  createBatchJob,
-  getBatchJobStatus,
-  getBatchJobDownloadUrl,
-} from "../src/api/batch";
+import { createBatchJob, getBatchJobStatus, getBatchJobDownloadUrl } from "../src/api/batch";
 
 // ---------------------------------------------------------------------------
 // Module mock
@@ -35,7 +24,12 @@ vi.mock("../src/api/batch", () => ({
 // ---------------------------------------------------------------------------
 const mockGraph = {
   nodes: [
-    { id: "node1", type: "basic_readimage", op: "basic_readimage", params: { filename_label: "test.png" } },
+    {
+      id: "node1",
+      type: "basic_readimage",
+      op: "basic_readimage",
+      params: { filename_label: "test.png" },
+    },
   ],
   edges: [],
 };
@@ -78,9 +72,8 @@ beforeEach(() => {
 
   window.URL.createObjectURL = vi.fn(() => "blob:mock-zip-url");
   window.URL.revokeObjectURL = vi.fn();
-  vi.spyOn(window, "alert").mockImplementation(() => { });
-  vi.spyOn(HTMLAnchorElement.prototype, "click")
-    .mockImplementation(() => { });
+  vi.spyOn(window, "alert").mockImplementation(() => {});
+  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
 });
 
 afterEach(() => {
@@ -100,19 +93,15 @@ describe("BatchProcessingModal Component Suite", () => {
   it("renders the modal in initial setup mode", () => {
     renderModal();
 
-    expect(screen.getByText("Batch Image Processing")).toBeDefined();
+    expect(screen.getByText("Batch Image & Video Processing")).toBeDefined();
     expect(
-      screen.getByText(/Run active Blockly pipeline steps on multiple files/),
+      screen.getByText(/Run the active Blockly pipeline on images and video frames/),
     ).toBeDefined();
 
-    const formatSelect = screen.getByLabelText(
-      "Output Image Format",
-    ) as HTMLSelectElement;
+    const formatSelect = screen.getByLabelText("Output Image Format") as HTMLSelectElement;
     expect(formatSelect.value).toBe("png");
 
-    expect(
-      screen.getByText("Drag & drop your images here, or click to browse"),
-    ).toBeDefined();
+    expect(screen.getByText("Drag & drop images or videos here, or click to browse")).toBeDefined();
 
     // Submit disabled with 0 files
     const submitBtn = screen.getByRole("button", {
@@ -128,9 +117,7 @@ describe("BatchProcessingModal Component Suite", () => {
   // ── 2. File selection & removal ──────────────────────────────────────────
   it("handles file input changes, displays files, and can remove them", async () => {
     const { container } = renderModal();
-    const fileInput = container.querySelector(
-      'input[type="file"]',
-    ) as HTMLInputElement;
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
 
     const file1 = new File(["d1"], "pic1.png", { type: "image/png" });
     const file2 = new File(["d2"], "pic2.jpeg", { type: "image/jpeg" });
@@ -172,6 +159,67 @@ describe("BatchProcessingModal Component Suite", () => {
     expect(emptyBtn.disabled).toBe(true);
   });
 
+  it("accepts videos and displays frame-level job progress", async () => {
+    vi.useFakeTimers();
+    const { container } = renderModal();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const video = new File(["video"], "clip.mp4", { type: "video/mp4" });
+
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [video] } });
+    });
+    expect(screen.getByText("clip.mp4")).toBeDefined();
+    expect(screen.queryByLabelText("Output Image Format")).toBeNull();
+    expect(screen.getByRole("button", { name: /Process 1 Video/i })).toBeDefined();
+
+    vi.mocked(createBatchJob).mockResolvedValueOnce({
+      job_id: "video-job",
+      status: "pending",
+      total_files: 1,
+    });
+    vi.mocked(getBatchJobStatus)
+      .mockResolvedValueOnce({
+        job_id: "video-job",
+        status: "processing",
+        total_files: 1,
+        processed_files: 0,
+        success_count: 0,
+        failure_count: 0,
+        created_at: 1000,
+        updated_at: 1001,
+        duration_seconds: 1,
+        results: [],
+        current_filename: "clip.mp4",
+        current_frame: 23,
+        total_frames_estimate: 120,
+      })
+      .mockResolvedValueOnce({
+        job_id: "video-job",
+        status: "completed",
+        total_files: 1,
+        processed_files: 1,
+        success_count: 1,
+        failure_count: 0,
+        created_at: 1000,
+        updated_at: 1002,
+        duration_seconds: 2,
+        results: [],
+      });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Process 1 Video/i }));
+    });
+    await flushPromises();
+    expect(screen.getByText("Processing Video...")).toBeDefined();
+    expect(screen.getByText("clip.mp4: frame 23 (approximately 120 total)")).toBeDefined();
+
+    await act(async () => {
+      vi.advanceTimersByTime(1000);
+    });
+    await flushPromises();
+    expect(screen.getByText("Batch Run Completed Successfully")).toBeDefined();
+  });
+
   // ── 3. Drag-and-drop ─────────────────────────────────────────────────────
   it("handles drag-and-drop feedback changes", async () => {
     const { container } = renderModal();
@@ -202,9 +250,7 @@ describe("BatchProcessingModal Component Suite", () => {
     vi.useFakeTimers();
     const { container } = renderModal();
 
-    const fileInput = container.querySelector(
-      'input[type="file"]',
-    ) as HTMLInputElement;
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
     const file1 = new File(["a"], "img1.png", { type: "image/png" });
     const file2 = new File(["b"], "img2.png", { type: "image/png" });
     await act(async () => {
@@ -263,15 +309,9 @@ describe("BatchProcessingModal Component Suite", () => {
       });
 
     await act(async () => {
-      fireEvent.click(
-        screen.getByRole("button", { name: /Process 2 Images/i }),
-      );
+      fireEvent.click(screen.getByRole("button", { name: /Process 2 Images/i }));
     });
-    expect(createBatchJob).toHaveBeenCalledWith(
-      [file1, file2],
-      mockGraph,
-      "png",
-    );
+    expect(createBatchJob).toHaveBeenCalledWith([file1, file2], mockGraph, "png");
 
     // Flush: createBatchJob resolves → setJobId → useEffect → poll() → getBatchJobStatus resolves → setSummary
     await flushPromises();
@@ -297,9 +337,7 @@ describe("BatchProcessingModal Component Suite", () => {
   it("handles failures during polling and displays them", async () => {
     vi.useFakeTimers();
     const { container } = renderModal();
-    const fileInput = container.querySelector(
-      'input[type="file"]',
-    ) as HTMLInputElement;
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
 
     await act(async () => {
       fireEvent.change(fileInput, {
@@ -344,9 +382,7 @@ describe("BatchProcessingModal Component Suite", () => {
     });
 
     await act(async () => {
-      fireEvent.click(
-        screen.getByRole("button", { name: /Process 2 Images/i }),
-      );
+      fireEvent.click(screen.getByRole("button", { name: /Process 2 Images/i }));
     });
     // Flush full async chain (first poll resolves to "completed" immediately)
     await flushPromises();
@@ -359,9 +395,7 @@ describe("BatchProcessingModal Component Suite", () => {
   // No fake timers — waitFor works normally here.
   it("handles errors when batch job start fails", async () => {
     const { container } = renderModal();
-    const fileInput = container.querySelector(
-      'input[type="file"]',
-    ) as HTMLInputElement;
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
 
     await act(async () => {
       fireEvent.change(fileInput, {
@@ -371,14 +405,10 @@ describe("BatchProcessingModal Component Suite", () => {
       });
     });
 
-    vi.mocked(createBatchJob).mockRejectedValueOnce(
-      new Error("Unable to contact server"),
-    );
+    vi.mocked(createBatchJob).mockRejectedValueOnce(new Error("Unable to contact server"));
 
     await act(async () => {
-      fireEvent.click(
-        screen.getByRole("button", { name: /Process 1 Images/i }),
-      );
+      fireEvent.click(screen.getByRole("button", { name: /Process 1 Images/i }));
     });
 
     await waitFor(() => {
@@ -392,9 +422,7 @@ describe("BatchProcessingModal Component Suite", () => {
   it("handles errors during polling loop", async () => {
     vi.useFakeTimers();
     const { container } = renderModal();
-    const fileInput = container.querySelector(
-      'input[type="file"]',
-    ) as HTMLInputElement;
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
 
     await act(async () => {
       fireEvent.change(fileInput, {
@@ -414,16 +442,12 @@ describe("BatchProcessingModal Component Suite", () => {
     );
 
     await act(async () => {
-      fireEvent.click(
-        screen.getByRole("button", { name: /Process 1 Images/i }),
-      );
+      fireEvent.click(screen.getByRole("button", { name: /Process 1 Images/i }));
     });
     // Flush: createBatchJob resolves → setJobId → useEffect fires → poll() → getBatchJobStatus rejects → setError
     await flushPromises();
 
-    expect(
-      screen.getByText(/Network connection lost mid-polling/),
-    ).toBeDefined();
+    expect(screen.getByText(/Network connection lost mid-polling/)).toBeDefined();
   });
 
   // ── 8. Reset to initial state ─────────────────────────────────────────────
@@ -431,9 +455,7 @@ describe("BatchProcessingModal Component Suite", () => {
   it("resets component when 'New Batch' is clicked", async () => {
     vi.useFakeTimers();
     const { container } = renderModal();
-    const fileInput = container.querySelector(
-      'input[type="file"]',
-    ) as HTMLInputElement;
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
 
     await act(async () => {
       fireEvent.change(fileInput, {
@@ -469,27 +491,19 @@ describe("BatchProcessingModal Component Suite", () => {
     });
 
     await act(async () => {
-      fireEvent.click(
-        screen.getByRole("button", { name: /Process 1 Images/i }),
-      );
+      fireEvent.click(screen.getByRole("button", { name: /Process 1 Images/i }));
     });
     // Flush: createBatchJob resolves → setJobId → useEffect fires → poll() → getBatchJobStatus resolves "completed"
     await flushPromises();
 
-    expect(
-      screen.getByText("Batch Run Completed Successfully"),
-    ).toBeDefined();
+    expect(screen.getByText("Batch Run Completed Successfully")).toBeDefined();
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /New Batch/i }));
     });
 
-    expect(
-      screen.getByText("Drag & drop your images here, or click to browse"),
-    ).toBeDefined();
-    expect(
-      screen.queryByText("Batch Run Completed Successfully"),
-    ).toBeNull();
+    expect(screen.getByText("Drag & drop images or videos here, or click to browse")).toBeDefined();
+    expect(screen.queryByText("Batch Run Completed Successfully")).toBeNull();
   });
 
   // ── 9. ZIP download ───────────────────────────────────────────────────────
@@ -497,9 +511,7 @@ describe("BatchProcessingModal Component Suite", () => {
   it("triggers fetch download for ZIP when Download ZIP is clicked", async () => {
     vi.useFakeTimers();
     const { container } = renderModal();
-    const fileInput = container.querySelector(
-      'input[type="file"]',
-    ) as HTMLInputElement;
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
 
     await act(async () => {
       fireEvent.change(fileInput, {
@@ -535,24 +547,17 @@ describe("BatchProcessingModal Component Suite", () => {
     });
 
     await act(async () => {
-      fireEvent.click(
-        screen.getByRole("button", { name: /Process 1 Images/i }),
-      );
+      fireEvent.click(screen.getByRole("button", { name: /Process 1 Images/i }));
     });
     // Flush: createBatchJob resolves → setJobId → useEffect fires → poll() → getBatchJobStatus resolves "completed"
     await flushPromises();
 
-    expect(
-      screen.getByText("Batch Run Completed Successfully"),
-    ).toBeDefined();
+    expect(screen.getByText("Batch Run Completed Successfully")).toBeDefined();
 
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce({
-        ok: true,
-        blob: async () =>
-          new Blob(["zip-content"], { type: "application/zip" }),
-      } as Response);
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: true,
+      blob: async () => new Blob(["zip-content"], { type: "application/zip" }),
+    } as Response);
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /Download ZIP/i }));
@@ -568,5 +573,51 @@ describe("BatchProcessingModal Component Suite", () => {
     expect(window.URL.revokeObjectURL).toHaveBeenCalled();
 
     fetchSpy.mockRestore();
+  });
+
+  // ── 10. File filtering and validation ────────────────────────────────────
+  it("rejects unsupported file formats and displays error message", async () => {
+    const { container } = renderModal();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+
+    await act(async () => {
+      fireEvent.change(fileInput, {
+        target: {
+          files: [
+            new File(["a"], "supported.png", { type: "image/png" }),
+            new File(["b"], "unsupported.flv", { type: "video/x-flv" }),
+          ],
+        },
+      });
+    });
+
+    expect(
+      screen.getByText(/Some files were skipped: "unsupported.flv" \(unsupported format\)/i),
+    ).toBeDefined();
+    expect(screen.getByText("supported.png")).toBeDefined();
+    expect(screen.queryByText("unsupported.flv")).toBeNull();
+  });
+
+  it("rejects files exceeding 1 GB total batch limit and displays error message", async () => {
+    const { container } = renderModal();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+
+    const hugeFile = new File(["a"], "oversized.png", { type: "image/png" });
+    Object.defineProperty(hugeFile, "size", { value: 1.1 * 1024 * 1024 * 1024 });
+
+    await act(async () => {
+      fireEvent.change(fileInput, {
+        target: {
+          files: [hugeFile],
+        },
+      });
+    });
+
+    expect(
+      screen.getByText(
+        /Some files were skipped: "oversized.png" \(exceeds 1 GB total batch limit\)/i,
+      ),
+    ).toBeDefined();
+    expect(screen.queryByText("oversized.png")).toBeNull();
   });
 });

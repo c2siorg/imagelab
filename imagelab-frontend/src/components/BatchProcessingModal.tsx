@@ -27,6 +27,26 @@ const formatSize = (bytes: number) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
 
+const SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff"];
+const SUPPORTED_VIDEO_EXTENSIONS = [".avi", ".m4v", ".mkv", ".mov", ".mp4", ".webm"];
+const MAX_VIDEO_BYTES = 500 * 1024 * 1024; // 500 MB
+const MAX_BATCH_BYTES = 1024 * 1024 * 1024; // 1 GB
+
+const getFileExtension = (filename: string): string => {
+  const dot = filename.lastIndexOf(".");
+  return dot === -1 ? "" : filename.slice(dot).toLowerCase();
+};
+
+const isSupportedImage = (file: File): boolean => {
+  const ext = getFileExtension(file.name);
+  return SUPPORTED_IMAGE_EXTENSIONS.includes(ext) || file.type.startsWith("image/");
+};
+
+const isSupportedVideo = (file: File): boolean => {
+  const ext = getFileExtension(file.name);
+  return SUPPORTED_VIDEO_EXTENSIONS.includes(ext);
+};
+
 export default function BatchProcessingModal({ graph, onClose }: BatchProcessingModalProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [imageFormat, setImageFormat] = useState<string>("png");
@@ -99,21 +119,49 @@ export default function BatchProcessingModal({ graph, onClose }: BatchProcessing
     setIsDragOver(false);
   };
 
+  const processIncomingFiles = (incoming: File[]) => {
+    const valid: File[] = [];
+    const rejected: string[] = [];
+    let currentBatchBytes = files.reduce((acc, f) => acc + f.size, 0);
+
+    for (const file of incoming) {
+      const isVid = isSupportedVideo(file);
+      const isImg = isSupportedImage(file);
+
+      if (!isVid && !isImg) {
+        rejected.push(`"${file.name}" (unsupported format)`);
+      } else if (isVid && file.size > MAX_VIDEO_BYTES) {
+        rejected.push(`"${file.name}" (exceeds 500 MB video limit)`);
+      } else if (currentBatchBytes + file.size > MAX_BATCH_BYTES) {
+        rejected.push(`"${file.name}" (exceeds 1 GB total batch limit)`);
+      } else {
+        currentBatchBytes += file.size;
+        valid.push(file);
+      }
+    }
+
+    if (rejected.length > 0) {
+      setError(`Some files were skipped: ${rejected.join(", ")}.`);
+    } else {
+      setError(null);
+    }
+
+    if (valid.length > 0) {
+      setFiles((prev) => [...prev, ...valid]);
+    }
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const droppedFiles = Array.from(e.dataTransfer.files).filter(
-        (file) =>
-          file.type.startsWith("image/") || file.name.match(/\.(png|jpe?g|webp|bmp|tiff)$/i),
-      );
-      setFiles((prev) => [...prev, ...droppedFiles]);
+      processIncomingFiles(Array.from(e.dataTransfer.files));
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+      processIncomingFiles(Array.from(e.target.files));
     }
   };
 
@@ -127,6 +175,11 @@ export default function BatchProcessingModal({ graph, onClose }: BatchProcessing
 
   const handleStartBatch = async () => {
     if (files.length === 0) return;
+    const totalBytes = files.reduce((acc, f) => acc + f.size, 0);
+    if (totalBytes > MAX_BATCH_BYTES) {
+      setError("Total batch upload size cannot exceed 1 GB.");
+      return;
+    }
     setIsSubmitting(true);
     setError(null);
     try {
@@ -188,6 +241,16 @@ export default function BatchProcessingModal({ graph, onClose }: BatchProcessing
   const progressPercent = summary
     ? Math.round((summary.processed_files / summary.total_files) * 100)
     : 0;
+  const imageCount = files.filter(isSupportedImage).length;
+  const videoCount = files.length - imageCount;
+  const processLabel =
+    imageCount > 0 && videoCount > 0
+      ? "Files"
+      : videoCount > 0
+        ? videoCount === 1
+          ? "Video"
+          : "Videos"
+        : "Images";
 
   return (
     <div
@@ -215,10 +278,11 @@ export default function BatchProcessingModal({ graph, onClose }: BatchProcessing
               id="batch-modal-title"
               className="text-lg font-bold text-gray-800 dark:text-gray-150"
             >
-              Batch Image Processing
+              Batch Image &amp; Video Processing
             </h2>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              Run active Blockly pipeline steps on multiple files concurrently
+              Run the active Blockly pipeline on images and video frames. Video output is silent
+              MP4.
             </p>
           </div>
           <button
@@ -262,16 +326,16 @@ export default function BatchProcessingModal({ graph, onClose }: BatchProcessing
                   ref={fileInputRef}
                   type="file"
                   multiple
-                  accept="image/*"
+                  accept=".png,.jpg,.jpeg,.webp,.bmp,.tiff,.avi,.m4v,.mkv,.mov,.mp4,.webm"
                   onChange={handleFileChange}
                   className="hidden"
                 />
                 <UploadCloud className="w-12 h-12 text-gray-450 dark:text-gray-500 mb-3 animate-pulse" />
                 <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  Drag & drop your images here, or click to browse
+                  Drag &amp; drop images or videos here, or click to browse
                 </span>
                 <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Supports PNG, JPEG, WebP, etc.
+                  Supports common image and video formats; videos are exported as silent MP4
                 </span>
               </div>
 
@@ -319,24 +383,26 @@ export default function BatchProcessingModal({ graph, onClose }: BatchProcessing
 
               {/* Format & Execution Controls */}
               <div className="flex items-center gap-4 bg-gray-50 dark:bg-gray-850/50 p-4 rounded-xl border border-gray-150 dark:border-gray-750">
-                <div className="flex flex-col gap-1 w-1/3">
-                  <label
-                    htmlFor="format-select"
-                    className="text-xs font-semibold text-gray-500 dark:text-gray-450"
-                  >
-                    Output Image Format
-                  </label>
-                  <select
-                    id="format-select"
-                    value={imageFormat}
-                    onChange={(e) => setImageFormat(e.target.value)}
-                    className="w-full text-sm rounded-lg border border-gray-350 dark:border-gray-650 bg-white dark:bg-gray-800 px-3 py-1.5 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
-                  >
-                    <option value="png">PNG (Default)</option>
-                    <option value="jpeg">JPEG</option>
-                    <option value="webp">WebP</option>
-                  </select>
-                </div>
+                {(files.length === 0 || imageCount > 0) && (
+                  <div className="flex flex-col gap-1 w-1/3">
+                    <label
+                      htmlFor="format-select"
+                      className="text-xs font-semibold text-gray-500 dark:text-gray-450"
+                    >
+                      Output Image Format
+                    </label>
+                    <select
+                      id="format-select"
+                      value={imageFormat}
+                      onChange={(e) => setImageFormat(e.target.value)}
+                      className="w-full text-sm rounded-lg border border-gray-350 dark:border-gray-650 bg-white dark:bg-gray-800 px-3 py-1.5 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
+                    >
+                      <option value="png">PNG (Default)</option>
+                      <option value="jpeg">JPEG</option>
+                      <option value="webp">WebP</option>
+                    </select>
+                  </div>
+                )}
 
                 <div className="flex-1 flex justify-end items-end h-full mt-auto">
                   <button
@@ -350,7 +416,7 @@ export default function BatchProcessingModal({ graph, onClose }: BatchProcessing
                     ) : (
                       <Play size={16} />
                     )}
-                    {isSubmitting ? "Starting Batch..." : `Process ${files.length} Images`}
+                    {isSubmitting ? "Starting Batch..." : `Process ${files.length} ${processLabel}`}
                   </button>
                 </div>
               </div>
@@ -373,12 +439,22 @@ export default function BatchProcessingModal({ graph, onClose }: BatchProcessing
                     )}
                     <span className="text-sm font-bold text-gray-800 dark:text-gray-200">
                       {!isFinished
-                        ? "Processing Images..."
+                        ? summary.current_filename
+                          ? "Processing Video..."
+                          : "Processing Images..."
                         : summary.failure_count > 0
                           ? "Batch Run Completed with Failures"
                           : "Batch Run Completed Successfully"}
                     </span>
                   </div>
+                  {summary.current_filename && (summary.current_frame ?? 0) > 0 && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {summary.current_filename}: frame {summary.current_frame ?? 0}
+                      {summary.total_frames_estimate
+                        ? ` (approximately ${summary.total_frames_estimate} total)`
+                        : ""}
+                    </p>
+                  )}
                   <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 font-mono">
                     {summary.processed_files} / {summary.total_files}
                   </span>

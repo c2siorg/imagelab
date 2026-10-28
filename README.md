@@ -11,6 +11,7 @@ A web application for visual, block-based image processing using Google Blockly 
 - Drag-and-connect blocks to build image processing pipelines
 - Real-time preview of processing results
 - Interactive visual canvas tools: ROI bounding box selector, step-diff split/difference slider, and sub-pixel inspector loupe
+- Batch processing for images and videos, with frame-by-frame Blockly pipelines and silent MP4 output
 - Modern React + FastAPI web app
 
 ## Prerequisites
