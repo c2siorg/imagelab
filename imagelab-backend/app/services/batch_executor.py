@@ -327,7 +327,7 @@ async def process_single_image(job_id: str, filename: str, graph: PipelineGraph,
                         # Empty pipeline case
                         plan = []
                 req = PipelineRequest(image=image_b64, image_format=image_format, pipeline=plan)
-                return execute_pipeline(req)
+                return execute_pipeline(req, cache_steps=False)
 
             response = await asyncio.to_thread(read_and_execute)
 
