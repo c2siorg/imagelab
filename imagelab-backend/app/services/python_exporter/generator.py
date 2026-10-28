@@ -81,6 +81,7 @@ OPERATOR_NAMES: dict[str, str] = {
     "geometric_cropimage": "Crop Image",
     "thresholding_applythreshold": "Simple Threshold",
     "thresholding_adaptivethreshold": "Adaptive Threshold",
+    "thresholding_inrange": "In-Range Color Mask",
     "thresholding_otsuthreshold": "Otsu Threshold",
     "thresholding_applyborders": "Apply Borders",
     "sobelderivatives_soblederivate": "Sobel Derivative",
