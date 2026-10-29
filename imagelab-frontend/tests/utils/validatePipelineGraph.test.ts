@@ -502,6 +502,23 @@ describe("validatePipelineGraph", () => {
     });
   });
 
+  it("accepts ColorMaps' BGR output as input to a color conversion", () => {
+    const graph: PipelineGraph = {
+      nodes: [
+        { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
+        { id: "2", type: "imageconversions_colormaps", op: "imageconversions_colormaps", params: {} },
+        { id: "3", type: "imageconversions_bgrtohsv", op: "imageconversions_bgrtohsv", params: {} },
+      ],
+      edges: [
+        { from: "1", to: "2" },
+        { from: "2", to: "3" },
+      ],
+    };
+    const result = validatePipelineGraph(graph, 1);
+    expect(result.valid).toBe(true);
+    expect(result.warnings).toHaveLength(0);
+  });
+
   describe("edge detection operators output 1 channel", () => {
     const edgeOps = [
       "sobelderivatives_soblederivate",
