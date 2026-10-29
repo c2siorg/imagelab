@@ -46,6 +46,7 @@ OPERATOR_OUTPUT_CHANNELS = {
     "sobelderivatives_prewittoperator": 1,
     "sobelderivatives_robertsoperator": 1,
     "laplacian": 1,
+    "segmentation_meanshift": 3,
     "filtering_cannyedge": 3,
     "segmentation_watershed": 3,
     "transformation_distance": 1,
