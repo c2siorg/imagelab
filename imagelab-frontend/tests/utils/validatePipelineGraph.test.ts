@@ -502,6 +502,27 @@ describe("validatePipelineGraph", () => {
     });
   });
 
+  it.each([
+    ["imageconversions_bgrtohsv", "imageconversions_hsvtobgr"],
+    ["imageconversions_bgrtolab", "imageconversions_labtobgr"],
+    ["imageconversions_bgrtoycrcb", "imageconversions_ycrcbtobgr"],
+  ])("tracks %s output as three channels after removing alpha", (conversionType, inverseType) => {
+    const graph: PipelineGraph = {
+      nodes: [
+        { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
+        { id: "2", type: conversionType, op: conversionType, params: {} },
+        { id: "3", type: inverseType, op: inverseType, params: {} },
+      ],
+      edges: [
+        { from: "1", to: "2" },
+        { from: "2", to: "3" },
+      ],
+    };
+    const result = validatePipelineGraph(graph, 4);
+    expect(result.valid).toBe(true);
+    expect(result.warnings).toHaveLength(0);
+  });
+
   describe("edge detection operators output 1 channel", () => {
     const edgeOps = [
       "sobelderivatives_soblederivate",
