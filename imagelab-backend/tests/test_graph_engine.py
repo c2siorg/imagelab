@@ -2,10 +2,10 @@ import pytest
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 
-from app.models.graph import GraphCycleError
+from app.models.graph import GraphCycleError, PipelineGraph
 from app.models.persistence import Pipeline, PipelineVersion
 from app.models.pipeline import PipelineRequest
-from app.services.graph_engine import GraphTypeError, execute_graph_pipeline, prepare_pipeline
+from app.services.graph_engine import GraphTypeError, compile_graph, execute_graph_pipeline, prepare_pipeline
 
 # Create in-memory SQLite engine for persistence testing
 test_db_url = "sqlite://"
@@ -352,3 +352,28 @@ def test_edge_detection_to_color_only_operator_raises_type_error(session, edge_o
 
     assert "Type mismatch on node 'hsv'" in str(excinfo.value)
     assert "expected channels in [3, 4], got 1 channels" in str(excinfo.value)
+
+
+@pytest.mark.parametrize(
+    ("conversion_type", "inverse_type"),
+    [
+        ("imageconversions_bgrtohsv", "imageconversions_hsvtobgr"),
+        ("imageconversions_bgrtolab", "imageconversions_labtobgr"),
+        ("imageconversions_bgrtoycrcb", "imageconversions_ycrcbtobgr"),
+    ],
+)
+def test_bgr_color_conversions_drop_alpha_in_channel_flow(conversion_type, inverse_type):
+    graph = PipelineGraph.model_validate(
+        {
+            "nodes": [
+                {"id": "read", "type": "basic_readimage"},
+                {"id": "convert", "type": conversion_type},
+                {"id": "inverse", "type": inverse_type},
+            ],
+            "edges": [{"from": "read", "to": "convert"}, {"from": "convert", "to": "inverse"}],
+        }
+    )
+
+    steps = compile_graph(graph, input_channels=4)
+
+    assert [step.type for step in steps] == ["basic_readimage", conversion_type, inverse_type]
