@@ -207,7 +207,7 @@ export default function LoadPipelineModal({ workspace, onClose }: LoadPipelineMo
               {filteredPipelines.map((pipeline) => (
                 <div
                   key={pipeline.id}
-                  className="flex items-center justify-between p-3.5 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+                  className="flex items-center justify-between p-3.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   <div className="min-w-0 pr-4">
                     <h3 className="text-xs font-semibold text-gray-800 dark:text-gray-100 truncate">
@@ -236,7 +236,7 @@ export default function LoadPipelineModal({ workspace, onClose }: LoadPipelineMo
                     <button
                       onClick={() => handleDelete(pipeline.id)}
                       disabled={actionId !== null}
-                      className="p-1.5 rounded-lg border border-gray-250 dark:border-gray-600 hover:bg-red-50 dark:hover:bg-red-950/20 text-gray-400 hover:text-red-500 dark:hover:text-red-400 disabled:opacity-50 transition-colors"
+                      className="p-1.5 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-red-50 dark:hover:bg-red-950/20 text-gray-400 hover:text-red-500 dark:hover:text-red-400 disabled:opacity-50 transition-colors"
                       title="Delete pipeline"
                     >
                       <Trash2 size={14} />

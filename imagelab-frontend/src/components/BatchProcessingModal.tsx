@@ -213,7 +213,7 @@ export default function BatchProcessingModal({ graph, onClose }: BatchProcessing
           <div className="flex flex-col">
             <h2
               id="batch-modal-title"
-              className="text-lg font-bold text-gray-800 dark:text-gray-150"
+              className="text-lg font-bold text-gray-800 dark:text-gray-100"
             >
               Batch Image Processing
             </h2>
@@ -225,7 +225,7 @@ export default function BatchProcessingModal({ graph, onClose }: BatchProcessing
             type="button"
             onClick={onClose}
             disabled={isSubmitting || (jobId !== null && !isFinished)}
-            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-450 dark:text-gray-400 hover:text-gray-650 dark:hover:text-gray-200 transition-colors disabled:opacity-40"
+            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors disabled:opacity-40"
             aria-label="Close"
           >
             <X size={18} />
@@ -255,7 +255,7 @@ export default function BatchProcessingModal({ graph, onClose }: BatchProcessing
                 className={`relative h-44 rounded-xl border-2 border-dashed flex flex-col items-center justify-center p-6 text-center cursor-pointer transition-all duration-200 ${
                   isDragOver
                     ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20"
-                    : "border-gray-300 dark:border-gray-700 hover:border-indigo-400 hover:bg-gray-50/50 dark:hover:bg-gray-850/35"
+                    : "border-gray-300 dark:border-gray-700 hover:border-indigo-400 hover:bg-gray-50/50 dark:hover:bg-gray-900/35"
                 }`}
               >
                 <input
@@ -266,7 +266,7 @@ export default function BatchProcessingModal({ graph, onClose }: BatchProcessing
                   onChange={handleFileChange}
                   className="hidden"
                 />
-                <UploadCloud className="w-12 h-12 text-gray-450 dark:text-gray-500 mb-3 animate-pulse" />
+                <UploadCloud className="w-12 h-12 text-gray-400 dark:text-gray-500 mb-3 animate-pulse" />
                 <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                   Drag & drop your images here, or click to browse
                 </span>
@@ -291,15 +291,15 @@ export default function BatchProcessingModal({ graph, onClose }: BatchProcessing
                       Remove All
                     </button>
                   </div>
-                  <div className="border border-gray-150 dark:border-gray-700 rounded-xl divide-y divide-gray-150 dark:divide-gray-700 max-h-48 overflow-y-auto">
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-xl divide-y divide-gray-200 dark:divide-gray-700 max-h-48 overflow-y-auto">
                     {files.map((file, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center justify-between p-3 bg-gray-50/50 dark:bg-gray-800/30 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-850"
+                        className="flex items-center justify-between p-3 bg-gray-50/50 dark:bg-gray-800/30 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900"
                       >
                         <div className="flex flex-col min-w-0 pr-4">
                           <span className="font-medium truncate max-w-sm">{file.name}</span>
-                          <span className="text-xxs text-gray-450 dark:text-gray-500">
+                          <span className="text-xxs text-gray-400 dark:text-gray-500">
                             {formatSize(file.size)}
                           </span>
                         </div>
@@ -318,11 +318,11 @@ export default function BatchProcessingModal({ graph, onClose }: BatchProcessing
               )}
 
               {/* Format & Execution Controls */}
-              <div className="flex items-center gap-4 bg-gray-50 dark:bg-gray-850/50 p-4 rounded-xl border border-gray-150 dark:border-gray-750">
+              <div className="flex items-center gap-4 bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
                 <div className="flex flex-col gap-1 w-1/3">
                   <label
                     htmlFor="format-select"
-                    className="text-xs font-semibold text-gray-500 dark:text-gray-450"
+                    className="text-xs font-semibold text-gray-500 dark:text-gray-400"
                   >
                     Output Image Format
                   </label>
@@ -330,7 +330,7 @@ export default function BatchProcessingModal({ graph, onClose }: BatchProcessing
                     id="format-select"
                     value={imageFormat}
                     onChange={(e) => setImageFormat(e.target.value)}
-                    className="w-full text-sm rounded-lg border border-gray-350 dark:border-gray-650 bg-white dark:bg-gray-800 px-3 py-1.5 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
+                    className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
                   >
                     <option value="png">PNG (Default)</option>
                     <option value="jpeg">JPEG</option>
@@ -401,8 +401,8 @@ export default function BatchProcessingModal({ graph, onClose }: BatchProcessing
 
               {/* Statistics Grid */}
               <div className="grid grid-cols-4 gap-4">
-                <div className="bg-gray-55/60 dark:bg-gray-850/40 p-3 rounded-xl border border-gray-150 dark:border-gray-750 flex flex-col items-center">
-                  <span className="text-[10px] uppercase font-semibold text-gray-500 dark:text-gray-450 tracking-wider">
+                <div className="bg-gray-50/60 dark:bg-gray-900/40 p-3 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col items-center">
+                  <span className="text-[10px] uppercase font-semibold text-gray-500 dark:text-gray-400 tracking-wider">
                     Total
                   </span>
                   <span className="text-xl font-bold text-gray-800 dark:text-gray-200 mt-1">
@@ -425,8 +425,8 @@ export default function BatchProcessingModal({ graph, onClose }: BatchProcessing
                     {summary.failure_count}
                   </span>
                 </div>
-                <div className="bg-gray-55/60 dark:bg-gray-850/40 p-3 rounded-xl border border-gray-150 dark:border-gray-750 flex flex-col items-center">
-                  <span className="text-[10px] uppercase font-semibold text-gray-500 dark:text-gray-455 tracking-wider">
+                <div className="bg-gray-50/60 dark:bg-gray-900/40 p-3 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col items-center">
+                  <span className="text-[10px] uppercase font-semibold text-gray-500 dark:text-gray-400 tracking-wider">
                     Duration
                   </span>
                   <span className="text-xl font-bold text-gray-800 dark:text-gray-200 mt-1 font-mono">
@@ -441,11 +441,11 @@ export default function BatchProcessingModal({ graph, onClose }: BatchProcessing
                   <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 px-1">
                     Processing Details
                   </span>
-                  <div className="border border-gray-150 dark:border-gray-700 rounded-xl divide-y divide-gray-150 dark:divide-gray-700 max-h-52 overflow-y-auto">
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-xl divide-y divide-gray-200 dark:divide-gray-700 max-h-52 overflow-y-auto">
                     {summary.results.map((item, idx) => (
                       <div
                         key={idx}
-                        className="flex flex-col p-3 bg-gray-50/30 dark:bg-gray-800/20 text-sm text-gray-750 dark:text-gray-300"
+                        className="flex flex-col p-3 bg-gray-50/30 dark:bg-gray-800/20 text-sm text-gray-700 dark:text-gray-300"
                       >
                         <div className="flex items-center justify-between w-full">
                           <span className="font-medium truncate max-w-md">{item.filename}</span>
@@ -468,7 +468,7 @@ export default function BatchProcessingModal({ graph, onClose }: BatchProcessing
                           </div>
                         </div>
                         {item.success && item.output_filename && (
-                          <span className="text-xxs text-gray-450 dark:text-gray-500 mt-0.5">
+                          <span className="text-xxs text-gray-400 dark:text-gray-500 mt-0.5">
                             Output: {item.output_filename}
                           </span>
                         )}
@@ -493,7 +493,7 @@ export default function BatchProcessingModal({ graph, onClose }: BatchProcessing
               type="button"
               onClick={handleReset}
               disabled={isDownloading || !isFinished}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-xs font-semibold text-gray-650 dark:text-gray-350 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-40"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-40"
             >
               <RotateCcw size={14} />
               New Batch
