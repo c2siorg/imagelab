@@ -579,8 +579,8 @@ export default function Toolbar({ workspace }: ToolbarProps) {
         {currentPipelineId && (
           <>
             <div className={separator} />
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-gray-50 dark:bg-gray-700/50 border border-gray-150 dark:border-gray-700">
-              <span className="text-[11px] font-semibold text-gray-750 dark:text-gray-250 truncate max-w-[120px]">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700">
+              <span className="text-[11px] font-semibold text-gray-700 dark:text-gray-200 truncate max-w-[120px]">
                 {currentPipelineName}
               </span>
               <span className="text-[9px] px-1.5 py-0.2 rounded font-extrabold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">

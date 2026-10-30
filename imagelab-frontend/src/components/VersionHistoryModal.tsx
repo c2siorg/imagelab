@@ -152,7 +152,7 @@ export default function VersionHistoryModal({ workspace, onClose }: VersionHisto
               {versions.map((version) => (
                 <div
                   key={version.id}
-                  className="flex items-start justify-between p-3.5 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+                  className="flex items-start justify-between p-3.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   <div className="min-w-0 pr-4 space-y-1">
                     <div className="flex items-center gap-2">
@@ -167,7 +167,7 @@ export default function VersionHistoryModal({ workspace, onClose }: VersionHisto
                         })}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-650 dark:text-gray-300 font-medium">
+                    <p className="text-xs text-gray-600 dark:text-gray-300 font-medium">
                       {version.change_note || (
                         <span className="italic text-gray-400 dark:text-gray-500">
                           No change note provided
@@ -179,7 +179,7 @@ export default function VersionHistoryModal({ workspace, onClose }: VersionHisto
                     <button
                       onClick={() => handleRestore(version)}
                       disabled={restoringId !== null}
-                      className="flex items-center gap-1 py-1.5 px-3 rounded-lg text-xs font-medium border border-gray-250 dark:border-gray-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 text-gray-600 dark:text-gray-300 hover:text-indigo-500 dark:hover:text-indigo-400 disabled:opacity-50 transition-colors"
+                      className="flex items-center gap-1 py-1.5 px-3 rounded-lg text-xs font-medium border border-gray-300 dark:border-gray-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 text-gray-600 dark:text-gray-300 hover:text-indigo-500 dark:hover:text-indigo-400 disabled:opacity-50 transition-colors"
                     >
                       {restoringId === version.id ? (
                         <Loader2 size={12} className="animate-spin" />
