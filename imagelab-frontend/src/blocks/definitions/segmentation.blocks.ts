@@ -62,4 +62,43 @@ export const segmentationBlocks = [
     tooltip:
       "Apply Mean Shift Segmentation for colour-based region clustering - Groups pixels with similar colours and spatial proximity into flat regions, producing a simplified, posterised version of the image with preserved edges. 'Spatial radius' controls how far away in pixel distance neighbours are considered. 'Colour radius' controls how different in colour a pixel can be and still be merged — higher values produce larger, more uniform regions. 'Max level' sets the pyramid depth for multi-scale processing (0–4).",
   },
+  {
+    type: "segmentation_connectedcomponents",
+    message0:
+      "Connected Components %1 Connectivity %2 %3 Invert mask %4 %5 Min area %6 %7 Output mode %8 %9 Marker color %10 %11 Thickness %12",
+    args0: [
+      { type: "input_dummy" },
+      {
+        type: "field_dropdown",
+        name: "connectivity",
+        options: [
+          ["8-way", "8"],
+          ["4-way", "4"],
+        ],
+      },
+      { type: "input_dummy" },
+      { type: "field_checkbox", name: "invert", checked: false },
+      { type: "input_dummy" },
+      { type: "field_number", name: "min_area", value: 50, min: 0, max: 100000, precision: 1 },
+      { type: "input_dummy" },
+      {
+        type: "field_dropdown",
+        name: "output_mode",
+        options: [
+          ["Color Map", "COLOR_MAP"],
+          ["Bounding Box", "BOUNDING_BOX"],
+          ["Centroid", "CENTROID"],
+        ],
+      },
+      { type: "input_dummy" },
+      { type: "field_colour", name: "rgbcolors_input", colour: "#00ffff" },
+      { type: "input_dummy" },
+      { type: "field_number", name: "thickness", value: 2, min: 1, max: 20, precision: 1 },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "segmentation_style",
+    tooltip:
+      "Labels connected regions in an image using cv2.connectedComponentsWithStats. Connectivity selects 8-way or 4-way pixel adjacency. Invert mask inverts the binary threshold to detect dark objects on bright backgrounds (e.g. document text, cells). Min area filters out noise components below the pixel threshold. Output mode renders unique pseudocolors for each region (Color Map), or overlays bounding boxes or centroid markers onto the source image with the specified marker color and thickness.",
+  },
 ];

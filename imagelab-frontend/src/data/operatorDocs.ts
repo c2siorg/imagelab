@@ -775,4 +775,48 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       "Teaching fundamental corner and interest point concepts in computer vision courses.",
     ],
   },
+  segmentation_connectedcomponents: {
+    name: "Connected Components",
+    description:
+      "Extracts and analyzes distinct connected components in an image using cv2.connectedComponentsWithStats. Labels disjoint foreground regions, computes shape statistics (area, bounding box, centroid), filters out components smaller than min_area, and visualizes them via pseudocolor mapping, bounding boxes, or centroid markers.",
+    parameters: [
+      {
+        name: "Connectivity",
+        description:
+          "Pixel neighborhood connectivity: 8-way includes diagonal neighbors (8-connected); 4-way considers only orthogonal horizontal and vertical neighbors (4-connected). Default: 8-way.",
+      },
+      {
+        name: "Invert Mask",
+        description:
+          "Inverts the binary mask before labeling so that dark objects on bright backgrounds (e.g. document text, cells) are segmented as foreground components. Default: false.",
+      },
+      {
+        name: "Min Area",
+        description:
+          "Minimum pixel area threshold. Components smaller than this size are filtered out as speckle noise. Range: 0 to 100000. Default: 50.",
+      },
+      {
+        name: "Output Mode",
+        description:
+          "Visualization format: 'Color Map' assigns each component a distinct pseudocolor on a black background; 'Bounding Box' draws enclosing rectangles around retained components on the image; 'Centroid' marks component centers of mass with circles. Default: Color Map.",
+      },
+      {
+        name: "Marker Color",
+        description:
+          "Color for bounding boxes or centroid markers in Bounding Box or Centroid mode. Default: cyan (#00ffff).",
+      },
+      {
+        name: "Thickness",
+        description:
+          "Line thickness for bounding boxes or marker radius for centroid points. Range: 1 to 20. Default: 2.",
+      },
+    ],
+    formula: "N_8(p) = {q : dist_inf(p, q) = 1} | N_4(p) = {q : dist_1(p, q) = 1}",
+    useCases: [
+      "Counting and isolating distinct objects or particles after thresholding or binarization.",
+      "Filtering out salt-and-pepper speckle noise based on component pixel area.",
+      "Extracting bounding boxes and centroids for robotic picking or optical character inspection.",
+      "Teaching connected component labeling and morphological region analysis in computer vision courses.",
+    ],
+  },
 };
