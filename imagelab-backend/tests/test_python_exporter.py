@@ -376,6 +376,15 @@ def test_exported_operators_match_the_app():
         ("sobelderivatives_scharrderivate", {"type": "HORIZONTAL"}),
         ("sobelderivatives_scharrderivate", {"type": "VERTICAL"}),
         ("sobelderivatives_prewittoperator", {}),
+        ("transformation_laplacian", {"ksize": "3", "ddepth": -1}),
+        ("transformation_laplacian", {"ksize": "7", "ddepth": cv2.CV_16S}),
+        ("laplacian", {"ksize": 3}),
+        ("filtering_houghlines", {"threshold": 20, "minLineLength": 10, "maxLineGap": 5}),
+        ("filtering_houghlines", {}),
+        ("detection_facedetection", {}),
+        ("detection_eyedetection", {}),
+        ("transformation_distance", {"type": "DIST_L2"}),
+        ("transformation_distance", {"type": "DIST_C", "maskSize": 3}),
     ]
     bgr = np.random.default_rng(1).integers(0, 256, (40, 48, 3), dtype=np.uint8)
     cv2.circle(bgr, (24, 20), 10, (255, 255, 255), -1)
