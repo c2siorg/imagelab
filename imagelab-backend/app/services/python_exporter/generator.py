@@ -93,6 +93,7 @@ OPERATOR_NAMES: dict[str, str] = {
     "segmentation_kmeans": "K-Means Color Segmentation",
     "segmentation_meanshift": "Mean Shift Segmentation",
     "segmentation_watershed": "Watershed Segmentation",
+    "segmentation_connectedcomponents": "Connected Components Labeling",
     "augmentation_gaussiannoise": "Gaussian Noise",
     "augmentation_saltpeppernoise": "Salt & Pepper Noise",
     "augmentation_sepiafilter": "Sepia Filter",

@@ -1171,6 +1171,104 @@ def _watershed(params: dict, var: str) -> tuple[list[str], bool]:
     return code, True
 
 
+@register("segmentation_connectedcomponents")
+def _connected_components(params: dict, var: str) -> tuple[list[str], bool]:
+    connectivity = safe_int(params.get("connectivity", 8), 8)
+    if connectivity not in (4, 8):
+        connectivity = 8
+
+    output_mode = str(params.get("output_mode", "COLOR_MAP")).upper()
+    if output_mode not in ("COLOR_MAP", "BOUNDING_BOX", "CENTROID"):
+        output_mode = "COLOR_MAP"
+
+    raw_inv = params.get("invert", False)
+    invert = raw_inv == "TRUE" if isinstance(raw_inv, str) else bool(raw_inv)
+
+    min_area = safe_int(params.get("min_area", 50), 50)
+    min_area = max(0, min(100000, min_area))
+
+    color = _get_bgr_color(params, default="#00ffff")
+    thickness = safe_int(params.get("thickness", 2), 2)
+    thickness = max(1, min(20, thickness))
+
+    code = [
+        f"if {var}.ndim == 2:",
+        f"    _gray = {var}",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGRA2GRAY)",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 3:",
+        f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY)",
+        "else:",
+        f"    _gray = {var}[:, :, 0]",
+        "_binary = (_gray > 0).astype(np.uint8) * 255",
+    ]
+    if invert:
+        code.append("_binary = cv2.bitwise_not(_binary)")
+
+    code.append(
+        f"_num_labels, _labels, _stats, _centroids = "
+        f"cv2.connectedComponentsWithStats(_binary, connectivity={connectivity})"
+    )
+
+    if output_mode == "COLOR_MAP":
+        code.extend(
+            [
+                "if _num_labels <= 1:",
+                "    _res = np.zeros((*_gray.shape[:2], 3), dtype=np.uint8)",
+                "else:",
+                "    _colors = np.zeros((_num_labels, 3), dtype=np.uint8)",
+                "    for _i in range(1, _num_labels):",
+                f"        if _stats[_i, cv2.CC_STAT_AREA] >= {min_area}:",
+                "            _colors[_i] = [(_i * 37) % 180, 255, 255]",
+                "    _lut = cv2.cvtColor(_colors[None, :, :], cv2.COLOR_HSV2BGR)[0]",
+                "    _lut[0] = [0, 0, 0]",
+                "    for _i in range(1, _num_labels):",
+                f"        if _stats[_i, cv2.CC_STAT_AREA] < {min_area}:",
+                "            _lut[_i] = [0, 0, 0]",
+                "    _res = _lut[_labels]",
+                f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
+                f"    {var} = np.concatenate([_res, {var}[:, :, 3:4]], axis=2)",
+                "else:",
+                f"    {var} = _res",
+            ]
+        )
+    elif output_mode == "BOUNDING_BOX":
+        code.extend(
+            [
+                f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+                f"    {var} = cv2.cvtColor(_gray, cv2.COLOR_GRAY2BGR)",
+                "else:",
+                f"    {var} = {var}.copy()",
+                f"_draw_color = (*{color}, 255) if {var}.ndim == 3 and {var}.shape[2] == 4 else {color}",
+                "for _i in range(1, _num_labels):",
+                f"    if _stats[_i, cv2.CC_STAT_AREA] >= {min_area}:",
+                "        _x = int(_stats[_i, cv2.CC_STAT_LEFT])",
+                "        _y = int(_stats[_i, cv2.CC_STAT_TOP])",
+                "        _w = int(_stats[_i, cv2.CC_STAT_WIDTH])",
+                "        _h = int(_stats[_i, cv2.CC_STAT_HEIGHT])",
+                f"        cv2.rectangle({var}, (_x, _y), (_x + _w, _y + _h), _draw_color, {thickness})",
+            ]
+        )
+    else:  # CENTROID
+        code.extend(
+            [
+                f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+                f"    {var} = cv2.cvtColor(_gray, cv2.COLOR_GRAY2BGR)",
+                "else:",
+                f"    {var} = {var}.copy()",
+                f"_draw_color = (*{color}, 255) if {var}.ndim == 3 and {var}.shape[2] == 4 else {color}",
+                f"_radius = max(3, {thickness} * 2)",
+                "for _i in range(1, _num_labels):",
+                f"    if _stats[_i, cv2.CC_STAT_AREA] >= {min_area}:",
+                "        _cx = int(round(_centroids[_i, 0]))",
+                "        _cy = int(round(_centroids[_i, 1]))",
+                f"        cv2.circle({var}, (_cx, _cy), _radius, _draw_color, -1)",
+            ]
+        )
+
+    return code, True
+
+
 # ── Detection ─────────────────────────────────────────────────────────────────
 @register("detection_cornerdetection")
 def _cornerdetection(params: dict, var: str) -> tuple[list[str], bool]:

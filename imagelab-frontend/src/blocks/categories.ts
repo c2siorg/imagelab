@@ -130,6 +130,7 @@ export const categories: CategoryInfo[] = [
       { type: "segmentation_watershed", label: "Watershed" },
       { type: "segmentation_kmeans", label: "K-Means" },
       { type: "segmentation_meanshift", label: "Mean Shift" },
+      { type: "segmentation_connectedcomponents", label: "Connected Components" },
     ],
   },
   {

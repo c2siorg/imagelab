@@ -54,6 +54,7 @@ from app.operators.geometric.reflect_image import ReflectImage
 from app.operators.geometric.resize_image import ResizeImage
 from app.operators.geometric.rotate_image import RotateImage
 from app.operators.geometric.scale_image import ScaleImage
+from app.operators.segmentation.connected_components import ConnectedComponents
 from app.operators.segmentation.kmeans_segmentation import KMeansSegmentation
 from app.operators.segmentation.mean_shift_segmentation import MeanShiftSegmentation
 from app.operators.segmentation.watershed import Watershed
@@ -144,6 +145,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "transformation_distance": DistanceTransform,
     "transformation_laplacian": TransformationLaplacian,
     # Segmentation
+    "segmentation_connectedcomponents": ConnectedComponents,
     "segmentation_watershed": Watershed,
     "segmentation_kmeans": KMeansSegmentation,
     "segmentation_meanshift": MeanShiftSegmentation,
