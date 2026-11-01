@@ -609,12 +609,14 @@ def _houghlines(params: dict, var: str) -> tuple[list[str], bool]:
             f"_lines = cv2.HoughLinesP(_edges, {rho}, _theta, {threshold}, "
             f"minLineLength={min_line_len}, maxLineGap={max_line_gap})"
         ),
+        # Mirrors HoughLines: gray input always comes back as BGR, and lines on BGRA are opaque
+        f"if {var}.ndim == 2:",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        _draw_color_line(color, var),
         "if _lines is not None:",
-        f"    if {var}.ndim == 2:",
-        f"        {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
         "    for _line in _lines:",
         "        _x1, _y1, _x2, _y2 = _line[0]",
-        f"        cv2.line({var}, (_x1, _y1), (_x2, _y2), {color}, {thickness})",
+        f"        cv2.line({var}, (_x1, _y1), (_x2, _y2), _color, {thickness})",
     ]
     return code, True
 
@@ -972,11 +974,25 @@ def _roberts(params: dict, var: str) -> tuple[list[str], bool]:
 
 
 @register("laplacian")
-@register("transformation_laplacian")
-def _laplacian(params: dict, var: str) -> tuple[list[str], bool]:
+def _filtering_laplacian(params: dict, var: str) -> tuple[list[str], bool]:
     ksize = safe_int(params.get("ksize", 1), 1)
-    ddepth = safe_int(params.get("ddepth", cv2.CV_64F), cv2.CV_64F)
-    return [f"{var} = cv2.Laplacian({var}, {ddepth}, ksize={ksize})"], False
+    # Mirrors filtering Laplacian: grayscale input, 64-bit result, absolute value
+    code = [
+        f"if {var}.ndim == 3:",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY)",
+        f"{var} = np.uint8(np.absolute(cv2.Laplacian({var}, cv2.CV_64F, ksize={ksize})))",
+    ]
+    return code, True
+
+
+@register("transformation_laplacian")
+def _transformation_laplacian(params: dict, var: str) -> tuple[list[str], bool]:
+    ksize = safe_int(params.get("ksize", 1), 1)
+    ddepth = safe_int(params.get("ddepth", -1), -1)
+    # Mirrors transformation Laplacian: ddepth -1 on uint8 uses a 64-bit result so
+    # negative edges are kept, then convertScaleAbs takes the absolute value
+    ddepth_expr = f"cv2.CV_64F if np.issubdtype({var}.dtype, np.integer) else -1" if ddepth == -1 else str(ddepth)
+    return [f"{var} = cv2.convertScaleAbs(cv2.Laplacian({var}, {ddepth_expr}, ksize={ksize}))"], True
 
 
 # ── Transformation ────────────────────────────────────────────────────────────
@@ -985,6 +1001,7 @@ def _distance_transform(params: dict, var: str) -> tuple[list[str], bool]:
     dist_type_name = str(params.get("type", "DIST_L2")).upper()
     dist_type = DIST_TYPE_MAP.get(dist_type_name, "cv2.DIST_L2")
     mask_size = safe_int(params.get("maskSize", 5), 5)
+    mask_size = mask_size if mask_size in (3, 5) else 5
     code = [
         f"if {var}.ndim == 3:",
         f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY)",
@@ -992,9 +1009,10 @@ def _distance_transform(params: dict, var: str) -> tuple[list[str], bool]:
         f"    _gray = {var}",
         "_, _bin = cv2.threshold(_gray, 127, 255, cv2.THRESH_BINARY)",
         f"_dt = cv2.distanceTransform(_bin, {dist_type}, {mask_size})",
-        f"{var} = cv2.normalize(_dt, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)",
+        # Mirrors DistanceTransform: normalize as float, then truncate to uint8
+        f"{var} = cv2.normalize(_dt, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)",
     ]
-    return code, False
+    return code, True
 
 
 # ── Augmentation ──────────────────────────────────────────────────────────────
@@ -1247,10 +1265,14 @@ def _eyedetection(params: dict, var: str) -> tuple[list[str], bool]:
         f"_gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY) if {var}.ndim == 3 else {var}",
         "_eq = cv2.equalizeHist(_gray)",
         f"_eyes = _eye_cascade.detectMultiScale(_eq, scaleFactor={sf}, minNeighbors={mn}, minSize=({mw}, {mh}))",
-        f"if {var}.ndim == 2:",
-        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
-        "for (_x, _y, _w, _h) in _eyes:",
-        f"    cv2.rectangle({var}, (_x, _y), (_x + _w, _y + _h), {color}, {thickness})",
+        # Mirrors the detector: with no detections the image comes back unchanged,
+        # otherwise gray input becomes BGR and boxes on BGRA are opaque
+        "if len(_eyes) > 0:",
+        f"    if {var}.ndim == 2:",
+        f"        {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        "    " + _draw_color_line(color, var),
+        "    for (_x, _y, _w, _h) in _eyes:",
+        f"        cv2.rectangle({var}, (_x, _y), (_x + _w, _y + _h), _color, {thickness})",
     ]
     return code, False
 
@@ -1268,10 +1290,14 @@ def _facedetection(params: dict, var: str) -> tuple[list[str], bool]:
         f"_gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY) if {var}.ndim == 3 else {var}",
         "_eq = cv2.equalizeHist(_gray)",
         f"_faces = _face_cascade.detectMultiScale(_eq, scaleFactor={sf}, minNeighbors={mn}, minSize=({mw}, {mh}))",
-        f"if {var}.ndim == 2:",
-        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
-        "for (_x, _y, _w, _h) in _faces:",
-        f"    cv2.rectangle({var}, (_x, _y), (_x + _w, _y + _h), {color}, {thickness})",
+        # Mirrors the detector: with no detections the image comes back unchanged,
+        # otherwise gray input becomes BGR and boxes on BGRA are opaque
+        "if len(_faces) > 0:",
+        f"    if {var}.ndim == 2:",
+        f"        {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        "    " + _draw_color_line(color, var),
+        "    for (_x, _y, _w, _h) in _faces:",
+        f"        cv2.rectangle({var}, (_x, _y), (_x + _w, _y + _h), _color, {thickness})",
     ]
     return code, False
 
