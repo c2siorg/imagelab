@@ -286,7 +286,10 @@ export function validatePipelineGraph(
       // Calculate output channels for this node
       if (nodeType === "thresholding_inrange") {
         outputs[nodeId] = (node.params?.outputMode as string) === "masked_image" ? primary : 1;
-      } else if (nodeType === "detection_cornerdetection") {
+      } else if (
+        nodeType === "detection_cornerdetection" ||
+        nodeType === "segmentation_connectedcomponents"
+      ) {
         outputs[nodeId] = primary === 4 ? 4 : 3;
       } else if (nodeType === "filtering_houghlines" || nodeType === "filtering_houghcircles") {
         outputs[nodeId] = primary === 1 ? 3 : primary;
