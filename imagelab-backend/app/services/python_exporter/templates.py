@@ -1001,50 +1001,56 @@ def _distance_transform(params: dict, var: str) -> tuple[list[str], bool]:
 @register("augmentation_gaussiannoise")
 def _gaussian_noise(params: dict, var: str) -> tuple[list[str], bool]:
     mean = safe_float(params.get("mean", 0.0), 0.0)
-    sigma = max(1.0, safe_float(params.get("sigma", params.get("std", 25.0)), 25.0))
+    # Accept both the block param ("sigma") and the legacy name ("std")
+    sigma = safe_float(params.get("sigma", params.get("std", 25.0)), 25.0)
+    sigma = max(1.0, sigma)
+    seed = params.get("seed")
+    seed_expr = "None" if seed is None else f"int({seed!r})"
+    # Mirrors GaussianNoise: noise only on BGR, alpha preserved, seeded RNG
     code = [
-        f"_has_alpha = {var}.ndim == 3 and {var}.shape[2] == 4",
-        "if _has_alpha:",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
         f"    _alpha = {var}[:, :, 3].copy()",
-        f"    _base = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
         "else:",
-        f"    _base = {var}",
-        f"_noise = np.random.normal({mean}, {sigma}, _base.shape).astype(np.float32)",
-        "_noisy = np.clip(_base.astype(np.float32) + _noise, 0, 255).astype(np.uint8)",
-        "if _has_alpha:",
-        f"    {var} = np.dstack([_noisy, _alpha])",
-        "else:",
-        f"    {var} = _noisy",
+        "    _alpha = None",
+        f"_rng = np.random.default_rng({seed_expr})",
+        f"_noise = _rng.normal({mean}, {sigma}, {var}.shape).astype(np.float32)",
+        f"{var} = np.clip({var}.astype(np.float32) + _noise, 0, 255).astype(np.uint8)",
+        "if _alpha is not None:",
+        f"    {var} = np.dstack([{var}, _alpha])",
     ]
     return code, True
 
 
 @register("augmentation_saltpeppernoise")
 def _salt_pepper(params: dict, var: str) -> tuple[list[str], bool]:
-    density = max(0.0, min(1.0, safe_float(params.get("density", params.get("amount", 0.05)), 0.05)))
+    # Accept both the block param ("density") and the legacy name ("amount")
+    density = safe_float(params.get("density", params.get("amount", 0.05)), 0.05)
+    density = max(0.0, min(1.0, density))
+    seed = params.get("seed")
+    seed_expr = "None" if seed is None else f"int({seed!r})"
+    # Mirrors SaltPepperNoise: noise only on BGR, alpha preserved, spatial pixel counts
     code = [
-        f"_has_alpha = {var}.ndim == 3 and {var}.shape[2] == 4",
-        "if _has_alpha:",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
         f"    _alpha = {var}[:, :, 3].copy()",
-        f"    _base = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
         "else:",
-        f"    _base = {var}.copy()",
-        "_h, _w = _base.shape[:2]",
-        "_total_pixels = _h * _w",
+        "    _alpha = None",
+        f"_rng = np.random.default_rng({seed_expr})",
+        f"_result = {var}.copy()",
+        f"_total_pixels = {var}.shape[0] * {var}.shape[1]",
         f"_num_affected = int(_total_pixels * {density})",
         "_num_affected -= _num_affected % 2",
-        "if _num_affected > 0:",
-        "    _flat = np.random.choice(_total_pixels, _num_affected, replace=False)",
-        "    _salt_flat = _flat[: _num_affected // 2]",
-        "    _pepper_flat = _flat[_num_affected // 2 :]",
-        "    _sr, _sc = np.unravel_index(_salt_flat, (_h, _w))",
-        "    _pr, _pc = np.unravel_index(_pepper_flat, (_h, _w))",
-        "    _base[_sr, _sc] = 255",
-        "    _base[_pr, _pc] = 0",
-        "if _has_alpha:",
-        f"    {var} = np.dstack([_base, _alpha])",
-        "else:",
-        f"    {var} = _base",
+        "_flat_indices = _rng.choice(_total_pixels, _num_affected, replace=False)",
+        "_salt_flat = _flat_indices[:_num_affected // 2]",
+        "_pepper_flat = _flat_indices[_num_affected // 2:]",
+        f"_salt_rows, _salt_cols = np.unravel_index(_salt_flat, ({var}.shape[0], {var}.shape[1]))",
+        f"_pepper_rows, _pepper_cols = np.unravel_index(_pepper_flat, ({var}.shape[0], {var}.shape[1]))",
+        "_result[_salt_rows, _salt_cols] = 255",
+        "_result[_pepper_rows, _pepper_cols] = 0",
+        f"{var} = _result",
+        "if _alpha is not None:",
+        f"    {var} = np.dstack([{var}, _alpha])",
     ]
     return code, True
 
