@@ -318,6 +318,10 @@ def test_exported_drawing_matches_the_app():
             "drawingoperations_drawrectangle",
             {**color, "starting_point_x": 4, "ending_point_x": 30, "ending_point_y": 25},
         ),
+        (
+            "drawingoperations_drawrectangle",
+            {**color, "thickness": -1, "starting_point_x": 4, "ending_point_x": 30, "ending_point_y": 25},
+        ),
         ("drawingoperations_drawtext", {**color, "draw_text": "Lab", "scale": 1, "starting_point_y": 30}),
         ("filtering_contourdetection", {"rgbcolors_input": "#00ff00", "thickness": 2, "mode": "TREE"}),
     ]

@@ -26,7 +26,7 @@ export const drawingBlocks = [
       "Draw a circle %1 with thickness of %2 , %3 radius of %4 %5 color %6 center point x %7 and y %8",
     args0: [
       { type: "input_dummy" },
-      { type: "field_number", name: "thickness", value: 2, min: 1 },
+      { type: "field_number", name: "thickness", value: 2, min: -1 },
       { type: "input_dummy" },
       { type: "field_number", name: "radius", value: 5, min: 1 },
       { type: "input_dummy" },
@@ -45,7 +45,7 @@ export const drawingBlocks = [
     message0:
       "Draw an ellipse with thickness of %1 %2 , height %3 , width %4 , rotate by %5 %6 color %7 center point x %8 and y %9",
     args0: [
-      { type: "field_number", name: "thickness", value: 2, min: 1 },
+      { type: "field_number", name: "thickness", value: 2, min: -1 },
       { type: "input_dummy" },
       { type: "field_number", name: "height", value: 50, min: 0 },
       { type: "field_number", name: "width", value: 80, min: 0 },
@@ -67,7 +67,7 @@ export const drawingBlocks = [
       "Draw a rectangle %1 with thickness of %2 %3 , color %4 , starting point x %5 and y %6 , ending point x %7 and y %8",
     args0: [
       { type: "input_dummy" },
-      { type: "field_number", name: "thickness", value: 2, min: 1 },
+      { type: "field_number", name: "thickness", value: 2, min: -1 },
       { type: "input_dummy" },
       { type: "field_colour", name: "rgbcolors_input", colour: "#2828cc" },
       { type: "field_number", name: "starting_point_x", value: 0 },
