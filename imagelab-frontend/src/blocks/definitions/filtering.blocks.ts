@@ -236,4 +236,24 @@ export const filteringBlocks = [
     tooltip:
       "Detects circular objects using the circular Hough transform (cv2.HoughCircles with cv2.HOUGH_GRADIENT) and draws the circle outlines and center markers on the image. dp is the inverse ratio of accumulator resolution to image resolution, minDist is the minimum distance between centers of detected circles, param1 is the higher Canny threshold, param2 is the accumulator voting threshold for circle centers, and minRadius / maxRadius bound the circle sizes (0 for unbounded).",
   },
+  {
+    type: "filtering_nlmdenoising",
+    message0:
+      "Non-local means denoising %1 Filter strength (h) %2 %3 Color strength %4 %5 Template window %6 %7 Search window %8",
+    args0: [
+      { type: "input_dummy" },
+      { type: "field_number", name: "h", value: 10, min: 0.5, max: 100 },
+      { type: "input_dummy" },
+      { type: "field_number", name: "hColor", value: 10, min: 0.5, max: 100 },
+      { type: "input_dummy" },
+      { type: "field_number", name: "templateWindowSize", value: 7, min: 3, max: 21 },
+      { type: "input_dummy" },
+      { type: "field_number", name: "searchWindowSize", value: 21, min: 5, max: 45 },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "filtering_style",
+    tooltip:
+      "Removes image noise using Fast Non-Local Means (NLM) Denoising. Averages similar patches across a search window, preserving fine textures, patterns, and edges far better than Gaussian or Bilateral blurs.",
+  },
 ];

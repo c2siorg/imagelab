@@ -382,6 +382,46 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       "Measuring structural lines in architectural or engineering photos.",
     ],
   },
+  filtering_nlmdenoising: {
+    name: "Non-Local Means Denoising",
+    description:
+      "Performs Fast Non-Local Means (NLM) noise reduction. Rather than simply averaging neighboring pixels like Gaussian blur, NLM takes a weighted average of all pixels whose surrounding patch is similar to the target patch. This cleans sensor noise and grain while keeping textures and edges sharp.",
+    parameters: [
+      {
+        name: "h",
+        type: "number",
+        default: "10.0",
+        description:
+          "Filter strength regulating luminance noise removal. Higher values eliminate more noise but can slightly soften subtle details.",
+      },
+      {
+        name: "hColor",
+        type: "number",
+        default: "10.0",
+        description:
+          "Filter strength regulating color component noise (for multi-channel color images).",
+      },
+      {
+        name: "templateWindowSize",
+        type: "number",
+        default: "7",
+        description:
+          "Size in pixels of the template patch used to compare patch similarity. Must be an odd integer (typically 7).",
+      },
+      {
+        name: "searchWindowSize",
+        type: "number",
+        default: "21",
+        description:
+          "Size in pixels of the neighborhood window over which similar patches are sought. Must be an odd integer (typically 21).",
+      },
+    ],
+    useCases: [
+      "Denoising grainy low-light smartphone photographs without smearing texture",
+      "Cleaning sensor noise from digital cameras and medical imaging scans",
+      "Restoring noisy digitized film or vintage archival photographs",
+    ],
+  },
   filtering_houghcircles: {
     name: "Hough Circle Detection",
     description:

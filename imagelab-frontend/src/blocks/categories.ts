@@ -107,6 +107,7 @@ export const categories: CategoryInfo[] = [
       { type: "filtering_cannyedge", label: "Canny Edge Detection" },
       { type: "filtering_houghlines", label: "Hough Line Detection" },
       { type: "filtering_houghcircles", label: "Hough Circle Detection" },
+      { type: "filtering_nlmdenoising", label: "NLM Denoising" },
     ],
   },
   {
