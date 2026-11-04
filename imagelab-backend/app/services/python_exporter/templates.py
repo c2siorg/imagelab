@@ -827,6 +827,30 @@ def _scale(params: dict, var: str) -> tuple[list[str], bool]:
 
 @register("geometric_affineimage")
 def _affine(params: dict, var: str) -> tuple[list[str], bool]:
+    has_points = any(f"src_x{i}" in params or f"dst_x{i}" in params for i in (1, 2, 3))
+    if has_points:
+        src1 = [safe_float(params.get("src_x1", 0.0), 0.0), safe_float(params.get("src_y1", 0.0), 0.0)]
+        src2 = [safe_float(params.get("src_x2", 100.0), 100.0), safe_float(params.get("src_y2", 0.0), 0.0)]
+        src3 = [safe_float(params.get("src_x3", 0.0), 0.0), safe_float(params.get("src_y3", 100.0), 100.0)]
+
+        dst1 = [safe_float(params.get("dst_x1", 0.0), 0.0), safe_float(params.get("dst_y1", 0.0), 0.0)]
+        dst2 = [safe_float(params.get("dst_x2", 100.0), 100.0), safe_float(params.get("dst_y2", 0.0), 0.0)]
+        dst3 = [safe_float(params.get("dst_x3", 0.0), 0.0), safe_float(params.get("dst_y3", 100.0), 100.0)]
+
+        code = [
+            f"_h, _w = {var}.shape[:2]",
+            f"_src = np.float32([{src1}, {src2}, {src3}])",
+            f"_dst = np.float32([{dst1}, {dst2}, {dst3}])",
+            "_twice_area = (",
+            "    (_src[1][0] - _src[0][0]) * (_src[2][1] - _src[0][1])",
+            "    - (_src[2][0] - _src[0][0]) * (_src[1][1] - _src[0][1])",
+            ")",
+            "if abs(float(_twice_area)) >= 1e-6:",
+            "    _m = cv2.getAffineTransform(_src, _dst)",
+            f"    {var} = cv2.warpAffine({var}, _m, (_w, _h))",
+        ]
+        return code, True
+
     tx = safe_float(params.get("translate_x", 0.0), 0.0)
     ty = safe_float(params.get("translate_y", 0.0), 0.0)
     code = [
