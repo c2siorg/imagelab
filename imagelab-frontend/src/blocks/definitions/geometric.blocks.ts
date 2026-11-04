@@ -121,4 +121,37 @@ export const geometricBlocks = [
     tooltip:
       "Applies an affine transformation defined by three point pairs - Source points are pixel positions in the input image, and destination points are where those same pixels land in the output; the whole image is warped by the matrix that maps one triangle onto the other. Identical source and destination points leave the image unchanged, shifting all three by the same offset translates it, moving a single point shears it, and spreading them apart scales it. Source points must not lie on one line - if they do the image is passed through unchanged. Areas exposed by the warp are filled with black.",
   },
+  {
+    type: "geometric_perspectivetransform",
+    message0:
+      "Apply perspective transformation %1 source points: p1 (%2, %3) p2 (%4, %5) p3 (%6, %7) p4 (%8, %9) %10 destination points: p1 (%11, %12) p2 (%13, %14) p3 (%15, %16) p4 (%17, %18) %19 output width %20 height %21",
+    args0: [
+      { type: "input_dummy" },
+      { type: "field_number", name: "src_x1", value: 0 },
+      { type: "field_number", name: "src_y1", value: 0 },
+      { type: "field_number", name: "src_x2", value: 200 },
+      { type: "field_number", name: "src_y2", value: 0 },
+      { type: "field_number", name: "src_x3", value: 200 },
+      { type: "field_number", name: "src_y3", value: 200 },
+      { type: "field_number", name: "src_x4", value: 0 },
+      { type: "field_number", name: "src_y4", value: 200 },
+      { type: "input_dummy" },
+      { type: "field_number", name: "dst_x1", value: 0 },
+      { type: "field_number", name: "dst_y1", value: 0 },
+      { type: "field_number", name: "dst_x2", value: 200 },
+      { type: "field_number", name: "dst_y2", value: 0 },
+      { type: "field_number", name: "dst_x3", value: 200 },
+      { type: "field_number", name: "dst_y3", value: 200 },
+      { type: "field_number", name: "dst_x4", value: 0 },
+      { type: "field_number", name: "dst_y4", value: 200 },
+      { type: "input_dummy" },
+      { type: "field_number", name: "output_width", value: 0, min: 0, max: 10000 },
+      { type: "field_number", name: "output_height", value: 0, min: 0, max: 10000 },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "geometric_style",
+    tooltip:
+      "Applies a 4-point perspective transformation (homography) mapping four source quadrilateral points onto four destination points. Leave output width and height at 0 to maintain original image dimensions.",
+  },
 ];

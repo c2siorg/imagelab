@@ -78,6 +78,7 @@ OPERATOR_NAMES: dict[str, str] = {
     "geometric_rotateimage": "Rotate Image",
     "geometric_reflectimage": "Flip / Reflect Image",
     "geometric_affineimage": "Affine Transformation",
+    "geometric_perspectivetransform": "Perspective Transformation",
     "geometric_cropimage": "Crop Image",
     "thresholding_applythreshold": "Simple Threshold",
     "thresholding_adaptivethreshold": "Adaptive Threshold",
