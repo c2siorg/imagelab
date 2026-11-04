@@ -28,6 +28,8 @@ class SepiaFilter(BaseOperator):
         if len(image.shape) == 3 and image.shape[2] == 4:
             alpha = image[:, :, 3].copy()
             image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
+        elif len(image.shape) == 3 and image.shape[2] == 1:
+            image = cv2.cvtColor(image[:, :, 0], cv2.COLOR_GRAY2BGR)
         elif len(image.shape) == 2:
             image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
 

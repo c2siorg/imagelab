@@ -15,6 +15,8 @@ class GrayToBinary(BaseOperator):
         if image.ndim == 3:
             if image.shape[2] == 4:
                 image = cv2.cvtColor(image, cv2.COLOR_BGRA2GRAY)
+            elif image.shape[2] == 1:
+                image = image[:, :, 0]
             else:
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
