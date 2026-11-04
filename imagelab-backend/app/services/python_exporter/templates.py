@@ -730,7 +730,8 @@ def _drawrect(params: dict, var: str) -> tuple[list[str], bool]:
     x2 = safe_int(params.get("ending_point_x", 0), 0)
     y2 = safe_int(params.get("ending_point_y", 0), 0)
     color = _get_bgr_color(params)
-    thickness = max(1, safe_int(params.get("thickness", 2), 2))
+    thickness_val = safe_int(params.get("thickness", 2), 2)
+    thickness = -1 if thickness_val == -1 else max(1, thickness_val)
     code = [
         f"if {var}.ndim == 2:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
