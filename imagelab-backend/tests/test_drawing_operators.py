@@ -290,6 +290,51 @@ class TestDrawRectangle:
         ).compute(gray)
         assert result[:, :, 2].max() > 0
 
+    def test_filled_rectangle_with_thickness_minus_one(self):
+        blank = np.zeros((100, 100, 3), dtype=np.uint8)
+        result = DrawRectangle(
+            {
+                "starting_point_x": 10,
+                "starting_point_y": 10,
+                "ending_point_x": 50,
+                "ending_point_y": 50,
+                "rgbcolors_input": "#ff0000",
+                "thickness": -1,
+            }
+        ).compute(blank)
+        # Center inside the rectangle is solid red (BGR [0, 0, 255])
+        assert (result[30, 30] == [0, 0, 255]).all()
+        # Outside remains background black
+        assert (result[5, 5] == [0, 0, 0]).all()
+
+    def test_invalid_and_negative_thickness_fallback(self):
+        blank = np.zeros((100, 100, 3), dtype=np.uint8)
+        result = DrawRectangle(
+            {
+                "starting_point_x": 10,
+                "starting_point_y": 10,
+                "ending_point_x": 50,
+                "ending_point_y": 50,
+                "rgbcolors_input": "#ff0000",
+                "thickness": -5,
+            }
+        ).compute(blank)
+        assert (result[10, 10] == [0, 0, 255]).all()
+        # Interior is uncolored because thickness -5 was sanitized to 1 (outline only)
+        assert (result[30, 30] == [0, 0, 0]).all()
+
+    def test_malformed_params_graceful_defaults(self, color_image):
+        result = DrawRectangle(
+            {
+                "starting_point_x": "invalid",
+                "starting_point_y": None,
+                "ending_point_x": [],
+                "ending_point_y": {},
+                "thickness": "not_an_int",
+            }
+        ).compute(color_image)
+        assert result.shape == color_image.shape
+
 
 class TestDrawArrowLine:
     def test_default_params_output_shape(self, color_image):
