@@ -21,6 +21,8 @@ class GaborFilter(BaseOperator):
 
         if len(image.shape) == 3 and image.shape[2] == 4:
             image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
+        elif len(image.shape) == 3 and image.shape[2] == 1:
+            image = image[:, :, 0]
 
         original_h, original_w = image.shape[:2]
 
@@ -45,7 +47,12 @@ class GaborFilter(BaseOperator):
             ktype=cv2.CV_32F,
         )
 
-        gray = cv2.cvtColor(working, cv2.COLOR_BGR2GRAY) if len(working.shape) == 3 else working
+        if len(working.shape) == 3 and working.shape[2] >= 3:
+            gray = cv2.cvtColor(working, cv2.COLOR_BGR2GRAY)
+        elif len(working.shape) == 3 and working.shape[2] == 1:
+            gray = working[:, :, 0]
+        else:
+            gray = working
         filtered = cv2.filter2D(gray.astype(np.float32), cv2.CV_32F, kernel)
         result_gray = cv2.normalize(np.abs(filtered), None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
         result_small = cv2.cvtColor(result_gray, cv2.COLOR_GRAY2BGR)

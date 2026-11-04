@@ -24,6 +24,8 @@ class DistanceTransform(BaseOperator):
         if len(image.shape) == 3:
             if image.shape[2] == 4:
                 gray = cv2.cvtColor(image, cv2.COLOR_BGRA2GRAY)
+            elif image.shape[2] == 1:
+                gray = image[:, :, 0]
             else:
                 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         else:

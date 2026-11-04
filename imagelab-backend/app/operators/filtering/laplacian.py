@@ -25,7 +25,12 @@ class Laplacian(BaseOperator):
         if image.ndim == 3 and image.shape[2] == 4:
             image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
 
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if image.ndim == 3 else image.copy()
+        if image.ndim == 3 and image.shape[2] == 1:
+            gray = image[:, :, 0]
+        elif image.ndim == 3:
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = image.copy()
 
         lap = cv2.Laplacian(gray, cv2.CV_64F, ksize=self._ksize)
         result = np.uint8(np.absolute(lap))
