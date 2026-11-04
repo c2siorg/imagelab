@@ -288,6 +288,7 @@ export function validatePipelineGraph(
         outputs[nodeId] = (node.params?.outputMode as string) === "masked_image" ? primary : 1;
       } else if (
         nodeType === "detection_cornerdetection" ||
+        nodeType === "detection_orb" ||
         nodeType === "segmentation_connectedcomponents"
       ) {
         outputs[nodeId] = primary === 4 ? 4 : 3;
