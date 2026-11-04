@@ -671,6 +671,51 @@ def _houghcircles(params: dict, var: str) -> tuple[list[str], bool]:
     return code, True
 
 
+@register("filtering_nlmdenoising")
+def _nlm_denoising(params: dict, var: str) -> tuple[list[str], bool]:
+    h = max(0.5, min(100.0, safe_float(params.get("h", 10.0), 10.0)))
+    h_color = max(0.5, min(100.0, safe_float(params.get("hColor", 10.0), 10.0)))
+
+    template_size = max(3, min(21, safe_int(params.get("templateWindowSize", 7), 7)))
+    if template_size % 2 == 0:
+        template_size += 1
+
+    search_size = max(5, min(45, safe_int(params.get("searchWindowSize", 21), 21)))
+    if search_size % 2 == 0:
+        search_size += 1
+
+    if search_size <= template_size:
+        search_size = template_size + 2
+
+    code = [
+        f"if {var}.ndim == 2:",
+        (
+            f"    {var} = cv2.fastNlMeansDenoising("
+            f"{var}, None, h={h}, templateWindowSize={template_size}, searchWindowSize={search_size})"
+        ),
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+        (
+            f"    _denoised = cv2.fastNlMeansDenoising("
+            f"{var}[:, :, 0], None, h={h}, templateWindowSize={template_size}, searchWindowSize={search_size})"
+        ),
+        f"    {var} = _denoised[:, :, np.newaxis]",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+        (
+            f"    _bgr = cv2.fastNlMeansDenoisingColored("
+            f"{var}[:, :, :3], None, h={h}, hColor={h_color}, "
+            f"templateWindowSize={template_size}, searchWindowSize={search_size})"
+        ),
+        f"    {var} = np.dstack([_bgr, {var}[:, :, 3]])",
+        "else:",
+        (
+            f"    {var} = cv2.fastNlMeansDenoisingColored("
+            f"{var}, None, h={h}, hColor={h_color}, "
+            f"templateWindowSize={template_size}, searchWindowSize={search_size})"
+        ),
+    ]
+    return code, True
+
+
 # ── Drawing ───────────────────────────────────────────────────────────────────
 @register("drawingoperations_drawline")
 def _drawline(params: dict, var: str) -> tuple[list[str], bool]:

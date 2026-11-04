@@ -45,6 +45,7 @@ from app.operators.filtering.hough_circles import HoughCircles
 from app.operators.filtering.hough_lines import HoughLines
 from app.operators.filtering.laplacian import Laplacian as FilteringLaplacian
 from app.operators.filtering.morphological import Morphological
+from app.operators.filtering.nlm_denoising import NlmDenoising
 from app.operators.filtering.pyramid_down import PyramidDown
 from app.operators.filtering.pyramid_up import PyramidUp
 from app.operators.filtering.sharpen import Sharpen
@@ -119,6 +120,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "filtering_erosion": Erosion,
     "filtering_dilation": Dilation,
     "filtering_morphological": Morphological,
+    "filtering_nlmdenoising": NlmDenoising,
     # Augmentation
     "augmentation_gaussiannoise": GaussianNoise,
     "augmentation_saltpeppernoise": SaltPepperNoise,
