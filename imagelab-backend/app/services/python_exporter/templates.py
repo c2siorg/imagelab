@@ -1234,6 +1234,74 @@ def _cornerdetection(params: dict, var: str) -> tuple[list[str], bool]:
     return code, False
 
 
+@register("detection_orb")
+def _orb_detection(params: dict, var: str) -> tuple[list[str], bool]:
+    nfeatures = safe_int(params.get("nfeatures", 500), 500)
+    nfeatures = max(1, min(2000, nfeatures))
+
+    scale_factor = safe_float(params.get("scaleFactor", 1.2), 1.2)
+    scale_factor = max(1.05, min(2.0, scale_factor))
+
+    nlevels = safe_int(params.get("nlevels", 8), 8)
+    nlevels = max(1, min(16, nlevels))
+
+    edge_threshold = safe_int(params.get("edgeThreshold", 31), 31)
+    edge_threshold = max(2, min(64, edge_threshold))
+
+    fast_threshold = safe_int(params.get("fastThreshold", 20), 20)
+    fast_threshold = max(1, min(100, fast_threshold))
+
+    score_type_str = str(params.get("scoreType", "HARRIS_SCORE")).upper()
+    score_type = "cv2.ORB_FAST_SCORE" if score_type_str == "FAST_SCORE" else "cv2.ORB_HARRIS_SCORE"
+
+    draw_rich = params.get("drawRichKeypoints", True)
+    is_rich = draw_rich.lower() in ("true", "1", "yes") if isinstance(draw_rich, str) else bool(draw_rich)
+
+    flags = "cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS" if is_rich else "cv2.DRAW_MATCHES_FLAGS_DEFAULT"
+
+    color_key = "color" if "color" in params else "rgbcolors_input"
+    color = _get_bgr_color(params, key=color_key, default="#00ff00")
+
+    code = [
+        f"if {var}.ndim == 2:",
+        f"    _gray = {var}",
+        f"    _canvas = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"    _draw_color = {color}",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    _gray = {var}[:, :, 0]",
+        "    _canvas = cv2.cvtColor(_gray, cv2.COLOR_GRAY2BGR)",
+        f"    _draw_color = {color}",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGRA2GRAY)",
+        f"    _canvas = {var}.copy()",
+        f"    _draw_color = (*{color}, 255)",
+        "else:",
+        f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY)",
+        f"    _canvas = {var}.copy()",
+        f"    _draw_color = {color}",
+        "_min_dim = min(_gray.shape[:2])",
+        "_max_edge = max(2, min(_min_dim // 2, 64))",
+        f"_edge_threshold = max(2, min(_max_edge, {edge_threshold}))",
+        "_max_levels = 1",
+        "_cur_dim = _min_dim / _edge_threshold",
+        f"while _cur_dim >= {scale_factor} and _max_levels < 16:",
+        f"    _cur_dim /= {scale_factor}",
+        "    _max_levels += 1",
+        f"_nlevels = max(1, min({nlevels}, _max_levels))",
+        "_orb = cv2.ORB_create(",
+        f"    nfeatures={nfeatures}, scaleFactor={scale_factor}, nlevels=_nlevels,",
+        "    edgeThreshold=_edge_threshold, firstLevel=0, WTA_K=2,",
+        f"    scoreType={score_type}, patchSize=_edge_threshold, fastThreshold={fast_threshold},",
+        ")",
+        "_keypoints = _orb.detect(_gray, None)",
+        "if _keypoints:",
+        f"    {var} = cv2.drawKeypoints(_canvas, _keypoints, None, color=_draw_color, flags={flags})",
+        "else:",
+        f"    {var} = _canvas",
+    ]
+    return code, False
+
+
 @register("detection_eyedetection")
 def _eyedetection(params: dict, var: str) -> tuple[list[str], bool]:
     sf = safe_float(params.get("scaleFactor", 1.1), 1.1)
