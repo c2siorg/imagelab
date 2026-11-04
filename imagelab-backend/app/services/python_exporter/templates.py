@@ -152,7 +152,9 @@ def _basic_writeimage(params: dict, var: str) -> tuple[list[str], bool]:
 @register("imageconversions_grayimage")
 def _grayimage(params: dict, var: str) -> tuple[list[str], bool]:
     code = [
-        f"if {var}.ndim == 3:",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    {var} = {var}[:, :, 0]",
+        f"elif {var}.ndim == 3:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY)",
     ]
     return code, False
@@ -343,7 +345,9 @@ def _colormaps(params: dict, var: str) -> tuple[list[str], bool]:
     cm_const = COLORMAP_MAP.get(cm_name, "cv2.COLORMAP_HOT")
     # Mirrors ColorMaps: any color input is reduced to grayscale before the colormap
     code = [
-        f"if {var}.ndim == 3:",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    _gray = {var}[:, :, 0]",
+        f"elif {var}.ndim == 3:",
         f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGRA2GRAY if {var}.shape[2] == 4 else cv2.COLOR_BGR2GRAY)",
         "else:",
         f"    _gray = {var}",
@@ -358,7 +362,9 @@ def _graytobinary(params: dict, var: str) -> tuple[list[str], bool]:
     threshold = safe_float(params.get("thresholdValue"), 127.0)
     max_val = safe_float(params.get("maxValue"), 255.0)
     code = [
-        f"if {var}.ndim == 3:",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    {var} = {var}[:, :, 0]",
+        f"elif {var}.ndim == 3:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY)",
         f"_, {var} = cv2.threshold({var}, {threshold}, {max_val}, cv2.THRESH_BINARY)",
     ]
@@ -373,7 +379,9 @@ def _colortobinary(params: dict, var: str) -> tuple[list[str], bool]:
     thresh_type_raw = str(params.get("thresholdType", "threshold_binary"))
     thresh_type = THRESH_TYPE_MAP.get(thresh_type_raw, "cv2.THRESH_BINARY")
     code = [
-        f"if {var}.ndim == 3:",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    _gray = {var}[:, :, 0]",
+        f"elif {var}.ndim == 3:",
         f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY)",
         "else:",
         f"    _gray = {var}",
@@ -440,7 +448,9 @@ def _canny(params: dict, var: str) -> tuple[list[str], bool]:
     t2 = safe_float(params.get("threshold2", 200), 200.0)
     aperture = safe_int(params.get("apertureSize", 3), 3)
     code = [
-        f"if {var}.ndim == 3:",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    _gray = {var}[:, :, 0]",
+        f"elif {var}.ndim == 3:",
         f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY)",
         "else:",
         f"    _gray = {var}",
@@ -572,7 +582,9 @@ def _contours(params: dict, var: str) -> tuple[list[str], bool]:
     method_str = str(params.get("method", "SIMPLE")).upper()
     method = "cv2.CHAIN_APPROX_NONE" if method_str == "NONE" else "cv2.CHAIN_APPROX_SIMPLE"
     code = [
-        f"if {var}.ndim == 3:",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    _gray = {var}[:, :, 0]",
+        f"elif {var}.ndim == 3:",
         f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY)",
         "else:",
         f"    _gray = {var}",
@@ -597,7 +609,9 @@ def _houghlines(params: dict, var: str) -> tuple[list[str], bool]:
     color = _get_bgr_color(params, "color", "#00ff00")
     thickness = safe_int(params.get("thickness", 2), 2)
     code = [
-        f"if {var}.ndim == 3:",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    _gray = {var}[:, :, 0]",
+        f"elif {var}.ndim == 3:",
         f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY)",
         "else:",
         f"    _gray = {var}",
@@ -643,7 +657,9 @@ def _houghcircles(params: dict, var: str) -> tuple[list[str], bool]:
     center_color = _get_bgr_color(params, "centerColor", "#ff0000")
 
     code = [
-        f"if {var}.ndim == 3:",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    _gray = {var}[:, :, 0]",
+        f"elif {var}.ndim == 3:",
         f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY)",
         "else:",
         f"    _gray = {var}",
@@ -854,7 +870,9 @@ def _adaptive_threshold(params: dict, var: str) -> tuple[list[str], bool]:
     method_str = str(params.get("adaptiveMethod", "GAUSSIAN")).upper()
     method = "cv2.ADAPTIVE_THRESH_MEAN_C" if method_str == "MEAN" else "cv2.ADAPTIVE_THRESH_GAUSSIAN_C"
     code = [
-        f"if {var}.ndim == 3:",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    {var} = {var}[:, :, 0]",
+        f"elif {var}.ndim == 3:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY)",
         f"{var} = cv2.adaptiveThreshold({var}, {max_val}, {method}, cv2.THRESH_BINARY, {block_size}, {c_val})",
     ]
@@ -865,7 +883,9 @@ def _adaptive_threshold(params: dict, var: str) -> tuple[list[str], bool]:
 def _otsu(params: dict, var: str) -> tuple[list[str], bool]:
     max_val = safe_float(params.get("maxValue", 255.0), 255.0)
     code = [
-        f"if {var}.ndim == 3:",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    {var} = {var}[:, :, 0]",
+        f"elif {var}.ndim == 3:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY)",
         f"_, {var} = cv2.threshold({var}, 0, {max_val}, cv2.THRESH_BINARY + cv2.THRESH_OTSU)",
     ]
@@ -905,7 +925,9 @@ def _sobel(params: dict, var: str) -> tuple[list[str], bool]:
     ddepth = safe_int(params.get("ddepth", 0), 0) or cv2.CV_64F
     direction = str(params.get("type", "HORIZONTAL")).upper()
     code = [
-        f"if {var}.ndim == 3:",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    _gray = {var}[:, :, 0]",
+        f"elif {var}.ndim == 3:",
         f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY)",
         "else:",
         f"    _gray = {var}",
@@ -928,7 +950,9 @@ def _scharr(params: dict, var: str) -> tuple[list[str], bool]:
     direction = str(params.get("type", "HORIZONTAL")).upper()
     dx, dy = (1, 0) if direction == "HORIZONTAL" else (0, 1)
     code = [
-        f"if {var}.ndim == 3:",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    _gray = {var}[:, :, 0]",
+        f"elif {var}.ndim == 3:",
         f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY)",
         "else:",
         f"    _gray = {var}",
@@ -941,7 +965,9 @@ def _scharr(params: dict, var: str) -> tuple[list[str], bool]:
 def _prewitt(params: dict, var: str) -> tuple[list[str], bool]:
     # Same as the PrewittOperator: grayscale input, magnitude clipped to 0-255
     code = [
-        f"if {var}.ndim == 3:",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    _gray = {var}[:, :, 0]",
+        f"elif {var}.ndim == 3:",
         f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY)",
         "else:",
         f"    _gray = {var}",
@@ -957,7 +983,9 @@ def _prewitt(params: dict, var: str) -> tuple[list[str], bool]:
 @register("sobelderivatives_robertsoperator")
 def _roberts(params: dict, var: str) -> tuple[list[str], bool]:
     code = [
-        f"if {var}.ndim == 3:",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    _gray = {var}[:, :, 0]",
+        f"elif {var}.ndim == 3:",
         f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY)",
         "else:",
         f"    _gray = {var}",
@@ -986,7 +1014,9 @@ def _distance_transform(params: dict, var: str) -> tuple[list[str], bool]:
     dist_type = DIST_TYPE_MAP.get(dist_type_name, "cv2.DIST_L2")
     mask_size = safe_int(params.get("maskSize", 5), 5)
     code = [
-        f"if {var}.ndim == 3:",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    _gray = {var}[:, :, 0]",
+        f"elif {var}.ndim == 3:",
         f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY)",
         "else:",
         f"    _gray = {var}",
@@ -1061,6 +1091,8 @@ def _sepia(params: dict, var: str) -> tuple[list[str], bool]:
         f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
         f"    _sepia_alpha = {var}[:, :, 3].copy()",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    {var} = cv2.cvtColor({var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
         f"elif {var}.ndim == 2:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
         "_sepia_matrix = np.array([",
