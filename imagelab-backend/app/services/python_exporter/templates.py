@@ -837,6 +837,58 @@ def _affine(params: dict, var: str) -> tuple[list[str], bool]:
     return code, True
 
 
+@register("geometric_perspectivetransform")
+def _perspectivetransform(params: dict, var: str) -> tuple[list[str], bool]:
+    has_custom_src = any(f"src_{coord}{i}" in params for i in (1, 2, 3, 4) for coord in ("x", "y"))
+    has_custom_dst = any(f"dst_{coord}{i}" in params for i in (1, 2, 3, 4) for coord in ("x", "y"))
+
+    out_w = max(0, safe_int(params.get("output_width", 0), 0))
+    out_h = max(0, safe_int(params.get("output_height", 0), 0))
+
+    src_p1 = [safe_float(params.get("src_x1", 0.0), 0.0), safe_float(params.get("src_y1", 0.0), 0.0)]
+    src_p2 = [safe_float(params.get("src_x2", 200.0), 200.0), safe_float(params.get("src_y2", 0.0), 0.0)]
+    src_p3 = [safe_float(params.get("src_x3", 200.0), 200.0), safe_float(params.get("src_y3", 200.0), 200.0)]
+    src_p4 = [safe_float(params.get("src_x4", 0.0), 0.0), safe_float(params.get("src_y4", 200.0), 200.0)]
+
+    dst_p1 = [safe_float(params.get("dst_x1", 0.0), 0.0), safe_float(params.get("dst_y1", 0.0), 0.0)]
+    dst_p2 = [safe_float(params.get("dst_x2", 200.0), 200.0), safe_float(params.get("dst_y2", 0.0), 0.0)]
+    dst_p3 = [safe_float(params.get("dst_x3", 200.0), 200.0), safe_float(params.get("dst_y3", 200.0), 200.0)]
+    dst_p4 = [safe_float(params.get("dst_x4", 0.0), 0.0), safe_float(params.get("dst_y4", 200.0), 200.0)]
+
+    code = [
+        f"_h, _w = {var}.shape[:2]",
+        f"_is_single_channel_3d = {var}.ndim == 3 and {var}.shape[2] == 1",
+        f"_out_w = {out_w} if {out_w} > 0 else _w",
+        f"_out_h = {out_h} if {out_h} > 0 else _h",
+    ]
+    if has_custom_src:
+        code.append(f"_src = np.float32([{src_p1}, {src_p2}, {src_p3}, {src_p4}])")
+    else:
+        code.append("_src = np.float32([(0, 0), (_w - 1, 0), (_w - 1, _h - 1), (0, _h - 1)])")
+
+    if has_custom_dst:
+        code.append(f"_dst = np.float32([{dst_p1}, {dst_p2}, {dst_p3}, {dst_p4}])")
+    else:
+        code.append("_dst = np.float32([(0, 0), (_out_w - 1, 0), (_out_w - 1, _out_h - 1), (0, _out_h - 1)])")
+
+    code.extend(
+        [
+            "try:",
+            "    _m = cv2.getPerspectiveTransform(_src, _dst)",
+            "    if _m is not None and not np.allclose(_m[:2, :2], 0):",
+            (
+                f"        {var} = cv2.warpPerspective("
+                f"{var}, _m, (_out_w, _out_h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)"
+            ),
+            f"        if _is_single_channel_3d and {var}.ndim == 2:",
+            f"            {var} = {var}[:, :, np.newaxis]",
+            "except cv2.error:",
+            "    pass",
+        ]
+    )
+    return code, True
+
+
 # ── Thresholding ──────────────────────────────────────────────────────────────
 @register("thresholding_applythreshold")
 def _threshold(params: dict, var: str) -> tuple[list[str], bool]:

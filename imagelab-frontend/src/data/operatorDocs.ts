@@ -71,6 +71,46 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     ],
     useCases: ["Correcting skew, data augmentation."],
   },
+  geometric_perspectivetransform: {
+    name: "Perspective Transformation",
+    description:
+      "Applies a 4-point perspective warp (homography) mapping planar surfaces onto an arbitrary quadrilateral. Commonly used for document scanning and deskewing, keystone correction, bird's-eye ground projection, and camera rectification.",
+    parameters: [
+      {
+        name: "src_x1, src_y1 to src_x4, src_y4",
+        type: "number",
+        default: "0 to 200",
+        description:
+          "Pixel coordinates of the 4 source quadrilateral corners (top-left, top-right, bottom-right, bottom-left) in the input image.",
+      },
+      {
+        name: "dst_x1, dst_y1 to dst_x4, dst_y4",
+        type: "number",
+        default: "0 to 200",
+        description:
+          "Pixel coordinates where the four corners should be mapped in the transformed output image.",
+      },
+      {
+        name: "output_width",
+        type: "number",
+        default: "0",
+        description:
+          "Width of the output warped canvas in pixels. When set to 0, preserves the input image width.",
+      },
+      {
+        name: "output_height",
+        type: "number",
+        default: "0",
+        description:
+          "Height of the output warped canvas in pixels. When set to 0, preserves the input image height.",
+      },
+    ],
+    useCases: [
+      "Rectifying angled smartphone photos of documents into flat, top-down scans",
+      "Bird's-eye perspective projection for autonomous driving and road lane analysis",
+      "Correcting projector or architectural keystone distortion",
+    ],
+  },
   geometric_affineimage: {
     name: "Affine Transform",
     description:

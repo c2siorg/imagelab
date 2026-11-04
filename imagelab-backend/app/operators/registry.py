@@ -50,6 +50,7 @@ from app.operators.filtering.pyramid_up import PyramidUp
 from app.operators.filtering.sharpen import Sharpen
 from app.operators.geometric.affine_image import AffineImage
 from app.operators.geometric.crop_image import CropImage
+from app.operators.geometric.perspective_transform import PerspectiveTransform
 from app.operators.geometric.reflect_image import ReflectImage
 from app.operators.geometric.resize_image import ResizeImage
 from app.operators.geometric.rotate_image import RotateImage
@@ -78,6 +79,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "geometric_rotateimage": RotateImage,
     "geometric_scaleimage": ScaleImage,
     "geometric_affineimage": AffineImage,
+    "geometric_perspectivetransform": PerspectiveTransform,
     "geometric_cropimage": CropImage,
     # Conversions
     "imageconversions_clahe": ClaheImage,
