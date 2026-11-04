@@ -4,7 +4,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import type * as Blockly from "blockly";
+import * as Blockly from "blockly";
 import CanvasRoiAnnotator from "../../src/components/Preview/CanvasRoiAnnotator";
 
 describe("CanvasRoiAnnotator Component", () => {
@@ -216,5 +216,45 @@ describe("CanvasRoiAnnotator Component", () => {
     expect(mockBlock.setFieldValue).toHaveBeenCalledWith("51", "y1");
     expect(mockBlock.setFieldValue).toHaveBeenCalledWith("151", "x2");
     expect(mockBlock.setFieldValue).toHaveBeenCalledWith("200", "y2");
+  });
+
+  it("falls back to workspace Crop block when an incompatible block is selected", () => {
+    const mockCropBlock = {
+      type: "geometric_cropimage",
+      setFieldValue: vi.fn(),
+    };
+    const mockBlurBlock = {
+      type: "blurring_applygaussianblur",
+      setFieldValue: vi.fn(),
+    };
+
+    const mockWorkspace = {
+      getAllBlocks: vi.fn().mockReturnValue([mockCropBlock, mockBlurBlock]),
+    } as unknown as Blockly.WorkspaceSvg;
+
+    vi.spyOn(Blockly.common, "getSelected").mockReturnValue(
+      mockBlurBlock as unknown as Blockly.BlockSvg,
+    );
+
+    const initialBox = { x1: 15, y1: 25, x2: 120, y2: 160 };
+
+    render(
+      <CanvasRoiAnnotator
+        imageSrc={dummyImageSrc}
+        naturalWidth={800}
+        naturalHeight={600}
+        initialBox={initialBox}
+        workspace={mockWorkspace}
+      />,
+    );
+
+    const applyBtn = screen.getByText("Apply to Block");
+    fireEvent.click(applyBtn);
+
+    expect(mockBlurBlock.setFieldValue).not.toHaveBeenCalled();
+    expect(mockCropBlock.setFieldValue).toHaveBeenCalledWith("15", "x1");
+    expect(mockCropBlock.setFieldValue).toHaveBeenCalledWith("25", "y1");
+    expect(mockCropBlock.setFieldValue).toHaveBeenCalledWith("120", "x2");
+    expect(mockCropBlock.setFieldValue).toHaveBeenCalledWith("160", "y2");
   });
 });
