@@ -775,4 +775,53 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       "Teaching fundamental corner and interest point concepts in computer vision courses.",
     ],
   },
+  detection_orb: {
+    name: "ORB Feature Detection",
+    description:
+      "Detects scale- and rotation-invariant feature keypoints using ORB (Oriented FAST and Rotated BRIEF). Extracts multi-scale corner interest points across an image pyramid, determines dominant orientation angles using intensity centroids, and visualizes feature markers on the output canvas.",
+    parameters: [
+      {
+        name: "Max Features",
+        description:
+          "Maximum number of keypoints to retain after ranking by score. Range: 10 to 2000. Default: 500.",
+      },
+      {
+        name: "Scale Factor",
+        description:
+          "Pyramid decimation ratio between successive levels (> 1.0). A factor of 1.2 means each next level is 1/1.2 of the previous resolution. Range: 1.05 to 2.0. Default: 1.2.",
+      },
+      {
+        name: "Levels",
+        description:
+          "Number of pyramid levels in the multi-scale pyramid. Range: 1 to 16. Default: 8.",
+      },
+      {
+        name: "Score",
+        description:
+          "Algorithm used to rank and filter keypoints: 'Harris score' produces higher-quality, repeatable keypoints; 'FAST score' computes slightly faster.",
+      },
+      {
+        name: "Fast Threshold",
+        description:
+          "Sensitivity threshold for the FAST corner detector applied across pyramid levels. Lower values detect more subtle features; higher values focus on prominent corners. Range: 1 to 100. Default: 20.",
+      },
+      {
+        name: "Draw Rich Keypoints",
+        description:
+          "When enabled, draws circular markers indicating the scale of each keypoint along with radial lines showing the detected feature orientation vector.",
+      },
+      {
+        name: "Marker Color",
+        description:
+          "Color of the keypoint markers drawn on the output image. Default: green (#00ff00).",
+      },
+    ],
+    formula: "FAST detector + Intensity Centroid orientation + BRIEF binary descriptor",
+    useCases: [
+      "Detecting robust, scale- and rotation-invariant feature points for panorama stitching and image registration.",
+      "Object recognition, visual odometry, and real-time visual SLAM (Simultaneous Localization and Mapping).",
+      "Feature-based image matching and 2D/3D tracking without proprietary/patented algorithms (open-source alternative to SIFT/SURF).",
+      "Educational demonstrations of modern local invariant feature extraction and descriptor theory.",
+    ],
+  },
 };

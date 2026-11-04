@@ -282,7 +282,7 @@ export function validatePipelineGraph(
       }
 
       // Calculate output channels for this node
-      if (nodeType === "detection_cornerdetection") {
+      if (nodeType === "detection_cornerdetection" || nodeType === "detection_orb") {
         outputs[nodeId] = primary === 4 ? 4 : 3;
       } else if (nodeType === "filtering_houghlines" || nodeType === "filtering_houghcircles") {
         outputs[nodeId] = primary === 1 ? 3 : primary;

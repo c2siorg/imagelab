@@ -131,4 +131,44 @@ export const detectionBlocks = [
     tooltip:
       "Detects image corners using Shi-Tomasi or Harris corner detection algorithms. Converts the image to grayscale to find strong feature points (goodFeaturesToTrack) and draws circular markers at the detected corner coordinates. Method selects the scoring metric (Shi-Tomasi minimum eigenvalue or Harris corner response), max corners sets an upper limit on returned points, quality level filters out candidates relative to the best corner, and min distance enforces spacing between corners.",
   },
+  {
+    type: "detection_orb",
+    message0:
+      "ORB features %1 Max features %2 %3 Scale factor %4 %5 Levels %6 %7 Score %8 %9 Fast threshold %10 %11 Draw rich keypoints %12 %13 Marker color %14",
+    args0: [
+      { type: "input_dummy" },
+      { type: "field_number", name: "nfeatures", value: 500, min: 10, max: 2000 },
+      { type: "input_dummy" },
+      {
+        type: "field_number",
+        name: "scaleFactor",
+        value: 1.2,
+        min: 1.05,
+        max: 2.0,
+        precision: 0.05,
+      },
+      { type: "input_dummy" },
+      { type: "field_number", name: "nlevels", value: 8, min: 1, max: 16 },
+      { type: "input_dummy" },
+      {
+        type: "field_dropdown",
+        name: "scoreType",
+        options: [
+          ["Harris score", "HARRIS_SCORE"],
+          ["FAST score", "FAST_SCORE"],
+        ],
+      },
+      { type: "input_dummy" },
+      { type: "field_number", name: "fastThreshold", value: 20, min: 1, max: 100 },
+      { type: "input_dummy" },
+      { type: "field_checkbox", name: "drawRichKeypoints", checked: true },
+      { type: "input_dummy" },
+      { type: "field_colour", name: "color", colour: "#00ff00" },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "detection_style",
+    tooltip:
+      "Detects scale- and rotation-invariant feature keypoints using ORB (Oriented FAST and Rotated BRIEF). Extracts feature interest points across multiple pyramid levels, calculates dominant orientation angles, and renders keypoint markers. Enable 'Draw rich keypoints' to display circular markers indicating keypoint scale and orientation lines.",
+  },
 ];

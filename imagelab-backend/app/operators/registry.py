@@ -27,6 +27,7 @@ from app.operators.conversions.ycrcb_to_bgr import YcrcbToBgr
 from app.operators.detection.corner_detection import CornerDetection
 from app.operators.detection.eye_detection import EyeDetection
 from app.operators.detection.face_detection import FaceDetection
+from app.operators.detection.orb_detection import OrbDetection
 from app.operators.detection.smile_detection import SmileDetection
 from app.operators.drawing.draw_arrow_line import DrawArrowLine
 from app.operators.drawing.draw_circle import DrawCircle
@@ -129,6 +130,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "detection_cornerdetection": CornerDetection,
     "detection_eyedetection": EyeDetection,
     "detection_facedetection": FaceDetection,
+    "detection_orb": OrbDetection,
     "detection_smiledetection": SmileDetection,
     # Thresholding
     "thresholding_applythreshold": ApplyThreshold,
