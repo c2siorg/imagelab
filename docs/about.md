@@ -30,7 +30,7 @@ The toolbox exposes 13 categories covering 71 blocks:
 | Segmentation | K-Means, Mean Shift, Watershed, connected components labeling |
 | Detection | Face, smile, and eye detection using Haar cascades; Harris and Shi-Tomasi corner detection |
 | Sobel Derivatives | Sobel, Scharr, Prewitt, Roberts Cross |
-| Transformation | Distance transform, Laplacian, minimum enclosing geometries (rotated box, enclosing circle, fit ellipse) |
+| Transformation | Distance transform, Laplacian, minimum enclosing geometries (rotated box, enclosing circle, fit ellipse), convex hull and defect analysis |
 | Advanced control flow macros | Parallel blend, conditional (if/else) |
 
 ## Technologies
