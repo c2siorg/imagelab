@@ -65,6 +65,7 @@ from app.operators.thresholding.adaptive_threshold import AdaptiveThreshold
 from app.operators.thresholding.apply_borders import ApplyBorders
 from app.operators.thresholding.apply_threshold import ApplyThreshold
 from app.operators.thresholding.otsu_threshold import OtsuThreshold
+from app.operators.transformation.convex_hull import ConvexHull
 from app.operators.transformation.distance_transform import DistanceTransform
 from app.operators.transformation.laplacian import Laplacian as TransformationLaplacian
 
@@ -141,6 +142,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "sobelderivatives_prewittoperator": PrewittOperator,
     "sobelderivatives_robertsoperator": RobertsOperator,
     # Transformation
+    "transformation_convexhull": ConvexHull,
     "transformation_distance": DistanceTransform,
     "transformation_laplacian": TransformationLaplacian,
     # Segmentation

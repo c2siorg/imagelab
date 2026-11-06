@@ -87,6 +87,7 @@ OPERATOR_NAMES: dict[str, str] = {
     "sobelderivatives_scharrderivate": "Scharr Derivative",
     "sobelderivatives_prewittoperator": "Prewitt Operator",
     "sobelderivatives_robertsoperator": "Roberts Cross Operator",
+    "transformation_convexhull": "Convex Hull & Defect Analysis",
     "transformation_distance": "Distance Transform",
     "transformation_laplacian": "Laplacian Filter",
     "laplacian": "Laplacian Filter",
