@@ -160,6 +160,7 @@ export const categories: CategoryInfo[] = [
     icon: "Shuffle",
     colour: "#4DB6AC",
     blocks: [
+      { type: "transformation_convexhull", label: "Convex Hull" },
       { type: "transformation_distance", label: "Distance Transform" },
       { type: "transformation_laplacian", label: "Laplacian" },
     ],
