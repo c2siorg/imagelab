@@ -347,7 +347,7 @@ def _validate_graph(
         elif node_type in ("filtering_houghlines", "filtering_houghcircles"):
             outputs[node_id] = 3 if primary == 1 else primary
         else:
-            if node_type == "detection_cornerdetection":
+            if node_type in ("detection_cornerdetection", "transformation_convexhull"):
                 outputs[node_id] = 4 if primary == 4 else 3
             else:
                 outputs[node_id] = OPERATOR_OUTPUT_CHANNELS.get(node_type, primary)

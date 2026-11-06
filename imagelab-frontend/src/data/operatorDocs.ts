@@ -775,4 +775,53 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       "Teaching fundamental corner and interest point concepts in computer vision courses.",
     ],
   },
+  transformation_convexhull: {
+    name: "Convex Hull & Defect Analysis",
+    description:
+      "Computes the minimal enclosing convex hull and detects convexity defects (cavities/indentations) for shapes in an image. Evaluates external contours using cv2.findContours, constructs the tight convex polygon via cv2.convexHull, and locates maximum depth defect vertices where contours depart from the hull using cv2.convexityDefects.",
+    parameters: [
+      {
+        name: "Mode",
+        description:
+          "Operation mode: 'Hull and Defects' draws the convex polygon perimeter and highlights defect points; 'Hull Only' draws only the convex bounding boundary.",
+      },
+      {
+        name: "Min Area",
+        description:
+          "Minimum contour area threshold in pixels. Contours with area smaller than this value are treated as noise and excluded. Range: 0 to 100,000. Default: 50.",
+      },
+      {
+        name: "Min Defect Depth",
+        description:
+          "Minimum Euclidean distance threshold (in pixels) from the hull edge to the deepest defect point. Smaller values capture subtle surface indentations; larger values isolate major cavities. Range: 0 to 500. Default: 5.",
+      },
+      {
+        name: "Hull Color",
+        description: "Color used to draw the convex polygon perimeter. Default: cyan (#00ffff).",
+      },
+      {
+        name: "Defect Color",
+        description:
+          "Color used to render circles at convexity defect points. Default: red (#ff0000).",
+      },
+      {
+        name: "Thickness",
+        description:
+          "Line thickness for drawing the convex hull outline. Also scales defect circle indicator radius. Range: 1 to 20. Default: 2.",
+      },
+      {
+        name: "Show Contours",
+        description:
+          "When enabled, renders the underlying contour boundary beneath the convex hull overlay. Default: false.",
+      },
+    ],
+    formula:
+      "Defect Depth d = fix_depth / 256.0, where fix_depth is the fixed-point distance from the farthest contour point to the hull edge",
+    useCases: [
+      "Hand gesture recognition and finger counting by detecting convexity defects between fingers.",
+      "Object shape analysis, convexity classification, and defect detection in manufacturing quality assurance.",
+      "Robotic grasp planning by locating natural cavities and outer support perimeters of target parts.",
+      "Educational demonstrations of computational geometry algorithms (Sklansky, Graham scan) in image processing.",
+    ],
+  },
 };
