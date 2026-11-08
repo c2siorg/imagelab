@@ -25,6 +25,19 @@
   white-space: nowrap;
 }
 
+/* Toolbar action strip: stay on one row and scroll sideways instead of wrapping
+   when the window is too narrow for every control. */
+.toolbar-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.toolbar-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 .block-preview-inline {
   overflow: hidden;
 }
