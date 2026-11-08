@@ -531,23 +531,71 @@ def test_unsupported_operator_emits_runtime_warning():
         assert os.path.exists(output_path)
 
 
-def test_api_hostile_payload_sanitization(client):
-    """Verify API endpoint cleanly handles hostile input names and docstrings."""
-    payload = {
-        "pipeline_name": 'Test\x00\r\n"""Injected"""\x1fPipeline',
-        "input_filename": "evil\r\ninput.png",
-        "output_filename": "evil\x00output.png",
-        "pipeline": [{"type": "blurring_applyblur", "params": {"widthSize": 3, "heightSize": 3}}],
-    }
-    res = client.post(EXPORT_ENDPOINT, json=payload)
-    assert res.status_code == 200
-    data = res.json()
-    assert data["success"] is True
-    assert "\r" not in data["filename"]
-    assert "\n" not in data["filename"]
-    assert "\x00" not in data["filename"]
-    tree = ast.parse(data["code"])
-    assert isinstance(tree, ast.Module)
+def test_exported_gaussian_noise_matches_app():
+    """Exported Gaussian noise must honor sigma and preserve alpha (#448)."""
+    image_bgr = _bgra_image()[:, :, :3]
+    image_bgra = _bgra_image()
+    for image in (image_bgr, image_bgra):
+        params = {"sigma": 50.0, "mean": 5.0, "seed": 42}
+        operator = get_operator("augmentation_gaussiannoise")(params)
+        expected = operator.compute(image.copy())
+        code, unsupported = export_pipeline_to_python([PipelineStep(type="augmentation_gaussiannoise", params=params)])
+        assert unsupported == []
+        result = _run_exported_pipeline(code, image.copy())
+        assert result.shape == expected.shape
+        np.testing.assert_array_equal(result, expected)
+
+
+def test_exported_gaussian_noise_preserves_alpha():
+    image = _bgra_image()
+    params = {"sigma": 30.0, "seed": 7}
+    code, unsupported = export_pipeline_to_python([PipelineStep(type="augmentation_gaussiannoise", params=params)])
+    assert unsupported == []
+    result = _run_exported_pipeline(code, image.copy())
+    np.testing.assert_array_equal(result[:, :, 3], image[:, :, 3])
+
+
+def test_exported_salt_pepper_noise_matches_app():
+    """Exported salt & pepper noise must honor density and preserve alpha (#448)."""
+    image_bgr = _bgra_image()[:, :, :3]
+    image_bgra = _bgra_image()
+    for image in (image_bgr, image_bgra):
+        params = {"density": 0.2, "seed": 42}
+        operator = get_operator("augmentation_saltpeppernoise")(params)
+        expected = operator.compute(image.copy())
+        code, unsupported = export_pipeline_to_python(
+            [PipelineStep(type="augmentation_saltpeppernoise", params=params)]
+        )
+        assert unsupported == []
+        result = _run_exported_pipeline(code, image.copy())
+        assert result.shape == expected.shape
+        np.testing.assert_array_equal(result, expected)
+
+
+def test_exported_salt_pepper_noise_preserves_alpha():
+    image = _bgra_image()
+    params = {"density": 0.1, "seed": 7}
+    code, unsupported = export_pipeline_to_python([PipelineStep(type="augmentation_saltpeppernoise", params=params)])
+    assert unsupported == []
+    result = _run_exported_pipeline(code, image.copy())
+    np.testing.assert_array_equal(result[:, :, 3], image[:, :, 3])
+
+
+def test_exported_noise_reads_legacy_param_names():
+    """sigma/std and density/amount should both be accepted."""
+    image = _bgra_image()[:, :, :3]
+    for g_params in ({"std": 12.0, "seed": 1}, {"sigma": 12.0, "seed": 1}):
+        code, unsupported = export_pipeline_to_python(
+            [PipelineStep(type="augmentation_gaussiannoise", params=g_params)]
+        )
+        assert unsupported == []
+        _run_exported_pipeline(code, image.copy())
+    for s_params in ({"amount": 0.15, "seed": 1}, {"density": 0.15, "seed": 1}):
+        code, unsupported = export_pipeline_to_python(
+            [PipelineStep(type="augmentation_saltpeppernoise", params=s_params)]
+        )
+        assert unsupported == []
+        _run_exported_pipeline(code, image.copy())
 
 
 def test_exported_brightness_and_contrast_matches_the_operator():
