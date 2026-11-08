@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import * as Blockly from "blockly";
 import { setupBlocklyFields } from "../../src/blockly-setup";
 import { registerAllBlocks } from "../../src/blocks/definitions";
@@ -266,5 +266,42 @@ describe("Toolbar pipeline import", () => {
 
     expect(screen.getByTitle(EXPORT_TITLE)).toHaveProperty("disabled", true);
     expect(screen.getByTitle(IMPORT_TITLE)).toHaveProperty("disabled", true);
+  });
+});
+
+describe("Toolbar narrow-window layout", () => {
+  // Tagged actions carry a visible label that used to wrap onto a second line
+  // between ~900px and ~1024px (issue #502).
+  const TAGGED_ACTION_LABELS = ["Batch Run", "Select Range", "Create Macro"];
+
+  it("collapses tagged action labels to icons and never wraps them", () => {
+    render(<Toolbar workspace={toolbarWorkspace()} />);
+
+    for (const label of TAGGED_ACTION_LABELS) {
+      const button = screen.getByRole("button", { name: label });
+      expect(button.className).toContain("whitespace-nowrap");
+      expect(button.className).toContain("shrink-0");
+
+      const text = within(button).getByText(label);
+      expect(text.className).toContain("hidden");
+      expect(text.className).toContain("xl:inline");
+    }
+
+    const run = screen.getByRole("button", { name: "Run" });
+    expect(run.className).toContain("whitespace-nowrap");
+    expect(run.className).toContain("shrink-0");
+  });
+
+  it("keeps the block/complexity badge outside the scrolling action strip", () => {
+    usePipelineStore.setState({ blockCount: 2, complexity: "Low" });
+    render(<Toolbar workspace={toolbarWorkspace()} />);
+
+    const strip = document.querySelector(".toolbar-scroll");
+    expect(strip).not.toBeNull();
+
+    const badge = screen.getByText("2 blocks");
+    expect(strip!.contains(badge)).toBe(false);
+    expect(screen.getByText(/low complexity/i)).toBeDefined();
+    expect(badge.closest(".shrink-0")).not.toBeNull();
   });
 });

@@ -449,7 +449,7 @@ export default function Toolbar({ workspace }: ToolbarProps) {
   });
 
   const iconBtn =
-    "p-1.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors";
+    "p-1.5 shrink-0 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors";
   const separator = "w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1";
 
   // Determine which blocks feed the Create Macro modal
@@ -497,215 +497,224 @@ export default function Toolbar({ workspace }: ToolbarProps) {
         </div>
       )}
       <div className="h-10 flex items-center gap-1 px-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-        <button onClick={handleNew} disabled={isReadOnly} className={iconBtn} title="New">
-          <FilePlus size={18} />
-        </button>
-        <button
-          onClick={handleDownload}
-          disabled={!processedImage}
-          className={iconBtn}
-          title={`Download (${mod}S)`}
-        >
-          <Download size={18} />
-        </button>
+        {/* Scrollable action strip: keeps the row single-line on narrow windows.
+            Labels collapse to icons below xl, and anything still too wide scrolls
+            instead of wrapping or being clipped. */}
+        <div className="toolbar-scroll flex items-center gap-1 flex-1 min-w-0">
+          <button onClick={handleNew} disabled={isReadOnly} className={iconBtn} title="New">
+            <FilePlus size={18} />
+          </button>
+          <button
+            onClick={handleDownload}
+            disabled={!processedImage}
+            className={iconBtn}
+            title={`Download (${mod}S)`}
+          >
+            <Download size={18} />
+          </button>
 
-        <div className={separator} />
+          <div className={separator} />
 
-        <button
-          onClick={() => setShowSaveModal(true)}
-          disabled={!workspace || isReadOnly}
-          className={`${iconBtn} relative`}
-          title="Save Pipeline"
-        >
-          <Save size={18} />
-          {workspaceDirty && (
-            <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-indigo-500 rounded-full" />
+          <button
+            onClick={() => setShowSaveModal(true)}
+            disabled={!workspace || isReadOnly}
+            className={`${iconBtn} relative`}
+            title="Save Pipeline"
+          >
+            <Save size={18} />
+            {workspaceDirty && (
+              <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-indigo-500 rounded-full" />
+            )}
+          </button>
+          <button
+            onClick={() => setShowLoadModal(true)}
+            disabled={!workspace || isReadOnly}
+            className={iconBtn}
+            title="Load Pipeline"
+          >
+            <FolderOpen size={18} />
+          </button>
+          <button
+            onClick={handleExport}
+            disabled={!workspace || isReadOnly}
+            className={iconBtn}
+            title="Export Pipeline (.json)"
+          >
+            <FileDown size={18} />
+          </button>
+          <button
+            onClick={handleExportPython}
+            disabled={!workspace || isReadOnly || isExportingPython}
+            className={iconBtn}
+            title="Export as Python Script (.py)"
+            aria-label="Export as Python Script (.py)"
+          >
+            {isExportingPython ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <FileCode size={18} />
+            )}
+          </button>
+          <button
+            onClick={() => importInputRef.current?.click()}
+            disabled={!workspace || isReadOnly}
+            className={iconBtn}
+            title="Import Pipeline (.json)"
+          >
+            <FileUp size={18} />
+          </button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".json,application/json"
+            onChange={handleImportFile}
+            className="hidden"
+            aria-label="Import pipeline file"
+          />
+          <button
+            onClick={() => setShowVersionModal(true)}
+            disabled={!currentPipelineId || isReadOnly}
+            className={iconBtn}
+            title="Version History"
+          >
+            <History size={18} />
+          </button>
+
+          {currentPipelineId && (
+            <>
+              <div className={separator} />
+              <div className="flex items-center gap-1.5 px-2 py-0.5 shrink-0 rounded bg-gray-50 dark:bg-gray-700/50 border border-gray-150 dark:border-gray-700">
+                <span className="text-[11px] font-semibold text-gray-750 dark:text-gray-250 truncate max-w-[120px]">
+                  {currentPipelineName}
+                </span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded font-extrabold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
+                  v{currentVersionNumber}
+                </span>
+                {workspaceDirty && (
+                  <span
+                    className="w-1.5 h-1.5 rounded-full bg-orange-500"
+                    title="Unsaved changes"
+                  />
+                )}
+              </div>
+            </>
           )}
-        </button>
-        <button
-          onClick={() => setShowLoadModal(true)}
-          disabled={!workspace || isReadOnly}
-          className={iconBtn}
-          title="Load Pipeline"
-        >
-          <FolderOpen size={18} />
-        </button>
-        <button
-          onClick={handleExport}
-          disabled={!workspace || isReadOnly}
-          className={iconBtn}
-          title="Export Pipeline (.json)"
-        >
-          <FileDown size={18} />
-        </button>
-        <button
-          onClick={handleExportPython}
-          disabled={!workspace || isReadOnly || isExportingPython}
-          className={iconBtn}
-          title="Export as Python Script (.py)"
-          aria-label="Export as Python Script (.py)"
-        >
-          {isExportingPython ? (
-            <Loader2 size={18} className="animate-spin" />
+
+          <div className={separator} />
+
+          <button
+            onClick={handleUndo}
+            disabled={isReadOnly}
+            className={iconBtn}
+            title={`Undo (${mod}Z)`}
+          >
+            <Undo2 size={18} />
+          </button>
+          <button
+            onClick={handleRedo}
+            disabled={isReadOnly}
+            className={iconBtn}
+            title={`Redo (${mod}Y or ${mod}⇧Z)`}
+          >
+            <Redo2 size={18} />
+          </button>
+
+          <div className={separator} />
+
+          <button
+            onClick={() => setShowShareModal(true)}
+            disabled={!workspace || isReadOnly}
+            className={iconBtn}
+            title="Share Pipeline"
+          >
+            <Share2 size={18} />
+          </button>
+
+          <button
+            onClick={() => setShowShortcutsModal(true)}
+            className={iconBtn}
+            title="Keyboard Shortcuts (⇧?)"
+          >
+            <Keyboard size={18} />
+          </button>
+
+          <div className={separator} />
+
+          <button
+            onClick={() => setShowBatchModal(true)}
+            disabled={isExecuting || blockCount === 0 || isReadOnly}
+            className="flex items-center gap-1.5 shrink-0 whitespace-nowrap px-3 py-1 rounded-md text-sm font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="Batch Run"
+            aria-label="Batch Run"
+          >
+            <Layers size={16} />
+            <span className="hidden xl:inline">Batch Run</span>
+          </button>
+
+          {/* ── Macro range selection controls ─────────────────────────────── */}
+          <div className={separator} />
+
+          {/* "Select Macro Range" toggle button */}
+          {selectionPhase === "idle" ? (
+            <button
+              id="btn-select-macro-range"
+              onClick={() => {
+                setRangeBlocks([]);
+                setRangeError(null);
+                setSelectionPhase("selecting");
+              }}
+              disabled={isReadOnly || blockCount === 0}
+              className="flex items-center gap-1.5 shrink-0 whitespace-nowrap px-3 py-1 rounded-md text-sm font-medium text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-950/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="2-click range selection: click start block then end block"
+              aria-label="Select Range"
+            >
+              <MousePointer2 size={16} />
+              <span className="hidden xl:inline">Select Range</span>
+            </button>
           ) : (
-            <FileCode size={18} />
+            <button
+              id="btn-cancel-macro-selection"
+              onClick={resetSelectionState}
+              className="flex items-center gap-1.5 shrink-0 whitespace-nowrap px-3 py-1 rounded-md text-sm font-medium text-orange-600 dark:text-orange-400 border border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-950/30 hover:bg-orange-100 dark:hover:bg-orange-950/50 animate-pulse transition-colors"
+              title="Cancel range selection"
+              aria-label="Cancel Selection"
+            >
+              <X size={16} />
+              <span className="hidden xl:inline">Cancel Selection</span>
+            </button>
           )}
-        </button>
-        <button
-          onClick={() => importInputRef.current?.click()}
-          disabled={!workspace || isReadOnly}
-          className={iconBtn}
-          title="Import Pipeline (.json)"
-        >
-          <FileUp size={18} />
-        </button>
-        <input
-          ref={importInputRef}
-          type="file"
-          accept=".json,application/json"
-          onChange={handleImportFile}
-          className="hidden"
-          aria-label="Import pipeline file"
-        />
-        <button
-          onClick={() => setShowVersionModal(true)}
-          disabled={!currentPipelineId || isReadOnly}
-          className={iconBtn}
-          title="Version History"
-        >
-          <History size={18} />
-        </button>
 
-        {currentPipelineId && (
-          <>
-            <div className={separator} />
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-gray-50 dark:bg-gray-700/50 border border-gray-150 dark:border-gray-700">
-              <span className="text-[11px] font-semibold text-gray-750 dark:text-gray-250 truncate max-w-[120px]">
-                {currentPipelineName}
-              </span>
-              <span className="text-[9px] px-1.5 py-0.2 rounded font-extrabold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
-                v{currentVersionNumber}
-              </span>
-              {workspaceDirty && (
-                <span className="w-1.5 h-1.5 rounded-full bg-orange-500" title="Unsaved changes" />
-              )}
-            </div>
-          </>
-        )}
-
-        <div className={separator} />
-
-        <button
-          onClick={handleUndo}
-          disabled={isReadOnly}
-          className={iconBtn}
-          title={`Undo (${mod}Z)`}
-        >
-          <Undo2 size={18} />
-        </button>
-        <button
-          onClick={handleRedo}
-          disabled={isReadOnly}
-          className={iconBtn}
-          title={`Redo (${mod}Y or ${mod}⇧Z)`}
-        >
-          <Redo2 size={18} />
-        </button>
-
-        <div className={separator} />
-
-        <button
-          onClick={() => setShowShareModal(true)}
-          disabled={!workspace || isReadOnly}
-          className={iconBtn}
-          title="Share Pipeline"
-        >
-          <Share2 size={18} />
-        </button>
-
-        <button
-          onClick={() => setShowShortcutsModal(true)}
-          className={iconBtn}
-          title="Keyboard Shortcuts (⇧?)"
-        >
-          <Keyboard size={18} />
-        </button>
-
-        <div className={separator} />
-
-        <button
-          onClick={() => setShowBatchModal(true)}
-          disabled={isExecuting || blockCount === 0 || isReadOnly}
-          className="flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          title="Batch Run"
-        >
-          <Layers size={16} />
-          Batch Run
-        </button>
-
-        {/* ── Macro range selection controls ─────────────────────────────── */}
-        <div className={separator} />
-
-        {/* "Select Macro Range" toggle button */}
-        {selectionPhase === "idle" ? (
           <button
-            id="btn-select-macro-range"
-            onClick={() => {
-              setRangeBlocks([]);
-              setRangeError(null);
-              setSelectionPhase("selecting");
-            }}
-            disabled={isReadOnly || blockCount === 0}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-950/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            title="2-click range selection: click start block then end block"
+            id="btn-create-macro"
+            onClick={() => setShowCreateMacroModal(true)}
+            disabled={!canCreateMacro}
+            className="flex items-center gap-1.5 shrink-0 whitespace-nowrap px-3 py-1 rounded-md text-sm font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title={
+              rangeBlocks.length >= 2
+                ? `Create macro from ${rangeBlocks.length} selected blocks`
+                : "Create Macro from selected workspace blocks"
+            }
+            aria-label="Create Macro"
           >
-            <MousePointer2 size={16} />
-            Select Range
+            <FolderPlus size={16} />
+            <span className="hidden xl:inline">Create Macro</span>
           </button>
-        ) : (
+
           <button
-            id="btn-cancel-macro-selection"
-            onClick={resetSelectionState}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium text-orange-600 dark:text-orange-400 border border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-950/30 hover:bg-orange-100 dark:hover:bg-orange-950/50 animate-pulse transition-colors"
-            title="Cancel range selection"
+            onClick={handleRun}
+            disabled={isExecuting || !originalImage}
+            className="flex items-center gap-1.5 shrink-0 whitespace-nowrap px-3 py-1 rounded-md cursor-pointer text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title={`Run Pipeline (${mod}Enter)`}
           >
-            <X size={16} />
-            Cancel Selection
+            {isExecuting ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
+            <span>{isExecuting ? "Running..." : "Run"}</span>
           </button>
-        )}
-
-        <button
-          id="btn-create-macro"
-          onClick={() => setShowCreateMacroModal(true)}
-          disabled={!canCreateMacro}
-          className="flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          title={
-            rangeBlocks.length >= 2
-              ? `Create macro from ${rangeBlocks.length} selected blocks`
-              : "Create Macro from selected workspace blocks"
-          }
-        >
-          <FolderPlus size={16} />
-          Create Macro
-        </button>
-
-        <button
-          onClick={handleRun}
-          disabled={isExecuting || !originalImage}
-          className="flex items-center gap-1.5 px-3 py-1 rounded-md cursor-pointer text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          title={`Run Pipeline (${mod}Enter)`}
-        >
-          {isExecuting ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
-          {isExecuting ? "Running..." : "Run"}
-        </button>
-
-        {/* Spacer to push stats to the right */}
-        <div className="flex-1" />
+        </div>
 
         {/* Live Statistics Display */}
         {blockCount > 0 && (
-          <div className="relative group cursor-help px-2 flex items-center h-full border-l border-gray-100 dark:border-gray-700 ml-2">
-            <div className="flex flex-col items-end leading-tight">
+          <div className="relative group cursor-help px-2 flex items-center shrink-0 h-full border-l border-gray-100 dark:border-gray-700 ml-2">
+            <div className="flex flex-col items-end leading-tight whitespace-nowrap">
               <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">
                 {blockCount} {blockCount === 1 ? "block" : "blocks"}
               </span>
