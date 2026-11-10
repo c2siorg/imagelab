@@ -7,7 +7,11 @@ import numpy as np
 def decode_base64_image(b64: str) -> np.ndarray:
     data = base64.b64decode(b64)
     arr = np.frombuffer(data, dtype=np.uint8)
-    image = cv2.imdecode(arr, cv2.IMREAD_UNCHANGED)
+    # IMREAD_UNCHANGED ignores the EXIF orientation tag. JPEG has no alpha channel,
+    # so for JPEG these flags keep the same pixels and also apply the rotation.
+    is_jpeg = data[:2] == b"\xff\xd8"
+    flags = cv2.IMREAD_ANYCOLOR | cv2.IMREAD_ANYDEPTH if is_jpeg else cv2.IMREAD_UNCHANGED
+    image = cv2.imdecode(arr, flags)
     if image is None:
         raise ValueError("Could not decode image data")
     return image
