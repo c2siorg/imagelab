@@ -1,7 +1,7 @@
 import re
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models.graph import PipelineGraph
 
@@ -20,6 +20,24 @@ class PipelineRequest(BaseModel):
     graph: PipelineGraph | None = None
     # Keep default None so Pydantic catches when the key is completely missing in raw JSON
     pipeline: list[PipelineStep] | None = None
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "image": (
+                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
+                ),
+                "image_format": "png",
+                "pipeline": [
+                    {
+                        "type": "imageconversions_grayimage",
+                        "block_id": "step_1",
+                        "params": {},
+                    }
+                ],
+            }
+        }
+    )
 
     @model_validator(mode="after")
     def validate_payload_presence(self):
@@ -106,6 +124,23 @@ class ExportPythonRequest(BaseModel):
     pipeline_name: str = "ImageLab Pipeline"
     input_filename: str = "input.jpg"
     output_filename: str = "output.jpg"
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "pipeline_name": "ImageLab Pipeline",
+                "input_filename": "input.jpg",
+                "output_filename": "output.jpg",
+                "pipeline": [
+                    {
+                        "type": "imageconversions_grayimage",
+                        "block_id": "step_1",
+                        "params": {},
+                    }
+                ],
+            }
+        }
+    )
 
     @field_validator("input_filename", mode="before")
     @classmethod
