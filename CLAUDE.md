@@ -77,17 +77,27 @@ docker-compose up              # Run full stack (db + backend + frontend)
 | Method | Path | Purpose |
 |--------|------|---------|
 | GET | /api/health | Health check |
-| POST | /api/pipeline/execute | Execute an image processing pipeline |
+| POST | /api/v1/pipeline/executions | Execute an image processing pipeline or graph |
+| GET | /api/v1/pipeline/executions/{execution_id}/steps/inspect | Fetch full-resolution image and stats for cached step |
+| POST | /api/v1/pipeline/export-python | Export pipeline/graph as runnable Python OpenCV script |
+| POST | /api/v1/batch-jobs | Create an asynchronous batch image processing job |
+| GET | /api/v1/batch-jobs/{job_id} | Check batch job progress and summary |
+| GET | /api/v1/batch-jobs/{job_id}/results | Retrieve individual image results for batch job |
+| GET | /api/v1/batch-jobs/{job_id}/download | Download processed batch results as a ZIP bundle |
+| GET/POST | /api/pipelines | List or save pipelines |
+| GET/POST | /api/pipelines/{id}/versions | Manage and restore version history |
+| POST/GET | /api/share/... | Share pipelines with rate limits and clone shared pipelines |
+| CRUD | /api/v1/macros | CRUD and versioning for reusable macro sub-graphs |
 
-**Operator registry pattern:** Operators live in `app/operators/`, grouped into 11 categories. Each operator class registers itself by string type with `app/operators/registry.py`. `get_operator(type)` returns the class, the executor instantiates it with the step's params, then calls `compute(image)`.
+**Operator registry pattern:** Operators live in `app/operators/`, grouped into 13 categories. Each operator class registers itself by string type with `app/operators/registry.py`. `get_operator(type)` returns the class, the executor instantiates it with the step's params, then calls `compute(image)`.
 
-Operator categories: `augmentation`, `basic`, `blurring`, `conversions`, `drawing`, `filtering`, `geometric`, `segmentation`, `sobel_derivatives`, `thresholding`, `transformation`.
+Operator categories: `arithmetic`, `augmentation`, `basic`, `blurring`, `conversions`, `detection`, `drawing`, `filtering`, `geometric`, `segmentation`, `sobel_derivatives`, `thresholding`, `transformation`.
 
-**Pipeline executor** (`app/services/pipeline_executor.py`): iterates through `PipelineRequest.pipeline`, skips operators in `NOOP_TYPES`, calls the operator's `compute(image)`, records per-step timings, and re-encodes the result to base64. Always returns a `PipelineResponse` with `timings` populated, even on partial failure (so the frontend can show which step failed and how long earlier steps took).
+**Pipeline executor** (`app/services/pipeline_executor.py`): iterates through `PipelineRequest.pipeline` (or compiled `PipelineGraph`), skips operators in `NOOP_TYPES`, calls the operator's `compute(image)`, records per-step timings, and re-encodes the result to base64. Always returns a `PipelineResponse` with `timings` and `step_results` populated, even on partial failure (so the frontend can show which step failed and how long earlier steps took).
 
-**Request/response models** (`app/models/pipeline.py`): `PipelineStep` (type + params), `PipelineRequest` (base64 image + image_format + steps), `PipelineResponse` (success, image, error, step, timings), `StepTiming` (step, operator_type, duration_ms), `PipelineTimings` (total_ms, steps).
+**Request/response models** (`app/models/pipeline.py`): `PipelineStep` (type + params), `PipelineRequest` (base64 image + image_format + graph/steps), `PipelineResponse` (success, execution_id, image, error, step, error_block_id, timings, step_results), `StepTiming`, `PipelineTimings`.
 
-**Database:** PostgreSQL via SQLModel/SQLAlchemy. Alembic migrations in `alembic/versions/`. Migrations auto-run on app startup via the lifespan handler. The current pipeline API does not persist anything, so the DB layer is scaffolded but minimally used.
+**Database:** PostgreSQL via SQLModel/SQLAlchemy. Alembic migrations in `alembic/versions/`. Migrations auto-run on app startup via the lifespan handler. The DB layer persists pipelines, versions, public shares, and macros.
 
 **Image transport:** All images are base64-encoded strings on the wire (both request and response). Decode/encode helpers live in `app/utils/image.py`.
 
