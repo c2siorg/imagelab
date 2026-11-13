@@ -24,7 +24,9 @@ class PipelineRequest(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "image": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
+                "image": (
+                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
+                ),
                 "image_format": "png",
                 "pipeline": [
                     {
