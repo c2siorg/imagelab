@@ -140,6 +140,7 @@ export const categories: CategoryInfo[] = [
       { type: "detection_facedetection", label: "Face Detection" },
       { type: "detection_eyedetection", label: "Eye Detection" },
       { type: "detection_smiledetection", label: "Smile Detection" },
+      { type: "detection_cornerdetection", label: "Corner Detection" },
     ],
   },
   {

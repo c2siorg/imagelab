@@ -15,21 +15,21 @@ The Electron desktop build is the legacy application. The current application is
 
 ## Supported Image Processing Operations
 
-The toolbox exposes 13 categories covering 64 blocks:
+The toolbox exposes 13 categories covering 70 blocks:
 
 | Category | What it covers |
 |---|---|
 | Basic | Reading and writing the image |
 | Geometric | Reflect, crop, rotate, affine transform, scale, resize |
-| Conversions | Colour space conversion (gray, HSV, LAB, YCrCb), channel split, CLAHE, colour maps, binarisation, histogram equalisation, invert, brightness and contrast |
+| Conversions | Colour space conversion (gray, HSV, LAB, YCrCb), channel split, CLAHE, colour maps, binarisation, histogram equalisation, gamma correction, invert, brightness and contrast |
 | Augmentation | Gaussian noise, salt and pepper noise, sepia |
 | Drawing | Lines, arrows, circles, ellipses, rectangles, text |
 | Blurring | Box, Gaussian, median |
-| Filtering | Bilateral, sharpen, morphological erode and dilate, Gabor, box, pyramid up and down, contour detection, Canny edge detection |
+| Filtering | Bilateral, sharpen, morphological erode and dilate, Gabor, box, pyramid up and down, contour detection, Canny edge detection, Hough lines, Hough circles |
 | Thresholding | Global and adaptive threshold, Otsu, borders |
 | Segmentation | K-Means, Mean Shift, Watershed |
-| Detection | Smile and eye detection using Haar cascades |
-| Sobel Derivatives | Sobel, Scharr, Prewitt |
+| Detection | Face, smile, and eye detection using Haar cascades; Harris and Shi-Tomasi corner detection |
+| Sobel Derivatives | Sobel, Scharr, Prewitt, Roberts Cross |
 | Transformation | Distance transform, Laplacian |
 | Advanced control flow macros | Parallel blend, conditional (if/else) |
 
