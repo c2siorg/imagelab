@@ -117,6 +117,16 @@ class TestBoxFilter:
         result = BoxFilter(params).compute(color_image)
         assert result.shape == color_image.shape
 
+    @pytest.mark.parametrize("depth", [-1, 0])
+    def test_supported_depth_keeps_uint8_output(self, color_image, depth):
+        result = BoxFilter({"width": 5, "height": 5, "depth": depth}).compute(color_image)
+        assert result.dtype == np.uint8
+
+    @pytest.mark.parametrize("depth", [1, 2, 5, 6, 7])
+    def test_unsupported_depth_raises_value_error(self, color_image, depth):
+        with pytest.raises(ValueError, match="'depth' must be -1"):
+            BoxFilter({"width": 5, "height": 5, "depth": depth}).compute(color_image)
+
 
 # Sharpen
 

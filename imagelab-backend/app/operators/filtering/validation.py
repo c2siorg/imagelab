@@ -10,6 +10,7 @@ Validators:
   validate_positive_kernel_dim      - used by BilateralFilter (filterSize), BoxFilter (width, height)
   validate_positive_number          - used for positive numeric parameters
   validate_anchor_point             - used by BoxFilter, Erosion, Dilation (point_x, point_y)
+  validate_output_depth             - used by BoxFilter (depth)
 """
 
 
@@ -78,3 +79,27 @@ def validate_anchor_point(value: int, kernel_dim: int, name: str) -> None:
         f"'{name}' must be -1 (centre) or between 0 and {kernel_dim - 1} "
         f"for a kernel size of {kernel_dim}, got {value}."
     )
+
+
+def validate_output_depth(value: int, name: str) -> None:
+    """Raise ValueError if value is not a supported output depth.
+
+    Only -1 (same depth as the input) and 0 (8-bit) keep the 8-bit image the
+    rest of the pipeline expects. Other depths either make cv2.boxFilter fail
+    with a raw OpenCV error or return a 16-bit, 32-bit or float image that
+    exceeds the memory limit or breaks later steps.
+
+    Used by BoxFilter for depth.
+
+    Args:
+        value: The value to validate.
+        name: The parameter name (for error messages).
+
+    Raises:
+        TypeError: If value is not an int.
+        ValueError: If value is not -1 or 0.
+    """
+    _require_int(value, name)
+    if value in (-1, 0):
+        return
+    raise ValueError(f"'{name}' must be -1 (same as the input) or 0 (8-bit), got {value}.")
