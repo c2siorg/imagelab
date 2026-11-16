@@ -872,6 +872,50 @@ def _otsu(params: dict, var: str) -> tuple[list[str], bool]:
     return code, False
 
 
+@register("thresholding_inrange")
+def _in_range(params: dict, var: str) -> tuple[list[str], bool]:
+    h_min = max(0, min(179, safe_int(params.get("h_min", 0), 0)))
+    h_max = max(0, min(179, safe_int(params.get("h_max", 179), 179)))
+    s_min = max(0, min(255, safe_int(params.get("s_min", 0), 0)))
+    s_max = max(0, min(255, safe_int(params.get("s_max", 255), 255)))
+    v_min = max(0, min(255, safe_int(params.get("v_min", 0), 0)))
+    v_max = max(0, min(255, safe_int(params.get("v_max", 255), 255)))
+
+    raw_mask_only = params.get("output_mask_only", False)
+    if isinstance(raw_mask_only, str):
+        output_mask_only = raw_mask_only.strip().lower() in ("true", "1", "yes")
+    else:
+        output_mask_only = bool(raw_mask_only)
+
+    code = [
+        f"_inrange_alpha = {var}[:, :, 3] if ({var}.ndim == 3 and {var}.shape[2] == 4) else None",
+        f"if {var}.ndim == 2:",
+        f"    _bgr = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    _bgr = cv2.cvtColor({var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    _bgr = {var}[:, :, :3]",
+        "else:",
+        f"    _bgr = {var}",
+        "_hsv = cv2.cvtColor(_bgr, cv2.COLOR_BGR2HSV)",
+        f"_lower = np.array([{h_min}, {s_min}, {v_min}], dtype=np.uint8)",
+        f"_upper = np.array([{h_max}, {s_max}, {v_max}], dtype=np.uint8)",
+        "_mask = cv2.inRange(_hsv, _lower, _upper)",
+    ]
+
+    if output_mask_only:
+        code.append(f"{var} = _mask")
+    else:
+        code.extend(
+            [
+                "_masked = cv2.bitwise_and(_bgr, _bgr, mask=_mask)",
+                f"{var} = np.dstack([_masked, _inrange_alpha]) if _inrange_alpha is not None else _masked",
+            ]
+        )
+
+    return code, True
+
+
 @register("thresholding_applyborders")
 def _borders(params: dict, var: str) -> tuple[list[str], bool]:
     top = safe_int(params.get("borderTop", 0), 0)

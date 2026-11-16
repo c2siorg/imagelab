@@ -775,4 +775,38 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       "Teaching fundamental corner and interest point concepts in computer vision courses.",
     ],
   },
+  thresholding_inrange: {
+    name: "HSV In-Range Color Masking",
+    description:
+      "Converts the input image into the HSV (Hue, Saturation, Value) color space and isolates pixels that fall within user-defined lower and upper HSV bounds using cv2.inRange. OpenCV HSV Color Wheel Guide: Red ≈ 0–10 or 170–179, Yellow ≈ 20–30, Green ≈ 40–80, Cyan ≈ 85–100, Blue ≈ 105–130, Magenta ≈ 140–165. Keep Saturation Min around 50–70 to filter out neutral white/gray backgrounds.",
+    parameters: [
+      {
+        name: "Hue Min / Max",
+        description:
+          "Lower and upper Hue bounds representing color pigment angle. OpenCV scales standard 0–360° angles by half. Range: 0 to 179. Default: 0 to 179.",
+      },
+      {
+        name: "Saturation Min / Max",
+        description:
+          "Lower and upper Saturation bounds controlling color purity/intensity (0 = desaturated gray, 255 = vivid color). Range: 0 to 255. Default: 50 to 255.",
+      },
+      {
+        name: "Value Min / Max",
+        description:
+          "Lower and upper Value bounds controlling brightness (0 = black, 255 = brightest). Range: 0 to 255. Default: 50 to 255.",
+      },
+      {
+        name: "Output binary mask only",
+        description:
+          "When checked, returns a single-channel 8-bit binary mask (255 for matched pixels, 0 otherwise). When unchecked, applies bitwise AND to return the color-masked image. Default: False.",
+      },
+    ],
+    formula: "mask(x, y) = 255 if lower <= HSV(x, y) <= upper else 0",
+    useCases: [
+      "Chroma-keying (green-screen or blue-screen background removal) in video and image pipelines.",
+      "Color-based object tracking and ball detection in robotics and real-time computer vision.",
+      "Isolating specific colored regions, markers, or traffic signs under varying lighting conditions.",
+      "Teaching students how HSV color spaces separate chromaticity from brightness compared to RGB.",
+    ],
+  },
 };

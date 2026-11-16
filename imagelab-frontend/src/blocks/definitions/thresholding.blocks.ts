@@ -43,6 +43,30 @@ export const thresholdingBlocks = [
     tooltip: "Automatically calculates optimal threshold using Otsu's method",
   },
   {
+    type: "thresholding_inrange",
+    message0:
+      "HSV In-Range Mask %1 Hue Min %2 Max %3 %4 Sat Min %5 Max %6 %7 Val Min %8 Max %9 %10 Output binary mask only %11",
+    args0: [
+      { type: "input_dummy" },
+      { type: "field_number", name: "h_min", value: 0, min: 0, max: 179, precision: 1 },
+      { type: "field_number", name: "h_max", value: 179, min: 0, max: 179, precision: 1 },
+      { type: "input_dummy" },
+      { type: "field_number", name: "s_min", value: 50, min: 0, max: 255, precision: 1 },
+      { type: "field_number", name: "s_max", value: 255, min: 0, max: 255, precision: 1 },
+      { type: "input_dummy" },
+      { type: "field_number", name: "v_min", value: 50, min: 0, max: 255, precision: 1 },
+      { type: "field_number", name: "v_max", value: 255, min: 0, max: 255, precision: 1 },
+      { type: "input_dummy" },
+      { type: "field_checkbox", name: "output_mask_only", checked: false },
+    ],
+    inputsInline: false,
+    previousStatement: null,
+    nextStatement: null,
+    style: "thresholding_style",
+    tooltip:
+      "Segments an image by isolating pixels within a specific Hue (0-179), Saturation (0-255), and Value (0-255) color range using cv2.inRange. Optionally returns a 1-channel binary mask.",
+  },
+  {
     type: "thresholding_applyborders",
     message0: "Apply borders %1",
     args0: [

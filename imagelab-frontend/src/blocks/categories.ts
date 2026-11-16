@@ -109,6 +109,7 @@ export const categories: CategoryInfo[] = [
       { type: "filtering_houghcircles", label: "Hough Circle Detection" },
     ],
   },
+
   {
     name: "Thresholding",
     icon: "SlidersHorizontal",
@@ -120,6 +121,7 @@ export const categories: CategoryInfo[] = [
       { type: "border_for_all", label: "Border (All Sides)" },
       { type: "border_each_side", label: "Border (Each Side)" },
       { type: "thresholding_otsuthreshold", label: "Otsu Threshold" },
+      { type: "thresholding_inrange", label: "HSV In-Range Mask" },
     ],
   },
   {
