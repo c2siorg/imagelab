@@ -2,7 +2,11 @@ import cv2
 import numpy as np
 
 from app.operators.base import BaseOperator
-from app.operators.filtering.validation import validate_anchor_point, validate_positive_kernel_dim
+from app.operators.filtering.validation import (
+    validate_anchor_point,
+    validate_output_depth,
+    validate_positive_kernel_dim,
+)
 
 
 class BoxFilter(BaseOperator):
@@ -17,6 +21,7 @@ class BoxFilter(BaseOperator):
         validate_positive_kernel_dim(height, "height")
         validate_anchor_point(point_x, width, "point_x")
         validate_anchor_point(point_y, height, "point_y")
+        validate_output_depth(depth, "depth")
 
         return cv2.boxFilter(
             image,

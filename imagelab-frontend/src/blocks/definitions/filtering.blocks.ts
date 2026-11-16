@@ -23,7 +23,7 @@ export const filteringBlocks = [
       { type: "field_number", name: "width", value: 50, min: 1 },
       { type: "input_dummy" },
       { type: "field_number", name: "height", value: 50, min: 1 },
-      { type: "field_number", name: "depth", value: -1, min: -1 },
+      { type: "field_number", name: "depth", value: -1, min: -1, precision: 1 },
       { type: "field_number", name: "point_x", value: -1, min: -1 },
       { type: "field_number", name: "point_y", value: -1, min: -1 },
     ],

@@ -1,6 +1,6 @@
 import pytest
 
-from app.operators.filtering.validation import validate_anchor_point
+from app.operators.filtering.validation import validate_anchor_point, validate_output_depth
 
 
 class TestValidateAnchorPoint:
@@ -23,3 +23,21 @@ class TestValidateAnchorPoint:
     def test_non_integer_raises_type_error(self, non_int):
         with pytest.raises(TypeError, match="'point_y'"):
             validate_anchor_point(non_int, 3, "point_y")  # type: ignore[arg-type]
+
+
+class TestValidateOutputDepth:
+    """validate_output_depth — used by BoxFilter for depth."""
+
+    @pytest.mark.parametrize("value", [-1, 0])
+    def test_supported_depths_pass(self, value):
+        validate_output_depth(value, "depth")
+
+    @pytest.mark.parametrize("value", [1, 2, 6, 7, -2])
+    def test_unsupported_depths_raise(self, value):
+        with pytest.raises(ValueError, match=f"'depth' must be -1 .* got {value}"):
+            validate_output_depth(value, "depth")
+
+    @pytest.mark.parametrize("non_int", [0.0, "0", None])
+    def test_non_integer_raises_type_error(self, non_int):
+        with pytest.raises(TypeError, match="'depth'"):
+            validate_output_depth(non_int, "depth")  # type: ignore[arg-type]
