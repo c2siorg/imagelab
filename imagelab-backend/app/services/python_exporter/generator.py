@@ -396,7 +396,11 @@ Usage:
     if not os.path.exists(input_path):
         raise FileNotFoundError(f"Input image not found: {input_path}")
 
-    image = cv2.imread(input_path, cv2.IMREAD_UNCHANGED)
+    # IMREAD_UNCHANGED ignores the EXIF orientation tag. JPEG has no alpha channel,
+    # so for JPEG these flags keep the same pixels and also apply the rotation.
+    is_jpeg = input_path.lower().endswith((".jpg", ".jpeg"))
+    flags = cv2.IMREAD_ANYCOLOR | cv2.IMREAD_ANYDEPTH if is_jpeg else cv2.IMREAD_UNCHANGED
+    image = cv2.imread(input_path, flags)
     if image is None:
         raise ValueError(f"Failed to read image from: {input_path}")
 
