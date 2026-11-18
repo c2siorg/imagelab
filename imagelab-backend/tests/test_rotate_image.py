@@ -12,9 +12,24 @@ def color_image():
 
 
 class TestRotateImage:
-    def test_basic_rotation_preserves_shape(self, color_image):
+    def test_rotation_expands_canvas_to_prevent_clipping(self, color_image):
         result = RotateImage({"angle": 45, "scale": 1}).compute(color_image)
-        assert result.shape == color_image.shape
+        assert result.shape == (141, 141, 3)
+        assert result.dtype == np.uint8
+
+    def test_rectangular_image_rotation_preserves_all_content(self):
+        img = np.zeros((200, 400, 3), dtype=np.uint8)
+        img[0:10, :, :] = 255
+        img[190:200, :, :] = 255
+
+        result = RotateImage({"angle": 90, "scale": 1}).compute(img)
+        assert result.shape == (400, 200, 3)
+        assert result.dtype == np.uint8
+        assert np.count_nonzero(result) == np.count_nonzero(img)
+
+    def test_scale_enlarges_bounding_box(self, color_image):
+        result = RotateImage({"angle": 0, "scale": 2}).compute(color_image)
+        assert result.shape == (200, 200, 3)
         assert result.dtype == np.uint8
 
     def test_rotation_360_matches_original(self, color_image):
