@@ -846,6 +846,42 @@ def _scale(params: dict, var: str) -> tuple[list[str], bool]:
 
 @register("geometric_affineimage")
 def _affine(params: dict, var: str) -> tuple[list[str], bool]:
+    has_points = any(f"{p}_{coord}{i}" in params for p in ("src", "dst") for coord in ("x", "y") for i in (1, 2, 3))
+
+    if has_points:
+        tx = safe_float(params.get("translate_x", 0.0), 0.0)
+        ty = safe_float(params.get("translate_y", 0.0), 0.0)
+
+        sx1 = f"{safe_float(params['src_x1'])}" if "src_x1" in params else "0.0"
+        sy1 = f"{safe_float(params['src_y1'])}" if "src_y1" in params else "0.0"
+        sx2 = f"{safe_float(params['src_x2'])}" if "src_x2" in params else "float(_w - 1)"
+        sy2 = f"{safe_float(params['src_y2'])}" if "src_y2" in params else "0.0"
+        sx3 = f"{safe_float(params['src_x3'])}" if "src_x3" in params else "0.0"
+        sy3 = f"{safe_float(params['src_y3'])}" if "src_y3" in params else "float(_h - 1)"
+
+        dx1 = f"{safe_float(params['dst_x1'])}" if "dst_x1" in params else (f"{tx}" if tx != 0.0 else "0.0")
+        dy1 = f"{safe_float(params['dst_y1'])}" if "dst_y1" in params else (f"{ty}" if ty != 0.0 else "0.0")
+        dx2_def = f"float(_w - 1) + {tx}" if tx != 0.0 else "float(_w - 1)"
+        dx2 = f"{safe_float(params['dst_x2'])}" if "dst_x2" in params else dx2_def
+        dy2 = f"{safe_float(params['dst_y2'])}" if "dst_y2" in params else (f"{ty}" if ty != 0.0 else "0.0")
+        dx3 = f"{safe_float(params['dst_x3'])}" if "dst_x3" in params else (f"{tx}" if tx != 0.0 else "0.0")
+        dy3_def = f"float(_h - 1) + {ty}" if ty != 0.0 else "float(_h - 1)"
+        dy3 = f"{safe_float(params['dst_y3'])}" if "dst_y3" in params else dy3_def
+
+        code = [
+            f"_h, _w = {var}.shape[:2]",
+            f"_src = np.float32([[{sx1}, {sy1}], [{sx2}, {sy2}], [{sx3}, {sy3}]])",
+            f"_dst = np.float32([[{dx1}, {dy1}], [{dx2}, {dy2}], [{dx3}, {dy3}]])",
+            "_twice_area = (",
+            "    (_src[1][0] - _src[0][0]) * (_src[2][1] - _src[0][1])",
+            "    - (_src[2][0] - _src[0][0]) * (_src[1][1] - _src[0][1])",
+            ")",
+            "if abs(float(_twice_area)) >= 1e-6:",
+            "    _m = cv2.getAffineTransform(_src, _dst)",
+            f"    {var} = cv2.warpAffine({var}, _m, (_w, _h))",
+        ]
+        return code, True
+
     tx = safe_float(params.get("translate_x", 0.0), 0.0)
     ty = safe_float(params.get("translate_y", 0.0), 0.0)
     code = [
