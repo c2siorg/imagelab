@@ -16,9 +16,10 @@ class HistogramEqualization(BaseOperator):
         if image is None:
             return image
 
-        # Grayscale image
-        if len(image.shape) == 2:
-            return cv2.equalizeHist(image)
+        # Grayscale image (2D or single-channel 3D)
+        if len(image.shape) == 2 or (len(image.shape) == 3 and image.shape[2] == 1):
+            gray = image[:, :, 0] if len(image.shape) == 3 else image
+            return cv2.equalizeHist(gray)
 
         # Color image (BGR)
         if len(image.shape) == 3 and image.shape[2] == 3:
