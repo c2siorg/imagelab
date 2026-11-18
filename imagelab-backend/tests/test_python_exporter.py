@@ -932,3 +932,80 @@ def test_exported_script_loads_jpeg_like_the_app(orientation):
         )
         assert result.returncode == 0, f"Script failed: {result.stderr}"
         np.testing.assert_array_equal(cv2.imread(output_path, cv2.IMREAD_UNCHANGED), expected)
+
+
+def test_exported_affine_transformation_matches_app():
+    """Verify exported Affine Transformation matches operator for points, collinearity, and translation."""
+    affine_cases = [
+        # Full 3-point affine transformation on non-square image (rows=40, cols=60)
+        {
+            "src_x1": 0,
+            "src_y1": 0,
+            "src_x2": 59,
+            "src_y2": 0,
+            "src_x3": 0,
+            "src_y3": 39,
+            "dst_x1": 5,
+            "dst_y1": 5,
+            "dst_x2": 52,
+            "dst_y2": 8,
+            "dst_x3": 2,
+            "dst_y3": 35,
+        },
+        # Partial point parameters relying on image corner defaults
+        {
+            "src_x1": 10,
+            "src_y1": 5,
+            "dst_x1": 12,
+            "dst_y1": 8,
+        },
+        # Partial point parameters with translate_x / translate_y
+        {
+            "src_x1": 10,
+            "src_y1": 5,
+            "dst_x1": 15,
+            "translate_x": 7,
+            "translate_y": -3,
+        },
+        # Collinear source points (must leave image untouched)
+        {
+            "src_x1": 0,
+            "src_y1": 0,
+            "src_x2": 10,
+            "src_y2": 10,
+            "src_x3": 20,
+            "src_y3": 20,
+            "dst_x1": 5,
+            "dst_y1": 5,
+            "dst_x2": 15,
+            "dst_y2": 15,
+            "dst_x3": 25,
+            "dst_y3": 25,
+        },
+        # Legacy translation parameters
+        {"translate_x": 8, "translate_y": -4},
+        # Default empty parameters
+        {},
+    ]
+
+    rng = np.random.default_rng(42)
+    bgr = rng.integers(0, 256, (40, 60, 3), dtype=np.uint8)
+    cv2.circle(bgr, (30, 20), 12, (255, 255, 255), -1)
+    images = [
+        bgr,
+        np.dstack([bgr, np.full((40, 60), 90, dtype=np.uint8)]),
+        cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY),
+    ]
+
+    for params in affine_cases:
+        code, unsupported = export_pipeline_to_python(
+            [PipelineStep(type="geometric_affineimage", params=params)],
+            "geometric_affineimage",
+        )
+        assert unsupported == []
+        expected_op = OPERATOR_REGISTRY["geometric_affineimage"](dict(params))
+        for test_img in images:
+            expected = expected_op.compute(test_img.copy())
+            result = _run_exported_pipeline(code, test_img.copy())
+            assert result.shape == expected.shape
+            np.testing.assert_array_equal(result, expected, err_msg=f"Affine failed for params {params}")
