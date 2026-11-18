@@ -195,7 +195,8 @@ export function computePixelDifference(
     }
 
     // Normalize delta [0, 1] for heatmap coloring with optional gain amplification
-    const normalized = Math.min(1.0, (dist / maxDistance) * gain);
+    const deltaForHeatmap = includeAlpha ? effectiveDelta : dist;
+    const normalized = Math.min(1.0, (deltaForHeatmap / maxDistance) * gain);
     const [outR, outG, outB, outA] = mapNormalizedDiffToColor(normalized, colormap);
 
     diffBuffer[idx] = outR;
