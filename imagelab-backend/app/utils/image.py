@@ -14,6 +14,9 @@ def decode_base64_image(b64: str) -> np.ndarray:
     image = cv2.imdecode(arr, flags)
     if image is None:
         raise ValueError("Could not decode image data")
+    if image.dtype == np.uint16:
+        # Operators work on 8-bit images, so scale 16-bit values (0-65535) down to 0-255.
+        image = cv2.convertScaleAbs(image, alpha=1 / 257)
     return image
 
 
