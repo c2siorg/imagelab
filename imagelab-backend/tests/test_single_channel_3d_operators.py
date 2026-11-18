@@ -5,6 +5,7 @@ import pytest
 from app.operators.augmentation.sepia_filter import SepiaFilter
 from app.operators.conversions.color_maps import ColorMaps
 from app.operators.conversions.gray_to_binary import GrayToBinary
+from app.operators.conversions.histogram_equalization import HistogramEqualization
 from app.operators.filtering.canny_edge import CannyEdge
 from app.operators.filtering.gabor_filter import GaborFilter
 from app.operators.filtering.laplacian import Laplacian as FilteringLaplacian
@@ -97,6 +98,14 @@ def test_sepia_filter_1ch_3d(gray_2d, gray_3d_1ch):
     np.testing.assert_array_equal(res_2d, res_3d)
 
 
+def test_histogram_equalization_1ch_3d(gray_2d, gray_3d_1ch):
+    op = HistogramEqualization({})
+    res_2d = op.compute(gray_2d)
+    res_3d = op.compute(gray_3d_1ch)
+    assert res_3d.shape == (64, 64)
+    np.testing.assert_array_equal(res_2d, res_3d)
+
+
 @pytest.mark.parametrize(
     "op_type,params",
     [
@@ -105,6 +114,7 @@ def test_sepia_filter_1ch_3d(gray_2d, gray_3d_1ch):
         ("thresholding_otsuthreshold", {"maxValue": 255}),
         ("imageconversions_colormaps", {"type": "HOT"}),
         ("imageconversions_graytobinary", {"thresholdValue": 128, "maxValue": 255}),
+        ("imageconversions_histogramequalization", {}),
         ("transformation_distance", {"type": "DIST_L2", "maskSize": 5}),
         ("augmentation_sepiafilter", {"intensity": 0.8}),
     ],
