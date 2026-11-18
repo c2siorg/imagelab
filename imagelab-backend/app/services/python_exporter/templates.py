@@ -286,6 +286,21 @@ def _gamma_correction(params: dict, var: str) -> tuple[list[str], bool]:
     return code, True
 
 
+@register("imageconversions_bitplaneslicing")
+def _bit_plane_slicing(params: dict, var: str) -> tuple[list[str], bool]:
+    bit = max(0, min(7, safe_int(params.get("bit", 7), 7)))
+    code = [
+        f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2GRAY)",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 3:",
+        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY)",
+        f"elif {var}.ndim == 3:",
+        f"    {var} = {var}[:, :, 0]",
+        f"{var} = ((({var} >> {bit}) & 1) * 255).astype(np.uint8)",
+    ]
+    return code, True
+
+
 @register("imageconvertions_histogramequalization")
 @register("imageconversions_histogramequalization")
 def _hist_eq(params: dict, var: str) -> tuple[list[str], bool]:

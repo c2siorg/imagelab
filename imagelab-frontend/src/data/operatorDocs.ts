@@ -143,6 +143,23 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     formula: "dst(x,y) = maxVal if src(x,y) > thresh else 0",
     useCases: ["Creating masks, separating foreground objects from background."],
   },
+  imageconversions_bitplaneslicing: {
+    name: "Bit-Plane Slicing",
+    description:
+      "Shows a single bit of every pixel as a black and white image, revealing how much each bit contributes to the picture.",
+    parameters: [
+      {
+        name: "Bit",
+        description:
+          "Which bit plane to show (0 to 7). Bit 7 is the most significant and looks like a rough version of the image; bit 0 is the least significant and looks like noise.",
+      },
+    ],
+    formula: "output = ((gray >> bit) & 1) × 255",
+    useCases: [
+      "Seeing that the high-order bits carry most of the visual information.",
+      "Understanding the idea behind bit-depth reduction, compression and simple steganography.",
+    ],
+  },
   imageconversions_colormaps: {
     name: "Color Maps",
     description:

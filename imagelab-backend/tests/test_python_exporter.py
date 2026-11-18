@@ -850,3 +850,26 @@ def test_exported_in_range_matches_operator(params):
 
     result = _run_exported_pipeline(code, image.copy())
     np.testing.assert_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("bit", [0, 3, 7])
+@pytest.mark.parametrize(
+    "image", [_gray_image(), _bgra_image()[:, :, :3].copy(), _bgra_image()], ids=["gray", "bgr", "bgra"]
+)
+def test_exported_bit_plane_slicing_matches_the_operator(bit, image):
+    """The exported script gives the same image as the BitPlaneSlicing operator."""
+    expected = OPERATOR_REGISTRY["imageconversions_bitplaneslicing"]({"bit": bit}).compute(image.copy())
+    code, unsupported = export_pipeline_to_python(
+        [PipelineStep(type="imageconversions_bitplaneslicing", params={"bit": bit})]
+    )
+    assert unsupported == []
+    np.testing.assert_array_equal(_run_exported_pipeline(code, image.copy()), expected)
+
+
+@pytest.mark.parametrize(("bit", "clamped"), [(-3, 0), (12, 7)])
+def test_exported_bit_plane_slicing_clamps_out_of_range_bit(bit, clamped):
+    """Out-of-range bits are clamped to 0-7 in the exported script instead of failing."""
+    image = _gray_image()
+    expected = OPERATOR_REGISTRY["imageconversions_bitplaneslicing"]({"bit": clamped}).compute(image.copy())
+    code, _ = export_pipeline_to_python([PipelineStep(type="imageconversions_bitplaneslicing", params={"bit": bit})])
+    np.testing.assert_array_equal(_run_exported_pipeline(code, image.copy()), expected)
