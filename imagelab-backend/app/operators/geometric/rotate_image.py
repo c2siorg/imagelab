@@ -16,6 +16,12 @@ class RotateImage(BaseOperator):
             )
 
         rows, cols = image.shape[:2]
-        center = (cols / 2, rows / 2)
+        center = ((cols - 1) / 2.0, (rows - 1) / 2.0)
         M = cv2.getRotationMatrix2D(center, angle, scale)
-        return cv2.warpAffine(image, M, (cols, rows))
+        cos = abs(M[0, 0])
+        sin = abs(M[0, 1])
+        new_w = max(1, int(round((rows * sin) + (cols * cos))))
+        new_h = max(1, int(round((rows * cos) + (cols * sin))))
+        M[0, 2] += ((new_w - 1) / 2.0) - center[0]
+        M[1, 2] += ((new_h - 1) / 2.0) - center[1]
+        return cv2.warpAffine(image, M, (new_w, new_h))
