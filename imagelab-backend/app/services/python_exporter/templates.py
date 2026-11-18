@@ -829,8 +829,15 @@ def _rotate(params: dict, var: str) -> tuple[list[str], bool]:
     scale = safe_float(params.get("scale", 1.0), 1.0)
     code = [
         f"_h, _w = {var}.shape[:2]",
-        f"_m = cv2.getRotationMatrix2D((_w / 2, _h / 2), {angle}, {scale})",
-        f"{var} = cv2.warpAffine({var}, _m, (_w, _h))",
+        "_center = ((_w - 1) / 2.0, (_h - 1) / 2.0)",
+        f"_m = cv2.getRotationMatrix2D(_center, {angle}, {scale})",
+        "_cos = abs(_m[0, 0])",
+        "_sin = abs(_m[0, 1])",
+        "_new_w = max(1, int(round((_h * _sin) + (_w * _cos))))",
+        "_new_h = max(1, int(round((_h * _cos) + (_w * _sin))))",
+        "_m[0, 2] += ((_new_w - 1) / 2.0) - _center[0]",
+        "_m[1, 2] += ((_new_h - 1) / 2.0) - _center[1]",
+        f"{var} = cv2.warpAffine({var}, _m, (_new_w, _new_h))",
     ]
     return code, False
 
