@@ -7,6 +7,7 @@ import * as Blockly from "blockly";
 import { useBlocklyWorkspace } from "../../src/hooks/useBlocklyWorkspace";
 import { usePipelineStore } from "../../src/store/pipelineStore";
 import type { StepResult } from "../../src/store/pipelineStore";
+import { imagelabTheme, imagelabThemeDark } from "../../src/blocks/theme";
 
 // Blockly.inject needs real SVG layout, which jsdom does not provide. Replace it
 // with a fake workspace so the hook's own change listener can be driven directly.
@@ -72,17 +73,21 @@ function createFakeWorkspace() {
   };
 }
 
-function renderWorkspaceHook() {
+function renderWorkspaceHook(initialProps = { isDark: false, readOnly: false }) {
   const fake = createFakeWorkspace();
   vi.mocked(Blockly.inject).mockReturnValue(fake.ws as unknown as Blockly.WorkspaceSvg);
-  const hook = renderHook(() => {
-    const result = useBlocklyWorkspace();
-    // initWorkspace bails out without a container, so attach one before effects run.
-    if (!result.containerRef.current) {
-      (result.containerRef as { current: HTMLDivElement }).current = document.createElement("div");
-    }
-    return result;
-  });
+  const hook = renderHook(
+    (props) => {
+      const result = useBlocklyWorkspace(props);
+      // initWorkspace bails out without a container, so attach one before effects run.
+      if (!result.containerRef.current) {
+        (result.containerRef as { current: HTMLDivElement }).current =
+          document.createElement("div");
+      }
+      return result;
+    },
+    { initialProps },
+  );
   return { ...fake, hook };
 }
 
@@ -154,5 +159,29 @@ describe("useBlocklyWorkspace change listener", () => {
 
     remove(gray);
     expect(usePipelineStore.getState().blockCount).toBe(0);
+  });
+});
+
+describe("useBlocklyWorkspace theme and read-only changes", () => {
+  it("switches the theme without rebuilding the workspace", () => {
+    const { ws, hook } = renderWorkspaceHook();
+
+    hook.rerender({ isDark: true, readOnly: false });
+
+    expect(Blockly.inject).toHaveBeenCalledTimes(1);
+    expect(ws.dispose).not.toHaveBeenCalled();
+    expect(ws.setTheme).toHaveBeenLastCalledWith(imagelabThemeDark);
+
+    hook.rerender({ isDark: false, readOnly: false });
+    expect(ws.setTheme).toHaveBeenLastCalledWith(imagelabTheme);
+  });
+
+  it("clears the image when read-only mode changes", () => {
+    const { hook } = renderWorkspaceHook();
+    usePipelineStore.getState().setOriginalImage("data:image/png;base64,AAAA", "png", "photo.png");
+
+    hook.rerender({ isDark: false, readOnly: true });
+
+    expect(usePipelineStore.getState().originalImage).toBeNull();
   });
 });
