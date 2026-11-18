@@ -208,6 +208,16 @@ class TestColorMaps:
 
         np.testing.assert_array_equal(result, expected)
 
+    def test_grayscale_single_channel_3d_input(self):
+        grayscale_2d = np.arange(100, dtype=np.uint8).reshape(10, 10)
+        grayscale_3d = grayscale_2d[:, :, np.newaxis]
+
+        result_2d = ColorMaps({"type": "HOT"}).compute(grayscale_2d)
+        result_3d = ColorMaps({"type": "HOT"}).compute(grayscale_3d)
+
+        assert result_3d.shape == (10, 10, 3)
+        np.testing.assert_array_equal(result_3d, result_2d)
+
 
 # ChannelSplit
 

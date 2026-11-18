@@ -23,11 +23,11 @@ class ColorMaps(BaseOperator):
         colormap = COLORMAP_TYPES.get(colormap_name, cv2.COLORMAP_HOT)
 
         # cv2.applyColorMap requires a single-channel grayscale image
-        if len(image.shape) == 3:
-            if image.shape[2] == 4:
-                image = cv2.cvtColor(image, cv2.COLOR_BGRA2GRAY)
-            elif image.shape[2] == 1:
+        if image.ndim == 3:
+            if image.shape[2] == 1:
                 image = image[:, :, 0]
+            elif image.shape[2] == 4:
+                image = cv2.cvtColor(image, cv2.COLOR_BGRA2GRAY)
             else:
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
