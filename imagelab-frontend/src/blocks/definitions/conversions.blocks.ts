@@ -197,6 +197,16 @@ export const conversionsBlocks = [
     style: "conversions_style",
     tooltip: "Converts YCrCb back to BGR color space.",
   },
+  {
+    type: "imageconversions_bitplaneslicing",
+    message0: "Show bit plane %1 of the image",
+    args0: [{ type: "field_number", name: "bit", value: 7, min: 0, max: 7, precision: 1 }],
+    previousStatement: null,
+    nextStatement: null,
+    style: "conversions_style",
+    tooltip:
+      "Shows one bit plane of the image - The image is converted to grayscale, and each pixel becomes white if the selected bit of its value is 1 and black if it is 0. Bit 7 (worth 128) holds most of the visible picture, while bit 0 (worth 1) looks like noise. The output is a single-channel black and white image.",
+  },
 ];
 
 /**

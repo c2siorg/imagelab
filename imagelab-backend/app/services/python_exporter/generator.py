@@ -42,6 +42,7 @@ OPERATOR_NAMES: dict[str, str] = {
     "imageconversions_colormaps": "Apply Colormap",
     "imageconversions_colortobinary": "Color to Binary",
     "imageconversions_graytobinary": "Grayscale to Binary",
+    "imageconversions_bitplaneslicing": "Bit-Plane Slicing",
     "imageconvertions_grayimage": "Convert to Grayscale",
     "imageconvertions_bgrtohsv": "Convert BGR to HSV",
     "imageconvertions_hsvtobgr": "Convert HSV to BGR",

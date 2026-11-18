@@ -11,6 +11,7 @@ from app.operators.blurring.median_blur import MedianBlur
 from app.operators.conversions.bgr_to_hsv import BgrToHsv
 from app.operators.conversions.bgr_to_lab import BgrToLab
 from app.operators.conversions.bgr_to_ycrcb import BgrToYcrcb
+from app.operators.conversions.bit_plane_slicing import BitPlaneSlicing
 from app.operators.conversions.brightness_and_contrast import BrightnessAndContrast
 from app.operators.conversions.channel_split import ChannelSplit
 from app.operators.conversions.clahe import ClaheImage
@@ -97,6 +98,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "imageconversions_invertimage": InvertImage,
     "imageconversions_brightnessandcontrast": BrightnessAndContrast,
     "imageconversions_gammacorrection": GammaCorrection,
+    "imageconversions_bitplaneslicing": BitPlaneSlicing,
     # Drawing
     "drawingoperations_drawline": DrawLine,
     "drawingoperations_drawcircle": DrawCircle,
