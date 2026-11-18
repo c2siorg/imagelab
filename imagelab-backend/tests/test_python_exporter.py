@@ -902,3 +902,33 @@ def test_exported_gamma_correction_clamps_out_of_range_gamma(gamma, clamped):
 
     expected = OPERATOR_REGISTRY["imageconversions_gammacorrection"]({"gamma": clamped}).compute(image)
     np.testing.assert_array_equal(_run_exported_pipeline(code, image), expected)
+
+
+@pytest.mark.parametrize("orientation", [1, 3, 6, 8])
+def test_exported_script_loads_jpeg_like_the_app(orientation):
+    """A JPEG with an EXIF orientation tag must come out of the script the same way as in the app."""
+    from app.utils.image import decode_base64_image
+    from tests.test_exif_orientation import _b64, _jpeg_with_orientation
+
+    image = np.zeros((16, 32, 3), dtype=np.uint8)
+    image[:8, :16] = 255
+    jpeg = _jpeg_with_orientation(image, orientation)
+    expected = decode_base64_image(_b64(jpeg))
+
+    code, _ = export_pipeline_to_python([], "EXIF Test")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        script_path = os.path.join(tmpdir, "run_script.py")
+        input_path = os.path.join(tmpdir, "photo.jpg")
+        output_path = os.path.join(tmpdir, "output.png")
+        with open(input_path, "wb") as f:
+            f.write(jpeg)
+        with open(script_path, "w", encoding="utf-8") as f:
+            f.write(code)
+
+        result = subprocess.run(
+            [sys.executable, script_path, "--input", input_path, "--output", output_path],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, f"Script failed: {result.stderr}"
+        np.testing.assert_array_equal(cv2.imread(output_path, cv2.IMREAD_UNCHANGED), expected)
