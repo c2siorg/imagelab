@@ -62,3 +62,16 @@
 .blocklyScrollbarVertical {
   display: none !important;
 }
+
+/* Fix Tailwind reset making Blockly field inputs transparent,
+   which causes active input text to overlap with the underlying SVG text */
+.blocklyHtmlInput {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  border-radius: 4px;
+}
+
+.dark .blocklyHtmlInput {
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+}
