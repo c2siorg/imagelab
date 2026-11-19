@@ -73,6 +73,20 @@ class TestDrawLine:
         ).compute(gray)
         assert result[50, 50, 2] > 0
 
+    def test_line_starting_point_without_1_fallback(self):
+        blank = np.zeros((100, 100, 3), dtype=np.uint8)
+        result = DrawLine(
+            {
+                "starting_point_x": 10,
+                "starting_point_y": 10,
+                "ending_point_x": 80,
+                "ending_point_y": 80,
+                "rgbcolors_input": "#ff0000",
+                "thickness": 2,
+            }
+        ).compute(blank)
+        assert result[10, 10, 2] > 0
+
 
 class TestDrawCircle:
     def test_default_params_output_shape(self, color_image):
@@ -133,6 +147,18 @@ class TestDrawCircle:
         expected = cv2.circle(blank.copy(), (50, 50), 0, (0, 0, 255), 1)
 
         np.testing.assert_array_equal(result, expected)
+
+    def test_circle_zero_thickness_sanitized(self):
+        blank = np.zeros((100, 100, 3), dtype=np.uint8)
+        result = DrawCircle({"thickness": 0, "radius": 10, "center_point_x": 50, "center_point_y": 50}).compute(blank)
+        assert result.shape == (100, 100, 3)
+        assert result.max() > 0
+
+    def test_circle_negative_thickness_filled(self):
+        blank = np.zeros((100, 100, 3), dtype=np.uint8)
+        result = DrawCircle({"thickness": -1, "radius": 10, "center_point_x": 50, "center_point_y": 50}).compute(blank)
+        assert result.shape == (100, 100, 3)
+        assert result.max() > 0
 
     def test_grayscale_red_circle_visible(self):
         gray = np.zeros((100, 100), dtype=np.uint8)
@@ -508,5 +534,11 @@ class TestDrawingChannels:
     def test_grayscale_input_unchanged(self, operator_cls, params):
         gray = np.full((100, 100), 200, dtype=np.uint8)
         result = operator_cls({**params, **self.PARAMS}).compute(gray)
+        assert result.shape == (100, 100, 3)
+        assert (result.reshape(-1, 3) == [0, 0, 255]).all(axis=1).any()
+
+    def test_single_channel_3d_input_draws_in_color(self, operator_cls, params):
+        gray3d = np.full((100, 100, 1), 200, dtype=np.uint8)
+        result = operator_cls({**params, **self.PARAMS}).compute(gray3d)
         assert result.shape == (100, 100, 3)
         assert (result.reshape(-1, 3) == [0, 0, 255]).all(axis=1).any()

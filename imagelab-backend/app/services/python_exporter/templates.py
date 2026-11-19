@@ -731,8 +731,10 @@ def _nlm_denoising(params: dict, var: str) -> tuple[list[str], bool]:
 # ── Drawing ───────────────────────────────────────────────────────────────────
 @register("drawingoperations_drawline")
 def _drawline(params: dict, var: str) -> tuple[list[str], bool]:
-    x1 = safe_int(params.get("starting_point_x1", 0), 0)
-    y1 = safe_int(params.get("starting_point_y1", 0), 0)
+    x1_val = params.get("starting_point_x1") if "starting_point_x1" in params else params.get("starting_point_x", 0)
+    y1_val = params.get("starting_point_y1") if "starting_point_y1" in params else params.get("starting_point_y", 0)
+    x1 = safe_int(x1_val, 0)
+    y1 = safe_int(y1_val, 0)
     x2 = safe_int(params.get("ending_point_x", 0), 0)
     y2 = safe_int(params.get("ending_point_y", 0), 0)
     color = _get_bgr_color(params)
@@ -752,7 +754,8 @@ def _drawcircle(params: dict, var: str) -> tuple[list[str], bool]:
     cy = safe_int(params.get("center_point_y", 0), 0)
     radius = max(0, safe_int(params.get("radius", 5), 5))
     color = _get_bgr_color(params)
-    thickness = safe_int(params.get("thickness", 2), 2)
+    thickness_val = safe_int(params.get("thickness", 2), 2)
+    thickness = -1 if thickness_val == -1 else max(1, thickness_val)
     code = [
         f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
         f"    {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
@@ -770,7 +773,8 @@ def _drawellipse(params: dict, var: str) -> tuple[list[str], bool]:
     height = safe_int(params.get("height", 0), 0)
     angle = safe_int(params.get("angle", 0), 0)
     color = _get_bgr_color(params)
-    thickness = safe_int(params.get("thickness", 2), 2)
+    thickness_val = safe_int(params.get("thickness", 2), 2)
+    thickness = -1 if thickness_val == -1 else max(1, thickness_val)
     code = [
         f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
         f"    {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
