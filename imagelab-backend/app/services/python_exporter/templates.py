@@ -165,8 +165,8 @@ def _grayimage(params: dict, var: str) -> tuple[list[str], bool]:
 def _bgrtohsv(params: dict, var: str) -> tuple[list[str], bool]:
     # Mirrors BgrToHsv: gray input goes to BGR first, alpha is dropped for BGRA
     code = [
-        f"if {var}.ndim == 2:",
-        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+        f"    {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
         f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
         f"{var} = cv2.cvtColor({var}, cv2.COLOR_BGR2HSV)",
@@ -179,8 +179,8 @@ def _bgrtohsv(params: dict, var: str) -> tuple[list[str], bool]:
 def _hsvtobgr(params: dict, var: str) -> tuple[list[str], bool]:
     # Mirrors HsvToBgr: gray input is only up-converted to BGR, alpha is dropped for BGRA
     code = [
-        f"if {var}.ndim == 2:",
-        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+        f"    {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
         "else:",
         f"    if {var}.ndim == 3 and {var}.shape[2] == 4:",
         f"        {var} = {var}[:, :, :3]",
@@ -194,8 +194,8 @@ def _hsvtobgr(params: dict, var: str) -> tuple[list[str], bool]:
 def _bgrtolab(params: dict, var: str) -> tuple[list[str], bool]:
     # Mirrors BgrToLab: gray input goes to BGR first, alpha is dropped for BGRA
     code = [
-        f"if {var}.ndim == 2:",
-        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+        f"    {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
         f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
         f"{var} = cv2.cvtColor({var}, cv2.COLOR_BGR2LAB)",
@@ -208,8 +208,8 @@ def _bgrtolab(params: dict, var: str) -> tuple[list[str], bool]:
 def _labtobgr(params: dict, var: str) -> tuple[list[str], bool]:
     # Mirrors LabToBgr: gray input is only up-converted to BGR, alpha is dropped for BGRA
     code = [
-        f"if {var}.ndim == 2:",
-        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+        f"    {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
         "else:",
         f"    if {var}.ndim == 3 and {var}.shape[2] == 4:",
         f"        {var} = {var}[:, :, :3]",
@@ -223,8 +223,8 @@ def _labtobgr(params: dict, var: str) -> tuple[list[str], bool]:
 def _bgrtoycrcb(params: dict, var: str) -> tuple[list[str], bool]:
     # Mirrors BgrToYcrcb: gray input goes to BGR first, alpha is dropped for BGRA
     code = [
-        f"if {var}.ndim == 2:",
-        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+        f"    {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
         f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
         f"{var} = cv2.cvtColor({var}, cv2.COLOR_BGR2YCrCb)",
@@ -237,8 +237,8 @@ def _bgrtoycrcb(params: dict, var: str) -> tuple[list[str], bool]:
 def _ycrcbtobgr(params: dict, var: str) -> tuple[list[str], bool]:
     # Mirrors YcrcbToBgr: gray input is only up-converted to BGR, alpha is dropped for BGRA
     code = [
-        f"if {var}.ndim == 2:",
-        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+        f"    {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
         "else:",
         f"    if {var}.ndim == 3 and {var}.shape[2] == 4:",
         f"        {var} = {var}[:, :, :3]",
@@ -555,6 +555,8 @@ def _gabor(params: dict, var: str) -> tuple[list[str], bool]:
     code = [
         f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    {var} = {var}[:, :, 0]",
         f"_h, _w = {var}.shape[:2]",
         "_scale = min(800 / _w, 800 / _h, 1.0)",
         f"_work = {var}",
@@ -591,8 +593,8 @@ def _contours(params: dict, var: str) -> tuple[list[str], bool]:
         "if _gray.dtype != np.uint8:",
         "    _gray = np.clip(_gray, 0, 255).astype(np.uint8)",
         f"_contours, _ = cv2.findContours(_gray, {mode}, {method})",
-        f"if {var}.ndim == 2:",
-        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+        f"    {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
         _draw_color_line(color, var),
         f"cv2.drawContours({var}, _contours, -1, _color, {thickness})",
     ]
@@ -624,8 +626,8 @@ def _houghlines(params: dict, var: str) -> tuple[list[str], bool]:
             f"minLineLength={min_line_len}, maxLineGap={max_line_gap})"
         ),
         # Mirrors HoughLines: gray input always comes back as BGR, and lines on BGRA are opaque
-        f"if {var}.ndim == 2:",
-        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+        f"    {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
         _draw_color_line(color, var),
         "if _lines is not None:",
         "    for _line in _lines:",
@@ -673,8 +675,8 @@ def _houghcircles(params: dict, var: str) -> tuple[list[str], bool]:
             f"dp={dp}, minDist={min_dist}, param1={param1}, param2={param2}, "
             f"minRadius={min_radius}, maxRadius={max_radius})"
         ),
-        f"if {var}.ndim == 2:",
-        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+        f"    {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
         f"_circle_color = {circle_color} + ((255,) if {var}.ndim == 3 and {var}.shape[2] == 4 else ())",
         f"_center_color = {center_color} + ((255,) if {var}.ndim == 3 and {var}.shape[2] == 4 else ())",
         "if _circles is not None:",
@@ -699,8 +701,8 @@ def _drawline(params: dict, var: str) -> tuple[list[str], bool]:
     color = _get_bgr_color(params)
     thickness = max(1, safe_int(params.get("thickness", 2), 2))
     code = [
-        f"if {var}.ndim == 2:",
-        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+        f"    {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
         _draw_color_line(color, var),
         f"cv2.line({var}, ({x1}, {y1}), ({x2}, {y2}), _color, {thickness})",
     ]
@@ -715,8 +717,8 @@ def _drawcircle(params: dict, var: str) -> tuple[list[str], bool]:
     color = _get_bgr_color(params)
     thickness = safe_int(params.get("thickness", 2), 2)
     code = [
-        f"if {var}.ndim == 2:",
-        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+        f"    {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
         _draw_color_line(color, var),
         f"cv2.circle({var}, ({cx}, {cy}), {radius}, _color, {thickness})",
     ]
@@ -733,8 +735,8 @@ def _drawellipse(params: dict, var: str) -> tuple[list[str], bool]:
     color = _get_bgr_color(params)
     thickness = safe_int(params.get("thickness", 2), 2)
     code = [
-        f"if {var}.ndim == 2:",
-        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+        f"    {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
         _draw_color_line(color, var),
         f"cv2.ellipse({var}, ({cx}, {cy}), ({width}, {height}), {angle}, 0, 360, _color, {thickness})",
     ]
@@ -751,8 +753,8 @@ def _drawrect(params: dict, var: str) -> tuple[list[str], bool]:
     thickness_val = safe_int(params.get("thickness", 2), 2)
     thickness = -1 if thickness_val == -1 else max(1, thickness_val)
     code = [
-        f"if {var}.ndim == 2:",
-        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+        f"    {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
         _draw_color_line(color, var),
         f"cv2.rectangle({var}, ({x1}, {y1}), ({x2}, {y2}), _color, {thickness})",
     ]
@@ -768,8 +770,8 @@ def _drawarrow(params: dict, var: str) -> tuple[list[str], bool]:
     color = _get_bgr_color(params)
     thickness = max(1, safe_int(params.get("thickness", 2), 2))
     code = [
-        f"if {var}.ndim == 2:",
-        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+        f"    {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
         _draw_color_line(color, var),
         f"cv2.arrowedLine({var}, ({x1}, {y1}), ({x2}, {y2}), _color, {thickness})",
     ]
@@ -786,8 +788,8 @@ def _drawtext(params: dict, var: str) -> tuple[list[str], bool]:
     (_, text_height), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, scale, thickness)
     y = safe_int(params.get("starting_point_y", text_height + baseline), text_height + baseline)
     code = [
-        f"if {var}.ndim == 2:",
-        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+        f"    {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
         _draw_color_line(color, var),
         f"cv2.putText({var}, {text!r}, ({x}, {y}), cv2.FONT_HERSHEY_SIMPLEX, {scale}, _color, {thickness}, "
         "cv2.LINE_AA)",
@@ -1051,7 +1053,9 @@ def _filtering_laplacian(params: dict, var: str) -> tuple[list[str], bool]:
     ksize = safe_int(params.get("ksize", 1), 1)
     # Mirrors filtering Laplacian: grayscale input, 64-bit result, absolute value
     code = [
-        f"if {var}.ndim == 3:",
+        f"if {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    {var} = {var}[:, :, 0]",
+        f"elif {var}.ndim == 3:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY)",
         f"{var} = np.uint8(np.absolute(cv2.Laplacian({var}, cv2.CV_64F, ksize={ksize})))",
     ]
@@ -1188,8 +1192,8 @@ def _kmeans(params: dict, var: str) -> tuple[list[str], bool]:
     code = [
         f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
-        f"if {var}.ndim == 2:",
-        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+        f"    {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
         f"_data = {var}.reshape((-1, 3)).astype(np.float32)",
         f"_criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, {max_iter}, {eps})",
         f"_, _labels, _centers = cv2.kmeans(_data, {k}, None, _criteria, {attempts}, cv2.KMEANS_RANDOM_CENTERS)",
@@ -1212,8 +1216,8 @@ def _meanshift(params: dict, var: str) -> tuple[list[str], bool]:
     code = [
         f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
-        f"if {var}.ndim == 2:",
-        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+        f"    {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
         f"_h, _w = {var}.shape[:2]",
         "_scale = min(800 / _w, 800 / _h, 1.0)",
         "if _scale < 1.0:",
@@ -1240,8 +1244,8 @@ def _watershed(params: dict, var: str) -> tuple[list[str], bool]:
     code = [
         f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
         f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
-        f"if {var}.ndim == 2:",
-        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+        f"    {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
         f"_gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY)",
         "_, _thresh = cv2.threshold(_gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)",
         "_kernel = np.ones((3, 3), np.uint8)",
@@ -1339,14 +1343,18 @@ def _eyedetection(params: dict, var: str) -> tuple[list[str], bool]:
     thickness = safe_int(params.get("thickness", 2), 2)
     code = [
         "_eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')",
-        f"_gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY) if {var}.ndim == 3 else {var}",
+        (
+            f"_gray = {var}[:, :, 0] if ({var}.ndim == 3 and {var}.shape[2] == 1) else "
+            f"(cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY) "
+            f"if {var}.ndim == 3 else {var})"
+        ),
         "_eq = cv2.equalizeHist(_gray)",
         f"_eyes = _eye_cascade.detectMultiScale(_eq, scaleFactor={sf}, minNeighbors={mn}, minSize=({mw}, {mh}))",
         # Mirrors the detector: with no detections the image comes back unchanged,
         # otherwise gray input becomes BGR and boxes on BGRA are opaque
         "if len(_eyes) > 0:",
-        f"    if {var}.ndim == 2:",
-        f"        {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"    if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+        f"        {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
         "    " + _draw_color_line(color, var),
         "    for (_x, _y, _w, _h) in _eyes:",
         f"        cv2.rectangle({var}, (_x, _y), (_x + _w, _y + _h), _color, {thickness})",
@@ -1364,14 +1372,18 @@ def _facedetection(params: dict, var: str) -> tuple[list[str], bool]:
     thickness = safe_int(params.get("thickness", 2), 2)
     code = [
         "_face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')",
-        f"_gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY) if {var}.ndim == 3 else {var}",
+        (
+            f"_gray = {var}[:, :, 0] if ({var}.ndim == 3 and {var}.shape[2] == 1) else "
+            f"(cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY) "
+            f"if {var}.ndim == 3 else {var})"
+        ),
         "_eq = cv2.equalizeHist(_gray)",
         f"_faces = _face_cascade.detectMultiScale(_eq, scaleFactor={sf}, minNeighbors={mn}, minSize=({mw}, {mh}))",
         # Mirrors the detector: with no detections the image comes back unchanged,
         # otherwise gray input becomes BGR and boxes on BGRA are opaque
         "if len(_faces) > 0:",
-        f"    if {var}.ndim == 2:",
-        f"        {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"    if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+        f"        {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
         "    " + _draw_color_line(color, var),
         "    for (_x, _y, _w, _h) in _faces:",
         f"        cv2.rectangle({var}, (_x, _y), (_x + _w, _y + _h), _color, {thickness})",
@@ -1392,11 +1404,15 @@ def _smiledetection(params: dict, var: str) -> tuple[list[str], bool]:
     code = [
         "_face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')",
         "_smile_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_smile.xml')",
-        f"_gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY) if {var}.ndim == 3 else {var}",
+        (
+            f"_gray = {var}[:, :, 0] if ({var}.ndim == 3 and {var}.shape[2] == 1) else "
+            f"(cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY) "
+            f"if {var}.ndim == 3 else {var})"
+        ),
         "_eq = cv2.equalizeHist(_gray)",
         f"_faces = _face_cascade.detectMultiScale(_eq, scaleFactor={sf}, minNeighbors={mn}, minSize=({mw}, {mh}))",
-        f"if {var}.ndim == 2:",
-        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+        f"    {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
         "for (_x, _y, _w, _h) in _faces:",
     ]
     if draw_faces:
