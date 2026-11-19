@@ -165,6 +165,7 @@ export const categories: CategoryInfo[] = [
     blocks: [
       { type: "transformation_distance", label: "Distance Transform" },
       { type: "transformation_laplacian", label: "Laplacian" },
+      { type: "transformation_minenclosing", label: "Minimum Enclosing Geometries" },
     ],
   },
   {
