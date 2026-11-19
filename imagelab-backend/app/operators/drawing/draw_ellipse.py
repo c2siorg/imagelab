@@ -7,8 +7,8 @@ from app.utils.color import hex_to_draw_color
 
 class DrawEllipse(BaseOperator):
     def compute(self, image: np.ndarray) -> np.ndarray:
-        if image.ndim == 2:
-            image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+        if image.ndim == 2 or (image.ndim == 3 and image.shape[2] == 1):
+            image = cv2.cvtColor(image if image.ndim == 2 else image[:, :, 0], cv2.COLOR_GRAY2BGR)
         result = image.copy()
         try:
             thickness_val = int(self.params.get("thickness", 2))
