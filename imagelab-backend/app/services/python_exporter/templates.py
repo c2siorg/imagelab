@@ -952,7 +952,26 @@ def _borders(params: dict, var: str) -> tuple[list[str], bool]:
     btype_str = str(params.get("border_type", "CONSTANT")).upper()
     btype = BORDER_TYPE_MAP.get(btype_str, "cv2.BORDER_CONSTANT")
     color = _get_bgr_color(params, default="#000000")
-    return [f"{var} = cv2.copyMakeBorder({var}, {top}, {bottom}, {left}, {right}, {btype}, value={color})"], False
+    code = [
+        f"_is_1ch_3d = {var}.ndim == 3 and {var}.shape[2] == 1",
+    ]
+    if btype_str == "CONSTANT":
+        code.extend(
+            [
+                f"_border_val = {color} + (255,) if ({var}.ndim == 3 and {var}.shape[2] == 4) else "
+                f"(0 if ({var}.ndim == 2 or _is_1ch_3d) else {color})",
+                f"{var} = cv2.copyMakeBorder({var}, {top}, {bottom}, {left}, {right}, {btype}, value=_border_val)",
+            ]
+        )
+    else:
+        code.append(f"{var} = cv2.copyMakeBorder({var}, {top}, {bottom}, {left}, {right}, {btype})")
+    code.extend(
+        [
+            f"if _is_1ch_3d and {var}.ndim == 2:",
+            f"    {var} = {var}[:, :, np.newaxis]",
+        ]
+    )
+    return code, False
 
 
 @register("border_for_all")
