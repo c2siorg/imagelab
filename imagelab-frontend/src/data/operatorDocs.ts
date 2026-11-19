@@ -763,6 +763,29 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     ],
   },
 
+  // --- Augmentation ---
+  augmentation_vignette: {
+    name: "Vignette Filter",
+    description:
+      "Applies a radial optical falloff effect simulating natural camera lens shading by smoothly decreasing peripheral brightness toward image edges using separable 2D Gaussian kernels.",
+    parameters: [
+      {
+        name: "Radius",
+        description:
+          "Relative radius of the central bright region (0.1 to 2.0). Larger values produce a wider clear center before falloff begins.",
+      },
+      {
+        name: "Intensity",
+        description:
+          "Darkening strength at the periphery (0.0 for no effect to 1.0 for maximum edge darkening).",
+      },
+    ],
+    useCases: [
+      "Simulating camera lens shading and optical falloff in synthetic data augmentation.",
+      "Drawing visual focus toward the center of photographs and portraits.",
+    ],
+  },
+
   // --- Detection ---
   detection_facedetection: {
     name: "Face Detection",
