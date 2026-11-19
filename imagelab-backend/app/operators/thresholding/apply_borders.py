@@ -35,5 +35,17 @@ class ApplyBorders(BaseOperator):
             )
         border_type = self._BORDER_TYPE_MAP[border_type_str]
 
-        kwargs = {"value": [0, 0, 0]} if border_type == cv2.BORDER_CONSTANT else {}
-        return cv2.copyMakeBorder(image, top, bottom, left, right, border_type, **kwargs)
+        if border_type == cv2.BORDER_CONSTANT:
+            if image.ndim == 3 and image.shape[2] == 4:
+                kwargs = {"value": [0, 0, 0, 255]}
+            elif image.ndim == 3 and image.shape[2] == 1 or image.ndim == 2:
+                kwargs = {"value": 0}
+            else:
+                kwargs = {"value": [0, 0, 0]}
+        else:
+            kwargs = {}
+
+        result = cv2.copyMakeBorder(image, top, bottom, left, right, border_type, **kwargs)
+        if image.ndim == 3 and image.shape[2] == 1 and result.ndim == 2:
+            result = result[:, :, np.newaxis]
+        return result
