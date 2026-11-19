@@ -1175,6 +1175,98 @@ def _transformation_laplacian(params: dict, var: str) -> tuple[list[str], bool]:
 
 
 # ── Transformation ────────────────────────────────────────────────────────────
+@register("transformation_minenclosing")
+def _min_enclosing(params: dict, var: str) -> tuple[list[str], bool]:
+    geometry = str(params.get("geometry", "ROTATED_BOX")).upper()
+    if geometry not in ("ROTATED_BOX", "ENCLOSING_CIRCLE", "FIT_ELLIPSE", "ALL_SHAPES"):
+        geometry = "ROTATED_BOX"
+    min_area = max(0, min(100000, safe_int(params.get("min_area", 50), 50)))
+    thickness = max(1, min(20, safe_int(params.get("thickness", 2), 2)))
+    sc_raw = params.get("show_contours", False)
+    show_contours = sc_raw == "TRUE" if isinstance(sc_raw, str) else bool(sc_raw)
+    box_bgr = _get_bgr_color(params, key="box_color", default="#00ffff")
+    circle_bgr = _get_bgr_color(params, key="circle_color", default="#ff00ff")
+    ellipse_bgr = _get_bgr_color(params, key="ellipse_color", default="#ffff00")
+
+    gray_box_col = int(sum(box_bgr) / len(box_bgr))
+    gray_circ_col = int(sum(circle_bgr) / len(circle_bgr))
+    gray_ell_col = int(sum(ellipse_bgr) / len(ellipse_bgr))
+
+    code = [
+        f"if {var}.ndim == 2:",
+        f"    _gray = {var}",
+        f"    {var} = {var}.copy()",
+        f"    _box_col = {gray_box_col}",
+        f"    _circ_col = {gray_circ_col}",
+        f"    _ell_col = {gray_ell_col}",
+        "    _cnt_col = 128",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    _gray = {var}[:, :, 0]",
+        f"    {var} = {var}.copy()",
+        f"    _box_col = {gray_box_col}",
+        f"    _circ_col = {gray_circ_col}",
+        f"    _ell_col = {gray_ell_col}",
+        "    _cnt_col = 128",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    {var} = {var}.copy()",
+        f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGRA2GRAY)",
+        f"    _box_col = (*{box_bgr}, 255)",
+        f"    _circ_col = (*{circle_bgr}, 255)",
+        f"    _ell_col = (*{ellipse_bgr}, 255)",
+        "    _cnt_col = (128, 128, 128, 255)",
+        "else:",
+        f"    {var} = {var}.copy()",
+        f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY)",
+        f"    _box_col = {box_bgr}",
+        f"    _circ_col = {circle_bgr}",
+        f"    _ell_col = {ellipse_bgr}",
+        "    _cnt_col = (128, 128, 128)",
+        "_contours, _ = cv2.findContours(_gray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)",
+        "for _c in _contours:",
+        f"    if cv2.contourArea(_c) < {min_area} or len(_c) < 3:",
+        "        continue",
+    ]
+    if show_contours:
+        code.append(f"    cv2.drawContours({var}, [_c], -1, _cnt_col, 1)")
+
+    if geometry in ("ROTATED_BOX", "ALL_SHAPES"):
+        code.extend(
+            [
+                "    try:",
+                "        _rect = cv2.minAreaRect(_c)",
+                "        _box = cv2.boxPoints(_rect)",
+                "        _box_pts = np.int32(np.round(_box))",
+                f"        cv2.drawContours({var}, [_box_pts], 0, _box_col, {thickness})",
+                "    except cv2.error:",
+                "        pass",
+            ]
+        )
+    if geometry in ("ENCLOSING_CIRCLE", "ALL_SHAPES"):
+        code.extend(
+            [
+                "    try:",
+                "        (_cx, _cy), _rad = cv2.minEnclosingCircle(_c)",
+                "        _center = (int(round(_cx)), int(round(_cy)))",
+                f"        cv2.circle({var}, _center, int(round(_rad)), _circ_col, {thickness})",
+                "    except cv2.error:",
+                "        pass",
+            ]
+        )
+    if geometry in ("FIT_ELLIPSE", "ALL_SHAPES"):
+        code.extend(
+            [
+                "    if len(_c) >= 5:",
+                "        try:",
+                "            _ellipse = cv2.fitEllipse(_c)",
+                f"            cv2.ellipse({var}, _ellipse, _ell_col, {thickness})",
+                "        except cv2.error:",
+                "            pass",
+            ]
+        )
+
+    return code, True
+
+
 @register("transformation_distance")
 def _distance_transform(params: dict, var: str) -> tuple[list[str], bool]:
     dist_type_name = str(params.get("type", "DIST_L2")).upper()

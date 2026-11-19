@@ -92,6 +92,7 @@ OPERATOR_NAMES: dict[str, str] = {
     "sobelderivatives_robertsoperator": "Roberts Cross Operator",
     "transformation_distance": "Distance Transform",
     "transformation_laplacian": "Laplacian Filter",
+    "transformation_minenclosing": "Minimum Enclosing Geometries",
     "laplacian": "Laplacian Filter",
     "segmentation_kmeans": "K-Means Color Segmentation",
     "segmentation_meanshift": "Mean Shift Segmentation",
