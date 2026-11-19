@@ -203,6 +203,34 @@ def test_exported_sepia_matches_the_operator():
                 np.testing.assert_array_equal(cv2.imread(output_path, cv2.IMREAD_UNCHANGED), expected)
 
 
+def test_exported_vignette_matches_the_operator():
+    """The exported script must give the exact same result as VignetteFilter for BGR, BGRA, and grayscale."""
+    bgr = np.full((32, 32, 3), 200, dtype=np.uint8)
+    bgra = np.dstack([bgr, np.full((32, 32), 150, dtype=np.uint8)])
+    gray = np.full((32, 32), 220, dtype=np.uint8)
+
+    for params in ({"radius": 0.8, "intensity": 0.6}, {"radius": 1.2, "intensity": 0.3}, {"intensity": 0.0}):
+        code, _ = export_pipeline_to_python([PipelineStep(type="augmentation_vignette", params=params)], "Vignette")
+        for test_img in (bgr, bgra, gray):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                script_path = os.path.join(tmpdir, "run_script.py")
+                input_path = os.path.join(tmpdir, "input.png")
+                output_path = os.path.join(tmpdir, "output.png")
+                cv2.imwrite(input_path, test_img)
+                with open(script_path, "w", encoding="utf-8") as f:
+                    f.write(code)
+
+                result = subprocess.run(
+                    [sys.executable, script_path, "--input", input_path, "--output", output_path],
+                    capture_output=True,
+                    text=True,
+                )
+                assert result.returncode == 0, f"Script failed: {result.stderr}"
+
+                expected = OPERATOR_REGISTRY["augmentation_vignette"](params).compute(test_img)
+                np.testing.assert_array_equal(cv2.imread(output_path, cv2.IMREAD_UNCHANGED), expected)
+
+
 def test_api_export_python_pipeline_request(client):
     """Test POST /api/v1/pipeline/export-python with pipeline steps."""
     payload = {

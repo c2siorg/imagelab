@@ -1172,6 +1172,56 @@ def _sepia(params: dict, var: str) -> tuple[list[str], bool]:
     return code, True
 
 
+@register("augmentation_vignette")
+def _vignette(params: dict, var: str) -> tuple[list[str], bool]:
+    radius = max(0.1, min(2.0, safe_float(params.get("radius", 0.8), 0.8)))
+    intensity = max(0.0, min(1.0, safe_float(params.get("intensity", 0.6), 0.6)))
+    if intensity == 0.0:
+        return [f"{var} = {var}.copy()"], False
+
+    code = [
+        f"{var} = {var}.copy()",
+        f"_h, _w = {var}.shape[:2]",
+        f"_sigma_x = max(1.0, float(_w) * {radius} / 2.0)",
+        f"_sigma_y = max(1.0, float(_h) * {radius} / 2.0)",
+        "_kx = cv2.getGaussianKernel(_w, _sigma_x).astype(np.float32)",
+        "_ky = cv2.getGaussianKernel(_h, _sigma_y).astype(np.float32)",
+        "_max_x = float(_kx.max())",
+        "_nx = (_kx / _max_x) if _max_x > 0 else np.ones_like(_kx)",
+        "_max_y = float(_ky.max())",
+        "_ny = (_ky / _max_y) if _max_y > 0 else np.ones_like(_ky)",
+        "_nx_T = _nx.T",
+        f"_res = np.empty_like({var})",
+        f"_one_minus = np.float32(1.0 - {intensity})",
+        f"_inv_scale = np.float32({intensity})",
+        f"if {var}.ndim == 2:",
+        "    for _y in range(_h):",
+        "        _rf = _one_minus + (_inv_scale * float(_ny[_y, 0])) * _nx_T",
+        f"        _res[_y] = np.clip({var}[_y].astype(np.float32) * _rf, 0, 255).astype(np.uint8)",
+        f"    {var} = _res",
+        f"elif {var}.shape[2] == 1:",
+        "    for _y in range(_h):",
+        "        _rf = _one_minus + (_inv_scale * float(_ny[_y, 0])) * _nx_T",
+        f"        _res[_y, :, 0] = np.clip({var}[_y, :, 0].astype(np.float32) * _rf, 0, 255).astype(np.uint8)",
+        f"    {var} = _res",
+        f"elif {var}.shape[2] == 4:",
+        f"    _res[:, :, 3] = {var}[:, :, 3]",
+        "    for _y in range(_h):",
+        "        _rf = _one_minus + (_inv_scale * float(_ny[_y, 0])) * _nx_T",
+        (
+            f"        _res[_y, :, :3] = np.clip("
+            f"{var}[_y, :, :3].astype(np.float32) * _rf[:, :, np.newaxis], 0, 255).astype(np.uint8)"
+        ),
+        f"    {var} = _res",
+        "else:",
+        "    for _y in range(_h):",
+        "        _rf = _one_minus + (_inv_scale * float(_ny[_y, 0])) * _nx_T",
+        f"        _res[_y] = np.clip({var}[_y].astype(np.float32) * _rf[:, :, np.newaxis], 0, 255).astype(np.uint8)",
+        f"    {var} = _res",
+    ]
+    return code, True
+
+
 # ── Segmentation ──────────────────────────────────────────────────────────────
 @register("segmentation_kmeans")
 def _kmeans(params: dict, var: str) -> tuple[list[str], bool]:
