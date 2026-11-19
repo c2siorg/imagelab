@@ -1,5 +1,40 @@
 export const transformationBlocks = [
   {
+    type: "transformation_minenclosing",
+    message0:
+      "Minimum enclosing %1 Geometry %2 %3 Min area %4 %5 Box color %6 %7 Circle color %8 %9 Ellipse color %10 %11 Thickness %12 %13 Show contours %14",
+    args0: [
+      { type: "input_dummy" },
+      {
+        type: "field_dropdown",
+        name: "geometry",
+        options: [
+          ["Rotated Box", "ROTATED_BOX"],
+          ["Enclosing Circle", "ENCLOSING_CIRCLE"],
+          ["Fit Ellipse", "FIT_ELLIPSE"],
+          ["All Shapes", "ALL_SHAPES"],
+        ],
+      },
+      { type: "input_dummy" },
+      { type: "field_number", name: "min_area", value: 50, min: 0, max: 100000 },
+      { type: "input_dummy" },
+      { type: "field_colour", name: "box_color", colour: "#00ffff" },
+      { type: "input_dummy" },
+      { type: "field_colour", name: "circle_color", colour: "#ff00ff" },
+      { type: "input_dummy" },
+      { type: "field_colour", name: "ellipse_color", colour: "#ffff00" },
+      { type: "input_dummy" },
+      { type: "field_number", name: "thickness", value: 2, min: 1, max: 20 },
+      { type: "input_dummy" },
+      { type: "field_checkbox", name: "show_contours", checked: false },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "transformation_style",
+    tooltip:
+      "Calculates and renders minimum enclosing and bounding geometries around detected shapes: rotated minimum-area bounding boxes (cv2.minAreaRect), minimum enclosing circles (cv2.minEnclosingCircle), and fitted bounding ellipses (cv2.fitEllipse). Operates on binary, thresholded, or high-contrast edge imagery. Ideal for object orientation measurement, particle sizing, aspect ratio calculation, and geometric shape classification.",
+  },
+  {
     type: "transformation_distance",
     message0: "Apply %1 distance transform",
     args0: [

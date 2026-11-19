@@ -68,6 +68,7 @@ from app.operators.thresholding.in_range import InRangeThreshold
 from app.operators.thresholding.otsu_threshold import OtsuThreshold
 from app.operators.transformation.distance_transform import DistanceTransform
 from app.operators.transformation.laplacian import Laplacian as TransformationLaplacian
+from app.operators.transformation.min_enclosing import MinEnclosing
 
 OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     # Basic
@@ -145,6 +146,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     # Transformation
     "transformation_distance": DistanceTransform,
     "transformation_laplacian": TransformationLaplacian,
+    "transformation_minenclosing": MinEnclosing,
     # Segmentation
     "segmentation_watershed": Watershed,
     "segmentation_kmeans": KMeansSegmentation,

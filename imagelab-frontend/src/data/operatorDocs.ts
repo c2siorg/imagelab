@@ -641,6 +641,48 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     formula: "Δf = ∂²f/∂x² + ∂²f/∂y²",
     useCases: ["Blob detection, sharpening edge transitions."],
   },
+  transformation_minenclosing: {
+    name: "Minimum Enclosing Geometries",
+    description:
+      "Computes and renders minimal enclosing or fitted bounding geometries (rotated rectangle, circle, and ellipse) for foreground shapes in an image.",
+    parameters: [
+      {
+        name: "Geometry",
+        description:
+          "Bounding geometry type: Rotated Box (cv2.minAreaRect), Enclosing Circle (cv2.minEnclosingCircle), Fit Ellipse (cv2.fitEllipse), or All Shapes.",
+      },
+      {
+        name: "Min Area",
+        description:
+          "Minimum contour area threshold. Contours with area smaller than this value are filtered out as noise.",
+      },
+      {
+        name: "Box Color",
+        description: "Color used to draw the rotated bounding rectangle.",
+      },
+      {
+        name: "Circle Color",
+        description: "Color used to draw the minimum enclosing circle.",
+      },
+      {
+        name: "Ellipse Color",
+        description: "Color used to draw the fitted bounding ellipse.",
+      },
+      {
+        name: "Thickness",
+        description: "Line thickness for drawing geometric bounds.",
+      },
+      {
+        name: "Show Contours",
+        description: "Whether to overlay detected shape contours in gray.",
+      },
+    ],
+    useCases: [
+      "Measuring object orientation and minimum bounding box dimensions in industrial sorting.",
+      "Estimating particle or cell diameter and sphericity via minimum enclosing circles.",
+      "Fitting bounding ellipses to determine aspect ratio and eccentricities of biological specimens.",
+    ],
+  },
 
   // --- Detection ---
   detection_facedetection: {
