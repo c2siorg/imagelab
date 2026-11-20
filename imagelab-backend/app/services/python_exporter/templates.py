@@ -30,6 +30,12 @@ def safe_int(val: Any, default: int = 0) -> int:
         return default
 
 
+def safe_bool(val: Any, default: bool = False) -> bool:
+    if isinstance(val, str):
+        return val.strip().upper() in ("TRUE", "1", "YES")
+    return bool(val) if val is not None else default
+
+
 # Map interpolation strings to OpenCV constants
 INTERPOLATION_MAP = {
     "NEAREST": "cv2.INTER_NEAREST",
@@ -1969,3 +1975,75 @@ def _add_weighted(params: dict, var: str) -> tuple[list[str], bool]:
     beta = safe_float(params.get("beta", 1.0 - alpha), 1.0 - alpha)
     gamma = safe_float(params.get("gamma", 0.0), 0.0)
     return [f"{var} = cv2.addWeighted({var}, {alpha}, {var}, {beta}, {gamma})"], False
+
+
+@register("detection_blobdetection")
+def _blobdetection(params: dict, var: str) -> tuple[list[str], bool]:
+    min_thresh = max(0.0, min(254.0, safe_float(params.get("min_threshold", 10.0), 10.0)))
+    max_thresh = max(1.0, min(255.0, safe_float(params.get("max_threshold", 200.0), 200.0)))
+    if min_thresh > max_thresh:
+        min_thresh, max_thresh = max_thresh, min_thresh
+    if min_thresh == max_thresh:
+        min_thresh = max(0.0, max_thresh - 1.0)
+
+    filter_by_area = safe_bool(params.get("filter_by_area", True), True)
+    min_area = max(1.0, min(100000.0, safe_float(params.get("min_area", 20.0), 20.0)))
+    max_area = max(1.0, min(100000.0, safe_float(params.get("max_area", 50000.0), 50000.0)))
+    if min_area > max_area:
+        min_area, max_area = max_area, min_area
+
+    filter_by_circularity = safe_bool(params.get("filter_by_circularity", False), False)
+    min_circularity = max(0.01, min(1.0, safe_float(params.get("min_circularity", 0.7), 0.7)))
+
+    filter_by_convexity = safe_bool(params.get("filter_by_convexity", False), False)
+    min_convexity = max(0.01, min(1.0, safe_float(params.get("min_convexity", 0.8), 0.8)))
+
+    filter_by_inertia = safe_bool(params.get("filter_by_inertia", False), False)
+    min_inertia = max(0.01, min(1.0, safe_float(params.get("min_inertia_ratio", 0.1), 0.1)))
+
+    color = _get_bgr_color(params, default="#00ffff")
+
+    code = [
+        "_p = cv2.SimpleBlobDetector_Params()",
+        f"_p.minThreshold = {min_thresh}",
+        f"_p.maxThreshold = {max_thresh}",
+        "_p.thresholdStep = 10.0",
+        "_p.filterByColor = False",
+        f"_p.filterByArea = {filter_by_area}",
+        f"_p.minArea = {min_area}",
+        f"_p.maxArea = {max_area}",
+        f"_p.filterByCircularity = {filter_by_circularity}",
+        f"_p.minCircularity = {min_circularity}",
+        f"_p.filterByConvexity = {filter_by_convexity}",
+        f"_p.minConvexity = {min_convexity}",
+        f"_p.filterByInertia = {filter_by_inertia}",
+        f"_p.minInertiaRatio = {min_inertia}",
+        "_detector = cv2.SimpleBlobDetector_create(_p)",
+        f"if {var}.ndim == 2:",
+        f"    _gray = {var}",
+        f"    _base = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        "    _alpha = None",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    _gray = {var}[:, :, 0]",
+        "    _base = cv2.cvtColor(_gray, cv2.COLOR_GRAY2BGR)",
+        "    _alpha = None",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGRA2GRAY)",
+        f"    _base = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
+        f"    _alpha = {var}[:, :, 3]",
+        "else:",
+        f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY)",
+        f"    _base = {var}.copy()",
+        "    _alpha = None",
+        "_kps = _detector.detect(_gray)",
+        (
+            f"_drawn = cv2.drawKeypoints(_base, _kps, None, color={color}, "
+            "flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)"
+        ),
+        "if _alpha is not None:",
+        "    _b, _g, _r = cv2.split(_drawn)",
+        f"    {var} = cv2.merge([_b, _g, _r, _alpha])",
+        "else:",
+        f"    {var} = _drawn",
+    ]
+    return code, True
