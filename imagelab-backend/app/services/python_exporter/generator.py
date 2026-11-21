@@ -101,6 +101,7 @@ OPERATOR_NAMES: dict[str, str] = {
     "segmentation_watershed": "Watershed Segmentation",
     "segmentation_connectedcomponents": "Connected Components Labeling",
     "augmentation_gaussiannoise": "Gaussian Noise",
+    "augmentation_motionblur": "Motion Blur",
     "augmentation_saltpeppernoise": "Salt & Pepper Noise",
     "augmentation_sepiafilter": "Sepia Filter",
     "augmentation_vignette": "Vignette Filter",

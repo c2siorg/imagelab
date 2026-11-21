@@ -83,4 +83,19 @@ export const augmentationBlocks = [
     tooltip:
       "Applies a radial vignette optical falloff effect to the image - Simulates natural camera lens shading by smoothly decreasing peripheral brightness toward the image edges using separable 2D Gaussian kernels. The radius controls the relative size of the central unshaded region (0.1 to 2.0), and intensity controls the darkening strength at the periphery (0 for unchanged to 1 for maximum darkening). Useful for photographic styling and simulating optical distortions.",
   },
+  {
+    type: "augmentation_motionblur",
+    message0: "Apply Motion Blur %1 Kernel size %2 %3 Angle (deg) %4",
+    args0: [
+      { type: "input_dummy" },
+      { type: "field_number", name: "kernel_size", value: 15, min: 3, max: 61 },
+      { type: "input_dummy" },
+      { type: "field_number", name: "angle", value: 0, min: 0, max: 360 },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "augmentation_style",
+    tooltip:
+      "Applies directional motion blur to simulate camera movement or subject velocity along a linear path. Kernel size controls blur extent (larger = stronger blur) and angle defines the motion direction in degrees (0 = horizontal, 90 = vertical).",
+  },
 ];

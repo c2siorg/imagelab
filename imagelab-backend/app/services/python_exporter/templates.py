@@ -1638,6 +1638,47 @@ def _vignette(params: dict, var: str) -> tuple[list[str], bool]:
     return code, True
 
 
+@register("augmentation_motionblur")
+def _motionblur(params: dict, var: str) -> tuple[list[str], bool]:
+    kernel_size = safe_int(params.get("kernel_size", 15), 15)
+    kernel_size = max(3, min(61, kernel_size))
+    if kernel_size % 2 == 0:
+        kernel_size += 1
+    angle = safe_float(params.get("angle", 0.0), 0.0) % 360.0
+
+    code = [
+        f"_mb_k = {kernel_size}",
+        "_mb_kernel = np.zeros((_mb_k, _mb_k), dtype=np.float32)",
+        "_mb_kernel[_mb_k // 2, :] = 1.0",
+    ]
+    if angle != 0.0:
+        code.extend(
+            [
+                f"_mb_rot_mat = cv2.getRotationMatrix2D(((_mb_k - 1) / 2.0, (_mb_k - 1) / 2.0), {angle}, 1.0)",
+                "_mb_kernel = cv2.warpAffine(_mb_kernel, _mb_rot_mat, (_mb_k, _mb_k))",
+            ]
+        )
+    code.extend(
+        [
+            "_mb_k_sum = float(np.sum(_mb_kernel))",
+            "if _mb_k_sum > 0:",
+            "    _mb_kernel /= _mb_k_sum",
+            "else:",
+            "    _mb_kernel[_mb_k // 2, _mb_k // 2] = 1.0",
+            f"if {var}.ndim == 2:",
+            f"    {var} = cv2.filter2D({var}, -1, _mb_kernel)",
+            f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+            f"    {var} = cv2.filter2D({var}[:, :, 0], -1, _mb_kernel)[:, :, np.newaxis]",
+            f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+            f"    _mb_bgr = cv2.filter2D({var}[:, :, :3], -1, _mb_kernel)",
+            f"    {var} = np.dstack((_mb_bgr, {var}[:, :, 3]))",
+            "else:",
+            f"    {var} = cv2.filter2D({var}, -1, _mb_kernel)",
+        ]
+    )
+    return code, True
+
+
 # ── Segmentation ──────────────────────────────────────────────────────────────
 @register("segmentation_kmeans")
 def _kmeans(params: dict, var: str) -> tuple[list[str], bool]:
