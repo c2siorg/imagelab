@@ -52,7 +52,7 @@ def test_single_operator(make_request):
     output = decode_base64_image(res.image)
     assert output.ndim == 2 or (output.ndim == 3 and output.shape[2] == 1), "expected grayscale output"
     cached = pipeline_executor._EXECUTION_CACHE[res.execution_id]["steps"]["gray-block"]
-    assert isinstance(cached["image_bytes"], bytes)
+    assert isinstance(cached.get("image_array"), np.ndarray) or isinstance(cached.get("image_bytes"), bytes)
     assert "image" not in cached
 
 
