@@ -15,14 +15,14 @@ The Electron desktop build is the legacy application. The current application is
 
 ## Supported Image Processing Operations
 
-The toolbox exposes 13 categories covering 70 blocks:
+The toolbox exposes 13 categories covering 71 blocks:
 
 | Category | What it covers |
 |---|---|
 | Basic | Reading and writing the image |
 | Geometric | Reflect, crop, rotate, affine transform, scale, resize |
 | Conversions | Colour space conversion (gray, HSV, LAB, YCrCb), channel split, CLAHE, colour maps, binarisation, histogram equalisation, gamma correction, invert, brightness and contrast |
-| Augmentation | Gaussian noise, salt and pepper noise, sepia |
+| Augmentation | Gaussian noise, salt and pepper noise, sepia, vignette |
 | Drawing | Lines, arrows, circles, ellipses, rectangles, text |
 | Blurring | Box, Gaussian, median |
 | Filtering | Bilateral, sharpen, morphological erode and dilate, Gabor, box, pyramid up and down, contour detection, Canny edge detection, Hough lines, Hough circles |

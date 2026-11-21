@@ -54,4 +54,33 @@ export const augmentationBlocks = [
     tooltip:
       "Applies a sepia filter to the image - Transforms the image using a sepia color matrix to produce a warm, brownish vintage tone. The intensity parameter (0–1) controls the strength of the effect — 0 leaves the image unchanged and 1 applies the full sepia transformation. Useful for teaching color matrix transforms and blending operations.",
   },
+  {
+    type: "augmentation_vignette",
+    message0: "Apply Vignette Filter %1 Radius %2 %3 Intensity %4",
+    args0: [
+      { type: "input_dummy" },
+      {
+        type: "field_number",
+        name: "radius",
+        value: 0.8,
+        min: 0.1,
+        max: 2.0,
+        precision: 0.05,
+      },
+      { type: "input_dummy" },
+      {
+        type: "field_number",
+        name: "intensity",
+        value: 0.6,
+        min: 0,
+        max: 1,
+        precision: 0.05,
+      },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "augmentation_style",
+    tooltip:
+      "Applies a radial vignette optical falloff effect to the image - Simulates natural camera lens shading by smoothly decreasing peripheral brightness toward the image edges using separable 2D Gaussian kernels. The radius controls the relative size of the central unshaded region (0.1 to 2.0), and intensity controls the darkening strength at the periphery (0 for unchanged to 1 for maximum darkening). Useful for photographic styling and simulating optical distortions.",
+  },
 ];
