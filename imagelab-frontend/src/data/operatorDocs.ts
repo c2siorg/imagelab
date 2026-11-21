@@ -802,4 +802,68 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       "Teaching fundamental corner and interest point concepts in computer vision courses.",
     ],
   },
+  detection_blobdetection: {
+    name: "Simple Blob Detection",
+    description:
+      "Detects blobs (connected regions with homogeneous brightness or geometric properties) using OpenCV's SimpleBlobDetector. Binarizes the grayscale image across multiple threshold levels, groups contours into candidate centroids, and filters candidates based on area, circularity, convexity, and inertia ratio before rendering rich keypoint circles.",
+    parameters: [
+      {
+        name: "Min / Max Threshold",
+        description:
+          "Intensity threshold interval used to segment candidate blob regions. Range: 0 to 255. Defaults: 10 to 200.",
+      },
+      {
+        name: "Filter by Area",
+        description:
+          "Enables component size filtering. When active, only blobs with pixel area between min_area and max_area are detected. Default: true.",
+      },
+      {
+        name: "Min / Max Area",
+        description:
+          "Lower and upper pixel area bounds for candidate blobs. Range: 1 to 100,000. Defaults: 20 to 50,000.",
+      },
+      {
+        name: "Filter by Circularity",
+        description:
+          "Enables roundness filtering using 4 * pi * Area / (Perimeter^2). A circle has circularity = 1.0. Default: false.",
+      },
+      {
+        name: "Min Circularity",
+        description:
+          "Minimum circularity required for detected blobs. Range: 0.01 to 1.0. Default: 0.7.",
+      },
+      {
+        name: "Filter by Convexity",
+        description: "Enables convexity filtering using Area / ConvexHullArea. Default: false.",
+      },
+      {
+        name: "Min Convexity",
+        description:
+          "Minimum convexity required for detected blobs. Range: 0.01 to 1.0. Default: 0.8.",
+      },
+      {
+        name: "Filter by Inertia",
+        description:
+          "Enables elongation filtering using the ratio of minimum to maximum inertia axes. A circle has inertia ratio = 1.0; an elongated ellipse has a small ratio. Default: false.",
+      },
+      {
+        name: "Min Inertia Ratio",
+        description:
+          "Minimum inertia ratio required for detected blobs. Range: 0.01 to 1.0. Default: 0.1.",
+      },
+      {
+        name: "Marker Color",
+        description:
+          "Color used to draw rich keypoint circles illustrating blob position, scale, and orientation. Default: cyan (#00ffff).",
+      },
+    ],
+    formula:
+      "Circularity = 4π·Area / Perimeter² | Convexity = Area / HullArea | Inertia = I_min / I_max",
+    useCases: [
+      "Counting and measuring circular cells, colonies, or particles in biological microscopy.",
+      "Industrial defect inspection and printed circuit board (PCB) hole verification.",
+      "Tracking fiducial dots, markers, or laser spots across video frames.",
+      "Detecting round or elongated objects in robotics and automated sorting.",
+    ],
+  },
 };
