@@ -1122,4 +1122,28 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       "Educational demonstrations of computational geometry algorithms (Sklansky, Graham scan) in image processing.",
     ],
   },
+  augmentation_motionblur: {
+    name: "Motion Blur",
+    description:
+      "Simulates apparent motion of the camera or a moving subject by convolving the image with an oriented linear directional kernel. Constructs a line point spread function (PSF) oriented at the specified angle and normalizes it to preserve overall image brightness.",
+    parameters: [
+      {
+        name: "Kernel Size",
+        description:
+          "Length of the linear motion blur kernel in pixels. Automatically clamped to an odd integer between 3 and 61. Larger values produce stronger, more extended blur trajectories. Default: 15.",
+      },
+      {
+        name: "Angle",
+        description:
+          "Direction of the motion blur trajectory in degrees (0 to 360). 0 degrees corresponds to horizontal motion, 90 degrees to vertical motion, and 45 degrees to diagonal motion. Default: 0.",
+      },
+    ],
+    formula: "PSF_θ(x, y) = LineKernel_θ(x, y) / ∑ LineKernel_θ",
+    useCases: [
+      "Data augmentation for robust model training against camera shake and motion artifacts.",
+      "Simulating fast-moving vehicles, sports photography, or action cinematography effects.",
+      "Testing deconvolution, motion deblurring, and inverse filtering algorithms.",
+      "Educational demonstrations of Point Spread Functions (PSF) and directional 2D convolution.",
+    ],
+  },
 };
