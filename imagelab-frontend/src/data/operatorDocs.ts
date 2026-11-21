@@ -330,6 +330,40 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     formula: "K = [[0, -1, 0], [-1, 5, -1], [0, -1, 0]]",
     useCases: ["Enhancing blurry photos, making text more readable."],
   },
+  filtering_unsharpmask: {
+    name: "Unsharp Masking",
+    description:
+      "Selectively sharpens an image by subtracting a Gaussian low-pass blurred version to isolate high-frequency edge details, suppresses minor noise below a threshold, and adds the amplified detail back to the original image.",
+    parameters: [
+      {
+        name: "Kernel Size",
+        description:
+          "Dimensions of the Gaussian low-pass filter (odd integer from 3 to 31). Controls the spatial width of edge transitions. Default: 5.",
+      },
+      {
+        name: "Sigma",
+        description:
+          "Standard deviation of the Gaussian low-pass filter (0.1 to 10.0). Controls the blur spread of the unsharp mask. Default: 1.0.",
+      },
+      {
+        name: "Amount",
+        description:
+          "Edge amplification multiplier (0.1 to 5.0). Higher values produce stronger edge contrast and crisper details. Default: 1.5.",
+      },
+      {
+        name: "Threshold",
+        description:
+          "Noise gate threshold (0 to 50). Detail differences smaller than this value are ignored, preventing amplification of sensor noise in smooth regions. Default: 0.",
+      },
+    ],
+    formula: "I_sharp = clip(I + amount · (I - Gaussian(I, σ)), 0, 255)",
+    useCases: [
+      "Photographic print and digital sharpening without amplifying flat-field noise.",
+      "Enhancing medical X-ray and CT radiograph diagnostic edge details.",
+      "Pre-processing document scans to improve Optical Character Recognition (OCR) accuracy.",
+      "Teaching classical edge enhancement and frequency decomposition in computer vision.",
+    ],
+  },
   filtering_pyramidup: {
     name: "Pyramid Up",
     description:
