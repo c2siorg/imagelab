@@ -54,4 +54,19 @@ export const augmentationBlocks = [
     tooltip:
       "Applies a sepia filter to the image - Transforms the image using a sepia color matrix to produce a warm, brownish vintage tone. The intensity parameter (0–1) controls the strength of the effect — 0 leaves the image unchanged and 1 applies the full sepia transformation. Useful for teaching color matrix transforms and blending operations.",
   },
+  {
+    type: "augmentation_motionblur",
+    message0: "Apply Motion Blur %1 Kernel size %2 %3 Angle (deg) %4",
+    args0: [
+      { type: "input_dummy" },
+      { type: "field_number", name: "kernel_size", value: 15, min: 3, max: 61 },
+      { type: "input_dummy" },
+      { type: "field_number", name: "angle", value: 0, min: 0, max: 360 },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "augmentation_style",
+    tooltip:
+      "Applies directional motion blur to simulate camera movement or subject velocity along a linear path. Kernel size controls blur extent (larger = stronger blur) and angle defines the motion direction in degrees (0 = horizontal, 90 = vertical).",
+  },
 ];
