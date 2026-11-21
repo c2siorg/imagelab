@@ -541,6 +541,64 @@ def _sharpen(params: dict, var: str) -> tuple[list[str], bool]:
     return code, True
 
 
+@register("filtering_unsharpmask")
+def _unsharpmask(params: dict, var: str) -> tuple[list[str], bool]:
+    kernel_size = safe_int(params.get("kernel_size", 5), 5)
+    kernel_size = max(3, min(31, kernel_size))
+    if kernel_size % 2 == 0:
+        kernel_size += 1
+        if kernel_size > 31:
+            kernel_size = 31
+
+    sigma = max(0.1, min(10.0, safe_float(params.get("sigma", 1.0), 1.0)))
+    amount = max(0.1, min(5.0, safe_float(params.get("amount", 1.5), 1.5)))
+    threshold = max(0, min(50, safe_int(params.get("threshold", 0), 0)))
+
+    code = [
+        f"if {var}.ndim == 2:",
+        f"    _blurred = cv2.GaussianBlur({var}, ({kernel_size}, {kernel_size}), {sigma})",
+        f"    _diff = {var}.astype(np.float32) - _blurred.astype(np.float32)",
+    ]
+    if threshold > 0:
+        code.append(f"    _diff = np.where(np.abs(_diff) < {threshold}, 0.0, _diff)")
+    code.extend(
+        [
+            f"    {var} = np.clip({var}.astype(np.float32) + {amount} * _diff, 0, 255).astype(np.uint8)",
+            f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+            f"    _src = {var}[:, :, 0]",
+            f"    _blurred = cv2.GaussianBlur(_src, ({kernel_size}, {kernel_size}), {sigma})",
+            "    _diff = _src.astype(np.float32) - _blurred.astype(np.float32)",
+        ]
+    )
+    if threshold > 0:
+        code.append(f"    _diff = np.where(np.abs(_diff) < {threshold}, 0.0, _diff)")
+    code.extend(
+        [
+            f"    _res = np.clip(_src.astype(np.float32) + {amount} * _diff, 0, 255).astype(np.uint8)",
+            f"    {var} = _res[:, :, np.newaxis]",
+            f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+            f"    _src = {var}[:, :, :3]",
+            f"    _blurred = cv2.GaussianBlur(_src, ({kernel_size}, {kernel_size}), {sigma})",
+            "    _diff = _src.astype(np.float32) - _blurred.astype(np.float32)",
+        ]
+    )
+    if threshold > 0:
+        code.append(f"    _diff = np.where(np.abs(_diff) < {threshold}, 0.0, _diff)")
+    code.extend(
+        [
+            f"    _res = np.clip(_src.astype(np.float32) + {amount} * _diff, 0, 255).astype(np.uint8)",
+            f"    {var} = np.dstack((_res, {var}[:, :, 3]))",
+            "else:",
+            f"    _blurred = cv2.GaussianBlur({var}, ({kernel_size}, {kernel_size}), {sigma})",
+            f"    _diff = {var}.astype(np.float32) - _blurred.astype(np.float32)",
+        ]
+    )
+    if threshold > 0:
+        code.append(f"    _diff = np.where(np.abs(_diff) < {threshold}, 0.0, _diff)")
+    code.append(f"    {var} = np.clip({var}.astype(np.float32) + {amount} * _diff, 0, 255).astype(np.uint8)")
+    return code, True
+
+
 @register("filtering_gaborfilter")
 def _gabor(params: dict, var: str) -> tuple[list[str], bool]:
     # Same as the GaborFilter operator: theta is in degrees, the filter runs on the grayscale

@@ -115,6 +115,39 @@ export const filteringBlocks = [
     tooltip: "Applies image sharpening to enhance edges and details",
   },
   {
+    type: "filtering_unsharpmask",
+    message0: "Apply Unsharp Mask %1 Kernel size %2 %3 Sigma %4 %5 Amount %6 %7 Threshold %8",
+    args0: [
+      { type: "input_dummy" },
+      { type: "field_number", name: "kernel_size", value: 5, min: 3, max: 31 },
+      { type: "input_dummy" },
+      {
+        type: "field_number",
+        name: "sigma",
+        value: 1.0,
+        min: 0.1,
+        max: 10.0,
+        precision: 0.1,
+      },
+      { type: "input_dummy" },
+      {
+        type: "field_number",
+        name: "amount",
+        value: 1.5,
+        min: 0.1,
+        max: 5.0,
+        precision: 0.1,
+      },
+      { type: "input_dummy" },
+      { type: "field_number", name: "threshold", value: 0, min: 0, max: 50 },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "filtering_style",
+    tooltip:
+      "Sharpens the image using the unsharp masking technique - subtracts a Gaussian blurred version to isolate high-frequency edge details, suppresses minor noise below the threshold, and adds scaled details back to the original image.",
+  },
+  {
     type: "filtering_gaborfilter",
     message0:
       "Apply Gabor filter %1 kernel size %2 %3 sigma %4 %5 theta (deg) %6 %7 lambda %8 %9 gamma %10",
