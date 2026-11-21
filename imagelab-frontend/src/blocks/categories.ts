@@ -64,6 +64,7 @@ export const categories: CategoryInfo[] = [
       { type: "augmentation_gaussiannoise", label: "Gaussian Noise" },
       { type: "augmentation_saltpeppernoise", label: "Salt & Pepper Noise" },
       { type: "augmentation_sepiafilter", label: "Sepia Filter" },
+      { type: "augmentation_motionblur", label: "Motion Blur" },
     ],
   },
   {

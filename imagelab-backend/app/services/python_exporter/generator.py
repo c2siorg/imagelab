@@ -95,6 +95,7 @@ OPERATOR_NAMES: dict[str, str] = {
     "segmentation_meanshift": "Mean Shift Segmentation",
     "segmentation_watershed": "Watershed Segmentation",
     "augmentation_gaussiannoise": "Gaussian Noise",
+    "augmentation_motionblur": "Motion Blur",
     "augmentation_saltpeppernoise": "Salt & Pepper Noise",
     "augmentation_sepiafilter": "Sepia Filter",
     "detection_cornerdetection": "Corner Detection (Shi-Tomasi / Harris)",

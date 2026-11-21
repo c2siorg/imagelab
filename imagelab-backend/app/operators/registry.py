@@ -1,5 +1,6 @@
 from app.operators.arithmetic.add_weighted import ArithmeticAddWeighted
 from app.operators.augmentation.gaussian_noise import GaussianNoise
+from app.operators.augmentation.motion_blur import MotionBlur
 from app.operators.augmentation.salt_pepper_noise import SaltPepperNoise
 from app.operators.augmentation.sepia_filter import SepiaFilter
 from app.operators.base import BaseOperator
@@ -122,6 +123,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "filtering_morphological": Morphological,
     # Augmentation
     "augmentation_gaussiannoise": GaussianNoise,
+    "augmentation_motionblur": MotionBlur,
     "augmentation_saltpeppernoise": SaltPepperNoise,
     "augmentation_sepiafilter": SepiaFilter,
     "filtering_gaborfilter": GaborFilter,
