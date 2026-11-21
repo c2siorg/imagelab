@@ -15,7 +15,7 @@ The Electron desktop build is the legacy application. The current application is
 
 ## Supported Image Processing Operations
 
-The toolbox exposes 13 categories covering 70 blocks:
+The toolbox exposes 13 categories covering 71 blocks:
 
 | Category | What it covers |
 |---|---|
@@ -30,7 +30,7 @@ The toolbox exposes 13 categories covering 70 blocks:
 | Segmentation | K-Means, Mean Shift, Watershed |
 | Detection | Face, smile, and eye detection using Haar cascades; Harris and Shi-Tomasi corner detection |
 | Sobel Derivatives | Sobel, Scharr, Prewitt, Roberts Cross |
-| Transformation | Distance transform, Laplacian |
+| Transformation | Distance transform, Laplacian, convex hull and defect analysis |
 | Advanced control flow macros | Parallel blend, conditional (if/else) |
 
 ## Technologies

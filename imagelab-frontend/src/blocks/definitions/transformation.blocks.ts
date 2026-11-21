@@ -1,5 +1,45 @@
 export const transformationBlocks = [
   {
+    type: "transformation_convexhull",
+    message0:
+      "Convex hull %1 Mode %2 %3 Min area %4 %5 Min defect depth %6 %7 Hull color %8 %9 Defect color %10 %11 Thickness %12 %13 Show contours %14",
+    args0: [
+      { type: "input_dummy" },
+      {
+        type: "field_dropdown",
+        name: "mode",
+        options: [
+          ["Hull and Defects", "HULL_AND_DEFECTS"],
+          ["Hull Only", "HULL_ONLY"],
+        ],
+      },
+      { type: "input_dummy" },
+      { type: "field_number", name: "min_area", value: 50, min: 0, max: 100000 },
+      { type: "input_dummy" },
+      {
+        type: "field_number",
+        name: "min_defect_depth",
+        value: 5,
+        min: 0,
+        max: 500,
+        precision: 0.1,
+      },
+      { type: "input_dummy" },
+      { type: "field_colour", name: "hull_color", colour: "#00ffff" },
+      { type: "input_dummy" },
+      { type: "field_colour", name: "defect_color", colour: "#ff0000" },
+      { type: "input_dummy" },
+      { type: "field_number", name: "thickness", value: 2, min: 1, max: 20 },
+      { type: "input_dummy" },
+      { type: "field_checkbox", name: "show_contours", checked: false },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "transformation_style",
+    tooltip:
+      "Computes the minimal enclosing convex hull and convexity defects (cavities/indentations) for foreground shapes in an image. Expects binary, thresholded, or high-contrast edge input (e.g. preceded by a Threshold or Canny Edge block), as raw photographic images without zero-background pixels treat the whole frame as one contour. Extracts external contours, computes the minimal enclosing convex polygon, and detects indentation points where the shape departs from the hull. Useful for hand gesture recognition, finger counting, and object shape analysis.",
+  },
+  {
     type: "transformation_distance",
     message0: "Apply %1 distance transform",
     args0: [

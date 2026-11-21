@@ -1069,6 +1069,86 @@ def _transformation_laplacian(params: dict, var: str) -> tuple[list[str], bool]:
 
 
 # ── Transformation ────────────────────────────────────────────────────────────
+@register("transformation_convexhull")
+def _convexhull(params: dict, var: str) -> tuple[list[str], bool]:
+    mode = str(params.get("mode", "HULL_AND_DEFECTS")).upper()
+    if mode not in ("HULL_ONLY", "HULL_AND_DEFECTS"):
+        mode = "HULL_AND_DEFECTS"
+    min_area = max(0, min(100000, safe_int(params.get("min_area", 50), 50)))
+    min_defect_depth = max(0.0, min(500.0, safe_float(params.get("min_defect_depth", 5.0), 5.0)))
+    thickness = max(1, min(20, safe_int(params.get("thickness", 2), 2)))
+    sc_raw = params.get("show_contours", False)
+    show_contours = sc_raw == "TRUE" if isinstance(sc_raw, str) else bool(sc_raw)
+    hull_bgr = _get_bgr_color(params, key="hull_color", default="#00ffff")
+    defect_bgr = _get_bgr_color(params, key="defect_color", default="#ff0000")
+    defect_radius = max(3, thickness * 2)
+
+    gray_hull_col = int(sum(hull_bgr) / len(hull_bgr))
+    gray_def_col = int(sum(defect_bgr) / len(defect_bgr))
+
+    code = [
+        f"if {var}.ndim == 2:",
+        f"    _gray = {var}",
+        f"    {var} = {var}.copy()",
+        f"    _hull_col = {gray_hull_col}",
+        f"    _def_col = {gray_def_col}",
+        "    _cnt_col = 200",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    _gray = {var}[:, :, 0]",
+        f"    {var} = {var}.copy()",
+        f"    _hull_col = {gray_hull_col}",
+        f"    _def_col = {gray_def_col}",
+        "    _cnt_col = 200",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    {var} = {var}.copy()",
+        f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGRA2GRAY)",
+        f"    _hull_col = (*{hull_bgr}, 255)",
+        f"    _def_col = (*{defect_bgr}, 255)",
+        "    _cnt_col = (200, 200, 200, 255)",
+        "else:",
+        f"    {var} = {var}.copy()",
+        f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY)",
+        f"    _hull_col = {hull_bgr}",
+        f"    _def_col = {defect_bgr}",
+        "    _cnt_col = (200, 200, 200)",
+        "_contours, _ = cv2.findContours(_gray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)",
+        "for _c in _contours:",
+        f"    if cv2.contourArea(_c) < {min_area} or len(_c) < 3:",
+        "        continue",
+    ]
+    if show_contours:
+        code.append(f"    cv2.drawContours({var}, [_c], -1, _cnt_col, 1)")
+    code.extend(
+        [
+            "    try:",
+            "        _hull_pts = cv2.convexHull(_c, returnPoints=True)",
+            f"        cv2.drawContours({var}, [_hull_pts], -1, _hull_col, {thickness})",
+            "    except cv2.error:",
+            "        continue",
+        ]
+    )
+    if mode == "HULL_AND_DEFECTS":
+        code.extend(
+            [
+                "    if len(_c) >= 4:",
+                "        try:",
+                "            _hull_idx = cv2.convexHull(_c, returnPoints=False)",
+                "            if _hull_idx is not None and len(_hull_idx) >= 3:",
+                "                _hull_idx = np.sort(_hull_idx, axis=0)",
+                "                _defects = cv2.convexityDefects(_c, _hull_idx)",
+                "                if _defects is not None:",
+                "                    for _d in _defects:",
+                "                        _, _, _far_i, _d_fixed = _d[0]",
+                f"                        if (_d_fixed / 256.0) >= {min_defect_depth}:",
+                "                            _far_pt = tuple(map(int, _c[_far_i][0]))",
+                f"                            cv2.circle({var}, _far_pt, {defect_radius}, _def_col, -1)",
+                "        except cv2.error:",
+                "            pass",
+            ]
+        )
+    return code, True
+
+
 @register("transformation_distance")
 def _distance_transform(params: dict, var: str) -> tuple[list[str], bool]:
     dist_type_name = str(params.get("type", "DIST_L2")).upper()
