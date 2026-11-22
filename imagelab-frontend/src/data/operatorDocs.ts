@@ -796,6 +796,56 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       "Fitting bounding ellipses to determine aspect ratio and eccentricities of biological specimens.",
     ],
   },
+  transformation_skeletonization: {
+    name: "Morphological Skeletonization",
+    description:
+      "Extracts the morphological skeleton (topological medial axis) of foreground shapes through iterative erosion and morphological opening subtractions. Reduces binary shapes to 1-pixel-wide topological lines while preserving shape connectivity, holes, and branch endpoints.",
+    parameters: [
+      {
+        name: "Structuring Element",
+        description:
+          "Shape of the structuring element used for erosion and opening: Cross (connectivity-preserving 4-neighborhood), Rectangle (8-neighborhood), or Ellipse (isometric smoothing).",
+      },
+      {
+        name: "Kernel Size",
+        description:
+          "Size of the structuring element (3x3, 5x5, or 7x7). Smaller kernels yield fine-grained skeletons with minimal clipping, while larger kernels thin thick structures more rapidly per iteration.",
+      },
+      {
+        name: "Threshold",
+        description:
+          "Intensity threshold (0 to 255) for binarizing grayscale and color input imagery into foreground and background regions.",
+      },
+      {
+        name: "Invert",
+        description:
+          "Inverts binary mask polarity before thinning, allowing dark shapes on light backgrounds (e.g. black ink on white paper) to be skeletonized.",
+      },
+      {
+        name: "Max Iterations",
+        description:
+          "Upper bound on morphological thinning iterations (0 = run until complete topological convergence). Limiting iterations produces partial morphological medial skeletons.",
+      },
+      {
+        name: "Output Mode",
+        description:
+          "Output representation: Binary Mask (single-channel or multi-channel mask where skeleton pixels are white) or Overlay on Source (renders highlighted skeleton curves directly over the original image).",
+      },
+      {
+        name: "Skeleton Color",
+        description:
+          "Highlight color used when rendering the skeleton in Overlay on Source output mode.",
+      },
+    ],
+    formula:
+      "S(A) = \\bigcup_{k=0}^{\\infty} [(A \\ominus k B) \\setminus ((A \\ominus k B) \\circ B)]",
+    useCases: [
+      "Optical character recognition (OCR) and handwriting analysis by normalizing stroke width to unit thickness.",
+      "Fingerprint ridge extraction, minutiae point detection, and biometrics verification.",
+      "Biomedical imaging for tracing vascular networks, neuron dendrites, and retinal vessel morphology.",
+      "Road network and centerline extraction from aerial and satellite geographic imagery.",
+    ],
+  },
 
   // --- Augmentation ---
   augmentation_vignette: {

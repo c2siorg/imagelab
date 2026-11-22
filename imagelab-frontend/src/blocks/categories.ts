@@ -169,6 +169,7 @@ export const categories: CategoryInfo[] = [
       { type: "transformation_distance", label: "Distance Transform" },
       { type: "transformation_laplacian", label: "Laplacian" },
       { type: "transformation_minenclosing", label: "Minimum Enclosing Geometries" },
+      { type: "transformation_skeletonization", label: "Skeletonization" },
     ],
   },
   {
