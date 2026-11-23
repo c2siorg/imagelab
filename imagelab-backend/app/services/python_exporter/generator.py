@@ -67,6 +67,7 @@ OPERATOR_NAMES: dict[str, str] = {
     "filtering_houghcircles": "Hough Circle Transform",
     "filtering_nlmdenoising": "Non-Local Means Denoising",
     "filtering_sharpen": "Sharpen Filter",
+    "filtering_stylization": "Non-Photorealistic Stylization",
     "filtering_unsharpmask": "Unsharp Masking",
     "filtering_pyramiddown": "Pyramid Down",
     "filtering_pyramidup": "Pyramid Up",

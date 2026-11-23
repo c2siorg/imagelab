@@ -52,6 +52,7 @@ from app.operators.filtering.nlm_denoising import NlmDenoising
 from app.operators.filtering.pyramid_down import PyramidDown
 from app.operators.filtering.pyramid_up import PyramidUp
 from app.operators.filtering.sharpen import Sharpen
+from app.operators.filtering.stylization import Stylization
 from app.operators.filtering.unsharp_mask import UnsharpMask
 from app.operators.geometric.affine_image import AffineImage
 from app.operators.geometric.crop_image import CropImage
@@ -125,6 +126,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "filtering_houghlines": HoughLines,
     "filtering_houghcircles": HoughCircles,
     "filtering_sharpen": Sharpen,
+    "filtering_stylization": Stylization,
     "filtering_unsharpmask": UnsharpMask,
     "filtering_pyramidup": PyramidUp,
     "filtering_pyramiddown": PyramidDown,

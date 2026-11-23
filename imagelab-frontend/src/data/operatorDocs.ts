@@ -495,6 +495,40 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       "Restoring noisy digitized film or vintage archival photographs",
     ],
   },
+  filtering_stylization: {
+    name: "Non-Photorealistic Stylization",
+    description:
+      "Transforms photographic imagery into artistic renderings (watercolor painting, grayscale or color pencil sketch, and detail enhancement) using recursive domain-transform edge-preserving filters (Gastal & Oliveira, 2011).",
+    parameters: [
+      {
+        name: "Effect Mode",
+        description:
+          "Artistic rendering algorithm: Watercolor / Painting (cv2.stylization), Pencil Sketch Grayscale (cv2.pencilSketch mono), Pencil Sketch Color (cv2.pencilSketch chromatic), or Detail Enhance (cv2.detailEnhance).",
+      },
+      {
+        name: "Spatial Sigma",
+        description:
+          "Spatial domain filter standard deviation (1.0 to 200.0). Larger values compute smoothing over broader spatial neighborhoods.",
+      },
+      {
+        name: "Range Sigma",
+        description:
+          "Range (color intensity) domain standard deviation (0.01 to 1.0). Smaller values preserve sharp intensity edges while larger values blend across edges.",
+      },
+      {
+        name: "Shade Factor",
+        description:
+          "Shading factor for pencil sketch modes (0.01 to 0.1). Modulates stroke intensity and contrast in sketch rendering.",
+      },
+    ],
+    formula:
+      "\\hat{J}_i = \\sum_{k} W(i, k) I_k, \\quad W(i, k) \\propto \\exp\\left(-\\frac{d_{ct}(i, k)}{\\sigma_s}\\right)",
+    useCases: [
+      "Artistic image transformation and creative non-photorealistic computer graphics rendering.",
+      "Photo-to-sketch conversion for forensic sketch matching and contour illustration.",
+      "Detail enhancement in aerial, satellite, and microscopic diagnostic imaging without edge blur.",
+    ],
+  },
   filtering_houghcircles: {
     name: "Hough Circle Detection",
     description:
