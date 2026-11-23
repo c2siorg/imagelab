@@ -786,6 +786,77 @@ def _nlm_denoising(params: dict, var: str) -> tuple[list[str], bool]:
     return code, True
 
 
+@register("filtering_stylization")
+def _stylization(params: dict, var: str) -> tuple[list[str], bool]:
+    mode = str(params.get("mode", "WATERCOLOR")).upper()
+    if mode not in ("WATERCOLOR", "PENCIL_GRAY", "PENCIL_COLOR", "DETAIL_ENHANCE"):
+        mode = "WATERCOLOR"
+
+    sigma_s = max(1.0, min(200.0, safe_float(params.get("sigma_s", 60.0), 60.0)))
+    sigma_r = max(0.01, min(1.0, safe_float(params.get("sigma_r", 0.45), 0.45)))
+    shade_factor = max(0.01, min(0.1, safe_float(params.get("shade_factor", 0.05), 0.05)))
+
+    code = [
+        f"if {var}.ndim == 2:",
+        f"    _proc_bgr = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    _proc_bgr = cv2.cvtColor({var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    _proc_bgr = np.ascontiguousarray({var}[:, :, :3])",
+        "else:",
+        f"    _proc_bgr = np.ascontiguousarray({var})",
+    ]
+
+    if mode == "WATERCOLOR":
+        code.append(f"_out_bgr = cv2.stylization(_proc_bgr, sigma_s={sigma_s}, sigma_r={sigma_r})")
+    elif mode == "PENCIL_GRAY":
+        code.extend(
+            [
+                (
+                    f"_dst_gray, _ = cv2.pencilSketch("
+                    f"_proc_bgr, sigma_s={sigma_s}, sigma_r={sigma_r}, shade_factor={shade_factor})"
+                ),
+                "_out_bgr = cv2.cvtColor(_dst_gray, cv2.COLOR_GRAY2BGR)",
+            ]
+        )
+    elif mode == "PENCIL_COLOR":
+        code.append(
+            f"_, _out_bgr = cv2.pencilSketch("
+            f"_proc_bgr, sigma_s={sigma_s}, sigma_r={sigma_r}, shade_factor={shade_factor})"
+        )
+    else:  # DETAIL_ENHANCE
+        code.append(f"_out_bgr = cv2.detailEnhance(_proc_bgr, sigma_s={sigma_s}, sigma_r={sigma_r})")
+
+    if mode == "PENCIL_GRAY":
+        code.extend(
+            [
+                f"if {var}.ndim == 2:",
+                f"    {var} = _dst_gray",
+                f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+                f"    {var} = _dst_gray[:, :, np.newaxis]",
+                f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+                f"    {var} = np.dstack((_out_bgr, {var}[:, :, 3]))",
+                "else:",
+                f"    {var} = _out_bgr",
+            ]
+        )
+    else:
+        code.extend(
+            [
+                f"if {var}.ndim == 2:",
+                f"    {var} = cv2.cvtColor(_out_bgr, cv2.COLOR_BGR2GRAY)",
+                f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+                f"    {var} = cv2.cvtColor(_out_bgr, cv2.COLOR_BGR2GRAY)[:, :, np.newaxis]",
+                f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+                f"    {var} = np.dstack((_out_bgr, {var}[:, :, 3]))",
+                "else:",
+                f"    {var} = _out_bgr",
+            ]
+        )
+
+    return code, True
+
+
 # ── Drawing ───────────────────────────────────────────────────────────────────
 @register("drawingoperations_drawline")
 def _drawline(params: dict, var: str) -> tuple[list[str], bool]:

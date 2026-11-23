@@ -289,4 +289,54 @@ export const filteringBlocks = [
     tooltip:
       "Removes image noise using Fast Non-Local Means (NLM) Denoising. Averages similar patches across a search window, preserving fine textures, patterns, and edges far better than Gaussian or Bilateral blurs.",
   },
+  {
+    type: "filtering_stylization",
+    message0:
+      "Stylization %1 Effect mode %2 %3 Spatial sigma %4 %5 Range sigma %6 %7 Shade factor %8",
+    args0: [
+      { type: "input_dummy" },
+      {
+        type: "field_dropdown",
+        name: "mode",
+        options: [
+          ["Watercolor / Painting", "WATERCOLOR"],
+          ["Pencil Sketch (Grayscale)", "PENCIL_GRAY"],
+          ["Pencil Sketch (Color)", "PENCIL_COLOR"],
+          ["Detail Enhance", "DETAIL_ENHANCE"],
+        ],
+      },
+      { type: "input_dummy" },
+      {
+        type: "field_number",
+        name: "sigma_s",
+        value: 60,
+        min: 1,
+        max: 200,
+        precision: 1,
+      },
+      { type: "input_dummy" },
+      {
+        type: "field_number",
+        name: "sigma_r",
+        value: 0.45,
+        min: 0.01,
+        max: 1.0,
+        precision: 0.01,
+      },
+      { type: "input_dummy" },
+      {
+        type: "field_number",
+        name: "shade_factor",
+        value: 0.05,
+        min: 0.01,
+        max: 0.1,
+        precision: 0.01,
+      },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "filtering_style",
+    tooltip:
+      "Applies edge-preserving non-photorealistic stylization filtering via recursive domain-transform algorithms. Modes include Watercolor / Painting (smooth painterly gradients with preserved edges), Pencil Sketch Grayscale/Color (graphite or colored pencil drawing), and Detail Enhance (boosting fine structural textures without amplifying flat noise).",
+  },
 ];
