@@ -1471,6 +1471,105 @@ def _distance_transform(params: dict, var: str) -> tuple[list[str], bool]:
 
 
 # ── Augmentation ──────────────────────────────────────────────────────────────
+
+
+@register("augmentation_cutout")
+def _cutout(params: dict, var: str) -> tuple[list[str], bool]:
+    num_holes = max(1, min(20, safe_int(params.get("num_holes", 1), 1)))
+    hole_size = max(4, min(512, safe_int(params.get("hole_size", 32), 32)))
+    fill_mode = str(params.get("fill_mode", "CONSTANT")).upper()
+    if fill_mode not in ("CONSTANT", "RANDOM_NOISE", "MEAN"):
+        fill_mode = "CONSTANT"
+
+    color = _get_bgr_color(params, key="fill_color", default="#000000")
+    gray_col = int(round(0.114 * color[0] + 0.587 * color[1] + 0.299 * color[2]))
+    seed = safe_int(params.get("seed", 0), 0)
+
+    half = hole_size // 2
+    rem = hole_size - half
+
+    code = [
+        f"{var} = {var}.copy()",
+        f"_h, _w = {var}.shape[:2]",
+    ]
+    if seed > 0:
+        code.append(f"_rng = np.random.default_rng({seed})")
+    else:
+        code.append("_rng = np.random.default_rng()")
+
+    if fill_mode == "MEAN":
+        code.extend(
+            [
+                f"if {var}.ndim == 2:",
+                f"    _mean_val = int(round(float(np.mean({var}))))",
+                f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+                f"    _mean_val = int(round(float(np.mean({var}[:, :, 0]))))",
+                f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+                f"    _mean_val = [int(round(float(np.mean({var}[:, :, c])))) for c in range(3)]",
+                "else:",
+                f"    _mean_val = [int(round(float(np.mean({var}[:, :, c])))) for c in range(3)]",
+            ]
+        )
+
+    code.extend(
+        [
+            f"for _ in range({num_holes}):",
+            "    _cx = int(_rng.integers(0, _w))",
+            "    _cy = int(_rng.integers(0, _h))",
+            f"    _x1 = max(0, _cx - {half})",
+            f"    _y1 = max(0, _cy - {half})",
+            f"    _x2 = min(_w, _cx + {rem})",
+            f"    _y2 = min(_h, _cy + {rem})",
+            "    if _x2 <= _x1 or _y2 <= _y1:",
+            "        continue",
+            "    _ph = _y2 - _y1",
+            "    _pw = _x2 - _x1",
+        ]
+    )
+
+    if fill_mode == "CONSTANT":
+        code.extend(
+            [
+                f"    if {var}.ndim == 2:",
+                f"        {var}[_y1:_y2, _x1:_x2] = {gray_col}",
+                f"    elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+                f"        {var}[_y1:_y2, _x1:_x2, 0] = {gray_col}",
+                f"    elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+                f"        {var}[_y1:_y2, _x1:_x2, :3] = {color}",
+                "    else:",
+                f"        {var}[_y1:_y2, _x1:_x2] = {color}",
+            ]
+        )
+    elif fill_mode == "RANDOM_NOISE":
+        code.extend(
+            [
+                f"    if {var}.ndim == 2:",
+                f"        {var}[_y1:_y2, _x1:_x2] = _rng.integers(0, 256, size=(_ph, _pw), dtype=np.uint8)",
+                f"    elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+                f"        {var}[_y1:_y2, _x1:_x2] = _rng.integers(0, 256, size=(_ph, _pw, 1), dtype=np.uint8)",
+                f"    elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+                f"        {var}[_y1:_y2, _x1:_x2, :3] = _rng.integers(0, 256, size=(_ph, _pw, 3), dtype=np.uint8)",
+                "    else:",
+                f"        {var}[_y1:_y2, _x1:_x2] = _rng.integers(0, 256, size=(_ph, _pw, 3), dtype=np.uint8)",
+            ]
+        )
+    elif fill_mode == "MEAN":
+        code.extend(
+            [
+                f"    if {var}.ndim == 2:",
+                f"        {var}[_y1:_y2, _x1:_x2] = _mean_val",
+                f"    elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+                f"        {var}[_y1:_y2, _x1:_x2, 0] = _mean_val",
+                f"    elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+                f"        {var}[_y1:_y2, _x1:_x2, :3] = _mean_val",
+                "    else:",
+                f"        {var}[_y1:_y2, _x1:_x2] = _mean_val",
+            ]
+        )
+
+    return code, True
+
+
 @register("augmentation_gaussiannoise")
 def _gaussian_noise(params: dict, var: str) -> tuple[list[str], bool]:
     mean = safe_float(params.get("mean", 0.0), 0.0)

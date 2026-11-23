@@ -66,6 +66,7 @@ export const categories: CategoryInfo[] = [
       { type: "augmentation_saltpeppernoise", label: "Salt & Pepper Noise" },
       { type: "augmentation_sepiafilter", label: "Sepia Filter" },
       { type: "augmentation_vignette", label: "Vignette Filter" },
+      { type: "augmentation_cutout", label: "Cutout" },
     ],
   },
   {
