@@ -819,6 +819,43 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       "Drawing visual focus toward the center of photographs and portraits.",
     ],
   },
+  augmentation_cutout: {
+    name: "Cutout Augmentation",
+    description:
+      "Applies Cutout (Random Erasing) data augmentation by masking out random square or rectangular patches of the image. Regularizes deep convolutional networks against localized feature co-adaptation, teaching models to recognize objects even when distinctive parts are occluded.",
+    parameters: [
+      {
+        name: "Number of Holes",
+        description: "Number of occlusion patches to randomly cut out across the image (1 to 20).",
+      },
+      {
+        name: "Hole Size",
+        description: "Edge dimension in pixels of each square cutout patch (4 to 512).",
+      },
+      {
+        name: "Fill Mode",
+        description:
+          "Patch filling strategy: Constant Color (fills patch with specified hex color), Random Noise (fills patch with uniform random pixel intensities), or Channel Mean (fills patch with the image's mean channel intensity).",
+      },
+      {
+        name: "Fill Color",
+        description:
+          "Hex color used when Fill Mode is set to Constant Color (e.g. #000000 for black holes).",
+      },
+      {
+        name: "Seed",
+        description:
+          "Pseudorandom generator seed for reproducible augmentation placement (0 = non-deterministic).",
+      },
+    ],
+    formula:
+      "I_{cutout}(x, y) = \\begin{cases} v_{fill} & \\text{if } (x, y) \\in \\bigcup_{k=1}^N R_k \\\\ I(x, y) & \\text{otherwise} \\end{cases}",
+    useCases: [
+      "Regularizing image classification, object detection, and segmentation convolutional networks.",
+      "Simulating sensor dropouts, dead pixels, and foreground occlusion in computer vision pipelines.",
+      "Validating model robustness to partial visual obstruction and feature occlusions.",
+    ],
+  },
 
   // --- Detection ---
   detection_facedetection: {

@@ -83,4 +83,55 @@ export const augmentationBlocks = [
     tooltip:
       "Applies a radial vignette optical falloff effect to the image - Simulates natural camera lens shading by smoothly decreasing peripheral brightness toward the image edges using separable 2D Gaussian kernels. The radius controls the relative size of the central unshaded region (0.1 to 2.0), and intensity controls the darkening strength at the periphery (0 for unchanged to 1 for maximum darkening). Useful for photographic styling and simulating optical distortions.",
   },
+  {
+    type: "augmentation_cutout",
+    message0:
+      "Cutout %1 Number of holes %2 %3 Hole size %4 %5 Fill mode %6 %7 Fill color %8 %9 Seed %10",
+    args0: [
+      { type: "input_dummy" },
+      {
+        type: "field_number",
+        name: "num_holes",
+        value: 1,
+        min: 1,
+        max: 20,
+        precision: 1,
+      },
+      { type: "input_dummy" },
+      {
+        type: "field_number",
+        name: "hole_size",
+        value: 32,
+        min: 4,
+        max: 512,
+        precision: 1,
+      },
+      { type: "input_dummy" },
+      {
+        type: "field_dropdown",
+        name: "fill_mode",
+        options: [
+          ["Constant Color", "CONSTANT"],
+          ["Random Noise", "RANDOM_NOISE"],
+          ["Channel Mean", "MEAN"],
+        ],
+      },
+      { type: "input_dummy" },
+      { type: "field_colour", name: "fill_color", colour: "#000000" },
+      { type: "input_dummy" },
+      {
+        type: "field_number",
+        name: "seed",
+        value: 0,
+        min: 0,
+        max: 100000,
+        precision: 1,
+      },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "augmentation_style",
+    tooltip:
+      "Applies Cutout (Random Erasing) data augmentation - Randomly masks out rectangular patches of the image using a constant color, random noise, or channel mean. Prevents convolutional neural networks from overfitting to specific localized visual cues and forces models to consider broader context. The seed parameter enables deterministic reproducible masking.",
+  },
 ];
