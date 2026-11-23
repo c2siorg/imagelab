@@ -28,7 +28,7 @@ The toolbox exposes 13 categories covering 71 blocks:
 | Filtering | Bilateral, sharpen, unsharp masking, morphological erode and dilate, Gabor, box, pyramid up and down, contour detection, Canny edge detection, Hough lines, Hough circles |
 | Thresholding | Global and adaptive threshold, Otsu, borders |
 | Segmentation | K-Means, Mean Shift, Watershed, connected components labeling |
-| Detection | Face, smile, and eye detection using Haar cascades; Harris and Shi-Tomasi corner detection |
+| Detection | Face, smile, and eye detection using Haar cascades; Harris and Shi-Tomasi corner detection; SimpleBlobDetector blob detection |
 | Sobel Derivatives | Sobel, Scharr, Prewitt, Roberts Cross |
 | Transformation | Distance transform, Laplacian, minimum enclosing geometries (rotated box, enclosing circle, fit ellipse), convex hull and defect analysis |
 | Advanced control flow macros | Parallel blend, conditional (if/else) |
