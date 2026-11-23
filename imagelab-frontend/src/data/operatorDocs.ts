@@ -71,6 +71,46 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     ],
     useCases: ["Correcting skew, data augmentation."],
   },
+  geometric_perspectivetransform: {
+    name: "Perspective Transformation",
+    description:
+      "Applies a 4-point perspective warp (homography) mapping planar surfaces onto an arbitrary quadrilateral. Commonly used for document scanning and deskewing, keystone correction, bird's-eye ground projection, and camera rectification.",
+    parameters: [
+      {
+        name: "src_x1, src_y1 to src_x4, src_y4",
+        type: "number",
+        default: "0 to 200",
+        description:
+          "Pixel coordinates of the 4 source quadrilateral corners (top-left, top-right, bottom-right, bottom-left) in the input image.",
+      },
+      {
+        name: "dst_x1, dst_y1 to dst_x4, dst_y4",
+        type: "number",
+        default: "0 to 200",
+        description:
+          "Pixel coordinates where the four corners should be mapped in the transformed output image.",
+      },
+      {
+        name: "output_width",
+        type: "number",
+        default: "0",
+        description:
+          "Width of the output warped canvas in pixels. When set to 0, preserves the input image width.",
+      },
+      {
+        name: "output_height",
+        type: "number",
+        default: "0",
+        description:
+          "Height of the output warped canvas in pixels. When set to 0, preserves the input image height.",
+      },
+    ],
+    useCases: [
+      "Rectifying angled smartphone photos of documents into flat, top-down scans",
+      "Bird's-eye perspective projection for autonomous driving and road lane analysis",
+      "Correcting projector or architectural keystone distortion",
+    ],
+  },
   geometric_affineimage: {
     name: "Affine Transform",
     description:
@@ -161,8 +201,6 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     ],
     useCases: ["Feature extraction where color is irrelevant."],
   },
-
-  // --- Drawing ---
   imageconversions_gammacorrection: {
     name: "Gamma Correction",
     description:
@@ -181,6 +219,7 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     ],
   },
 
+  // --- Drawing ---
   drawingoperations_drawline: {
     name: "Draw Line",
     description: "Draws a straight line segment connecting two points on the image.",
@@ -380,6 +419,46 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       "Lane detection in road images.",
       "Finding page edges for document scanning and deskewing.",
       "Measuring structural lines in architectural or engineering photos.",
+    ],
+  },
+  filtering_nlmdenoising: {
+    name: "Non-Local Means Denoising",
+    description:
+      "Performs Fast Non-Local Means (NLM) noise reduction. Rather than simply averaging neighboring pixels like Gaussian blur, NLM takes a weighted average of all pixels whose surrounding patch is similar to the target patch. This cleans sensor noise and grain while keeping textures and edges sharp.",
+    parameters: [
+      {
+        name: "h",
+        type: "number",
+        default: "10.0",
+        description:
+          "Filter strength regulating luminance noise removal. Higher values eliminate more noise but can slightly soften subtle details.",
+      },
+      {
+        name: "hColor",
+        type: "number",
+        default: "10.0",
+        description:
+          "Filter strength regulating color component noise (for multi-channel color images).",
+      },
+      {
+        name: "templateWindowSize",
+        type: "number",
+        default: "7",
+        description:
+          "Size in pixels of the template patch used to compare patch similarity. Must be an odd integer (typically 7).",
+      },
+      {
+        name: "searchWindowSize",
+        type: "number",
+        default: "21",
+        description:
+          "Size in pixels of the neighborhood window over which similar patches are sought. Must be an odd integer (typically 21).",
+      },
+    ],
+    useCases: [
+      "Denoising grainy low-light smartphone photographs without smearing texture",
+      "Cleaning sensor noise from digital cameras and medical imaging scans",
+      "Restoring noisy digitized film or vintage archival photographs",
     ],
   },
   filtering_houghcircles: {
@@ -800,6 +879,50 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       "Detecting structural interest points for image alignment, stitching, and homography estimation.",
       "Feature analysis in calibration targets, checkerboards, and polygonal object inspection.",
       "Teaching fundamental corner and interest point concepts in computer vision courses.",
+    ],
+  },
+  segmentation_connectedcomponents: {
+    name: "Connected Components",
+    description:
+      "Extracts and analyzes distinct connected components in an image using cv2.connectedComponentsWithStats. Note: Evaluates non-zero pixels (gray > 0); for photographic inputs without a zero-valued background, place a Thresholding block (e.g. Otsu Threshold) before this operator. Labels disjoint foreground regions, computes shape statistics (area, bounding box, centroid), filters out components smaller than min_area, and visualizes them via pseudocolor mapping, bounding boxes, or centroid markers.",
+    parameters: [
+      {
+        name: "Connectivity",
+        description:
+          "Pixel neighborhood connectivity: 8-way includes diagonal neighbors (8-connected); 4-way considers only orthogonal horizontal and vertical neighbors (4-connected). Default: 8-way.",
+      },
+      {
+        name: "Invert Mask",
+        description:
+          "Inverts the binary mask before labeling so that dark objects on bright backgrounds (e.g. document text, cells) are segmented as foreground components. Default: false.",
+      },
+      {
+        name: "Min Area",
+        description:
+          "Minimum pixel area threshold. Components smaller than this size are filtered out as speckle noise. Range: 0 to 100000. Default: 50.",
+      },
+      {
+        name: "Output Mode",
+        description:
+          "Visualization format: 'Color Map' assigns each component a distinct pseudocolor on a black background; 'Bounding Box' draws enclosing rectangles around retained components on the image; 'Centroid' marks component centers of mass with circles. Default: Color Map.",
+      },
+      {
+        name: "Marker Color",
+        description:
+          "Color for bounding boxes or centroid markers in Bounding Box or Centroid mode. Default: cyan (#00ffff).",
+      },
+      {
+        name: "Thickness",
+        description:
+          "Line thickness for bounding boxes or marker radius for centroid points. Range: 1 to 20. Default: 2.",
+      },
+    ],
+    formula: "N_8(p) = {q : dist_inf(p, q) = 1} | N_4(p) = {q : dist_1(p, q) = 1}",
+    useCases: [
+      "Counting and isolating distinct objects or particles after thresholding or binarization.",
+      "Filtering out salt-and-pepper speckle noise based on component pixel area.",
+      "Extracting bounding boxes and centroids for robotic picking or optical character inspection.",
+      "Teaching connected component labeling and morphological region analysis in computer vision courses.",
     ],
   },
 };

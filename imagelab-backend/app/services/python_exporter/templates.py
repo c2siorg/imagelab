@@ -275,7 +275,8 @@ def _brightness_contrast(params: dict, var: str) -> tuple[list[str], bool]:
 
 @register("imageconversions_gammacorrection")
 def _gamma_correction(params: dict, var: str) -> tuple[list[str], bool]:
-    gamma = safe_float(params.get("gamma"), 1.0)
+    # Clamp to the operator's 0.1-5.0 range so gamma=0 can't emit a 1 / 0.0 division
+    gamma = min(5.0, max(0.1, safe_float(params.get("gamma"), 1.0)))
     code = [
         f"_gamma_table = np.clip(np.round(255 * (np.arange(256) / 255) ** (1 / {gamma})), 0, 255).astype(np.uint8)",
         f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
@@ -294,9 +295,10 @@ def _hist_eq(params: dict, var: str) -> tuple[list[str], bool]:
         f"{var}_alpha = {var}[:, :, 3] if {var}.ndim == 3 and {var}.shape[2] == 4 else None",
         f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
         f"    {var} = {var}[:, :, :3]",
-        f"if {var}.ndim == 2:",
-        f"    {var} = cv2.equalizeHist({var})",
-        f"elif {var}.ndim == 3:",
+        f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+        f"    _gray = {var}[:, :, 0] if {var}.ndim == 3 else {var}",
+        f"    {var} = cv2.equalizeHist(_gray)",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 3:",
         f"    _ycrcb = cv2.cvtColor({var}, cv2.COLOR_BGR2YCrCb)",
         "    _ycrcb[:, :, 0] = cv2.equalizeHist(_ycrcb[:, :, 0])",
         f"    {var} = cv2.cvtColor(_ycrcb, cv2.COLOR_YCrCb2BGR)",
@@ -689,6 +691,41 @@ def _houghcircles(params: dict, var: str) -> tuple[list[str], bool]:
     return code, True
 
 
+@register("filtering_nlmdenoising")
+def _nlm_denoising(params: dict, var: str) -> tuple[list[str], bool]:
+    from app.operators.filtering.nlm_denoising import NlmDenoising
+
+    h, h_color, template_size, search_size = NlmDenoising.sanitize_params(params)
+
+    code = [
+        f"if {var}.ndim == 2:",
+        (
+            f"    {var} = cv2.fastNlMeansDenoising("
+            f"{var}, None, h={h}, templateWindowSize={template_size}, searchWindowSize={search_size})"
+        ),
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+        (
+            f"    _denoised = cv2.fastNlMeansDenoising("
+            f"{var}[:, :, 0], None, h={h}, templateWindowSize={template_size}, searchWindowSize={search_size})"
+        ),
+        f"    {var} = _denoised[:, :, np.newaxis]",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+        (
+            f"    _bgr = cv2.fastNlMeansDenoisingColored("
+            f"{var}[:, :, :3], None, h={h}, hColor={h_color}, "
+            f"templateWindowSize={template_size}, searchWindowSize={search_size})"
+        ),
+        f"    {var} = np.dstack([_bgr, {var}[:, :, 3]])",
+        "else:",
+        (
+            f"    {var} = cv2.fastNlMeansDenoisingColored("
+            f"{var}, None, h={h}, hColor={h_color}, "
+            f"templateWindowSize={template_size}, searchWindowSize={search_size})"
+        ),
+    ]
+    return code, True
+
+
 # ── Drawing ───────────────────────────────────────────────────────────────────
 @register("drawingoperations_drawline")
 def _drawline(params: dict, var: str) -> tuple[list[str], bool]:
@@ -829,8 +866,15 @@ def _rotate(params: dict, var: str) -> tuple[list[str], bool]:
     scale = safe_float(params.get("scale", 1.0), 1.0)
     code = [
         f"_h, _w = {var}.shape[:2]",
-        f"_m = cv2.getRotationMatrix2D((_w / 2, _h / 2), {angle}, {scale})",
-        f"{var} = cv2.warpAffine({var}, _m, (_w, _h))",
+        "_center = ((_w - 1) / 2.0, (_h - 1) / 2.0)",
+        f"_m = cv2.getRotationMatrix2D(_center, {angle}, {scale})",
+        "_cos = abs(_m[0, 0])",
+        "_sin = abs(_m[0, 1])",
+        "_new_w = max(1, int(round((_h * _sin) + (_w * _cos))))",
+        "_new_h = max(1, int(round((_h * _cos) + (_w * _sin))))",
+        "_m[0, 2] += ((_new_w - 1) / 2.0) - _center[0]",
+        "_m[1, 2] += ((_new_h - 1) / 2.0) - _center[1]",
+        f"{var} = cv2.warpAffine({var}, _m, (_new_w, _new_h))",
     ]
     return code, False
 
@@ -853,6 +897,68 @@ def _affine(params: dict, var: str) -> tuple[list[str], bool]:
         f"_m = np.float32([[1, 0, {tx}], [0, 1, {ty}]])",
         f"{var} = cv2.warpAffine({var}, _m, (_w, _h))",
     ]
+    return code, True
+
+
+@register("geometric_perspectivetransform")
+def _perspectivetransform(params: dict, var: str) -> tuple[list[str], bool]:
+    has_custom_src = any(f"src_{coord}{i}" in params for i in (1, 2, 3, 4) for coord in ("x", "y"))
+    has_custom_dst = any(f"dst_{coord}{i}" in params for i in (1, 2, 3, 4) for coord in ("x", "y"))
+
+    out_w = max(0, safe_int(params.get("output_width", 0), 0))
+    out_h = max(0, safe_int(params.get("output_height", 0), 0))
+
+    src_p1 = [safe_float(params.get("src_x1", 0.0), 0.0), safe_float(params.get("src_y1", 0.0), 0.0)]
+    src_p2 = [safe_float(params.get("src_x2", 200.0), 200.0), safe_float(params.get("src_y2", 0.0), 0.0)]
+    src_p3 = [safe_float(params.get("src_x3", 200.0), 200.0), safe_float(params.get("src_y3", 200.0), 200.0)]
+    src_p4 = [safe_float(params.get("src_x4", 0.0), 0.0), safe_float(params.get("src_y4", 200.0), 200.0)]
+
+    dst_p1 = [safe_float(params.get("dst_x1", 0.0), 0.0), safe_float(params.get("dst_y1", 0.0), 0.0)]
+    dst_p2 = [safe_float(params.get("dst_x2", 200.0), 200.0), safe_float(params.get("dst_y2", 0.0), 0.0)]
+    dst_p3 = [safe_float(params.get("dst_x3", 200.0), 200.0), safe_float(params.get("dst_y3", 200.0), 200.0)]
+    dst_p4 = [safe_float(params.get("dst_x4", 0.0), 0.0), safe_float(params.get("dst_y4", 200.0), 200.0)]
+
+    code = [
+        f"_h, _w = {var}.shape[:2]",
+        f"_is_single_channel_3d = {var}.ndim == 3 and {var}.shape[2] == 1",
+        f"_out_w = {out_w} if {out_w} > 0 else _w",
+        f"_out_h = {out_h} if {out_h} > 0 else _h",
+    ]
+    if has_custom_src:
+        code.append(f"_src = np.float32([{src_p1}, {src_p2}, {src_p3}, {src_p4}])")
+    else:
+        code.append("_src = np.float32([(0, 0), (_w - 1, 0), (_w - 1, _h - 1), (0, _h - 1)])")
+
+    if has_custom_dst:
+        code.append(f"_dst = np.float32([{dst_p1}, {dst_p2}, {dst_p3}, {dst_p4}])")
+    else:
+        code.append("_dst = np.float32([(0, 0), (_out_w - 1, 0), (_out_w - 1, _out_h - 1), (0, _out_h - 1)])")
+
+    code.extend(
+        [
+            "_triplets = ((0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3))",
+            "_is_collinear = any(",
+            "    abs(float(",
+            "        (_pts[j][0] - _pts[i][0]) * (_pts[k][1] - _pts[i][1])",
+            "        - (_pts[k][0] - _pts[i][0]) * (_pts[j][1] - _pts[i][1])",
+            "    )) < 1e-4",
+            "    for _pts in (_src, _dst)",
+            "    for i, j, k in _triplets",
+            ")",
+            "if not _is_collinear:",
+            "    try:",
+            "        _m = cv2.getPerspectiveTransform(_src, _dst)",
+            "        if _m is not None and not np.allclose(_m[:2, :2], 0):",
+            (
+                f"            {var} = cv2.warpPerspective("
+                f"{var}, _m, (_out_w, _out_h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)"
+            ),
+            f"            if _is_single_channel_3d and {var}.ndim == 2:",
+            f"                {var} = {var}[:, :, np.newaxis]",
+            "    except cv2.error:",
+            "        pass",
+        ]
+    )
     return code, True
 
 
@@ -1263,6 +1369,107 @@ def _watershed(params: dict, var: str) -> tuple[list[str], bool]:
         "    _result[_thick_boundary == 1] = [0, 0, 255]",
         f"    {var} = _result",
     ]
+    return code, True
+
+
+@register("segmentation_connectedcomponents")
+def _connected_components(params: dict, var: str) -> tuple[list[str], bool]:
+    connectivity = safe_int(params.get("connectivity", 8), 8)
+    if connectivity not in (4, 8):
+        connectivity = 8
+
+    output_mode = str(params.get("output_mode", "COLOR_MAP")).upper()
+    if output_mode not in ("COLOR_MAP", "BOUNDING_BOX", "CENTROID"):
+        output_mode = "COLOR_MAP"
+
+    raw_inv = params.get("invert", False)
+    invert = raw_inv == "TRUE" if isinstance(raw_inv, str) else bool(raw_inv)
+
+    threshold = safe_int(params.get("threshold", 0), 0)
+    threshold = max(0, min(255, threshold))
+
+    min_area = safe_int(params.get("min_area", 50), 50)
+    min_area = max(0, min(100000, min_area))
+
+    color = _get_bgr_color(params, default="#00ffff")
+    thickness = safe_int(params.get("thickness", 2), 2)
+    thickness = max(1, min(20, thickness))
+
+    code = [
+        f"if {var}.ndim == 2:",
+        f"    _gray = {var}",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGRA2GRAY)",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 3:",
+        f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY)",
+        "else:",
+        f"    _gray = {var}[:, :, 0]",
+        f"_binary = (_gray > {threshold}).astype(np.uint8) * 255",
+    ]
+    if invert:
+        code.append("_binary = cv2.bitwise_not(_binary)")
+
+    code.append(
+        f"_num_labels, _labels, _stats, _centroids = "
+        f"cv2.connectedComponentsWithStats(_binary, connectivity={connectivity})"
+    )
+
+    if output_mode == "COLOR_MAP":
+        code.extend(
+            [
+                "if _num_labels <= 1:",
+                "    _res = np.zeros((*_gray.shape[:2], 3), dtype=np.uint8)",
+                "else:",
+                "    _colors = np.zeros((_num_labels, 3), dtype=np.uint8)",
+                "    for _i in range(1, _num_labels):",
+                f"        if _stats[_i, cv2.CC_STAT_AREA] >= {min_area}:",
+                "            _colors[_i] = [(_i * 37) % 180, 255 - ((_i * 53) % 89), 255 - ((_i * 71) % 83)]",
+                "    _lut = cv2.cvtColor(_colors[None, :, :], cv2.COLOR_HSV2BGR)[0]",
+                "    _lut[0] = [0, 0, 0]",
+                "    for _i in range(1, _num_labels):",
+                f"        if _stats[_i, cv2.CC_STAT_AREA] < {min_area}:",
+                "            _lut[_i] = [0, 0, 0]",
+                "    _res = _lut[_labels]",
+                f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
+                f"    {var} = np.concatenate([_res, {var}[:, :, 3:4]], axis=2)",
+                "else:",
+                f"    {var} = _res",
+            ]
+        )
+    elif output_mode == "BOUNDING_BOX":
+        code.extend(
+            [
+                f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+                f"    {var} = cv2.cvtColor(_gray, cv2.COLOR_GRAY2BGR)",
+                "else:",
+                f"    {var} = {var}.copy()",
+                f"_draw_color = (*{color}, 255) if {var}.ndim == 3 and {var}.shape[2] == 4 else {color}",
+                "for _i in range(1, _num_labels):",
+                f"    if _stats[_i, cv2.CC_STAT_AREA] >= {min_area}:",
+                "        _x = int(_stats[_i, cv2.CC_STAT_LEFT])",
+                "        _y = int(_stats[_i, cv2.CC_STAT_TOP])",
+                "        _w = int(_stats[_i, cv2.CC_STAT_WIDTH])",
+                "        _h = int(_stats[_i, cv2.CC_STAT_HEIGHT])",
+                f"        cv2.rectangle({var}, (_x, _y), (_x + _w, _y + _h), _draw_color, {thickness})",
+            ]
+        )
+    else:  # CENTROID
+        code.extend(
+            [
+                f"if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+                f"    {var} = cv2.cvtColor(_gray, cv2.COLOR_GRAY2BGR)",
+                "else:",
+                f"    {var} = {var}.copy()",
+                f"_draw_color = (*{color}, 255) if {var}.ndim == 3 and {var}.shape[2] == 4 else {color}",
+                f"_radius = max(3, {thickness} * 2)",
+                "for _i in range(1, _num_labels):",
+                f"    if _stats[_i, cv2.CC_STAT_AREA] >= {min_area}:",
+                "        _cx = int(round(_centroids[_i, 0]))",
+                "        _cy = int(round(_centroids[_i, 1]))",
+                f"        cv2.circle({var}, (_cx, _cy), _radius, _draw_color, -1)",
+            ]
+        )
+
     return code, True
 
 

@@ -29,6 +29,7 @@ export const categories: CategoryInfo[] = [
       { type: "geometric_cropimage", label: "Crop Image" },
       { type: "geometric_rotateimage", label: "Rotate Image" },
       { type: "geometric_affineimage", label: "Affine Transform" },
+      { type: "geometric_perspectivetransform", label: "Perspective Transform" },
       { type: "geometric_scaleimage", label: "Scale Image" },
       { type: "geometric_resizeimage", label: "Resize Image (Pixels)" },
     ],
@@ -107,6 +108,7 @@ export const categories: CategoryInfo[] = [
       { type: "filtering_cannyedge", label: "Canny Edge Detection" },
       { type: "filtering_houghlines", label: "Hough Line Detection" },
       { type: "filtering_houghcircles", label: "Hough Circle Detection" },
+      { type: "filtering_nlmdenoising", label: "NLM Denoising" },
     ],
   },
   {
@@ -131,6 +133,7 @@ export const categories: CategoryInfo[] = [
       { type: "segmentation_watershed", label: "Watershed" },
       { type: "segmentation_kmeans", label: "K-Means" },
       { type: "segmentation_meanshift", label: "Mean Shift" },
+      { type: "segmentation_connectedcomponents", label: "Connected Components" },
     ],
   },
   {

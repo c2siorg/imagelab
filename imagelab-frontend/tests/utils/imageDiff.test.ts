@@ -166,15 +166,19 @@ describe("imageDiff Utility Suite", () => {
       // Without includeAlpha, RGB delta is 0
       const withoutAlpha = computePixelDifference(bufferA, bufferB, width, height, {
         includeAlpha: false,
+        colormap: "grayscale",
       });
       expect(withoutAlpha.metrics.alteredPixels).toBe(0);
+      expect(withoutAlpha.diffBuffer[0]).toBe(0);
 
-      // With includeAlpha, delta is detected
+      // With includeAlpha, delta is detected and reflected in the difference heatmap
       const withAlpha = computePixelDifference(bufferA, bufferB, width, height, {
         includeAlpha: true,
+        colormap: "grayscale",
       });
       expect(withAlpha.metrics.alteredPixels).toBe(1);
       expect(withAlpha.metrics.peakDelta).toBe(205); // 255 - 50 = 205
+      expect(withAlpha.diffBuffer[0]).toBeGreaterThan(0);
     });
 
     it("computes accurate Rec. 601 Luma perceptual error", () => {

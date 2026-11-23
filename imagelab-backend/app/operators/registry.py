@@ -45,15 +45,18 @@ from app.operators.filtering.hough_circles import HoughCircles
 from app.operators.filtering.hough_lines import HoughLines
 from app.operators.filtering.laplacian import Laplacian as FilteringLaplacian
 from app.operators.filtering.morphological import Morphological
+from app.operators.filtering.nlm_denoising import NlmDenoising
 from app.operators.filtering.pyramid_down import PyramidDown
 from app.operators.filtering.pyramid_up import PyramidUp
 from app.operators.filtering.sharpen import Sharpen
 from app.operators.geometric.affine_image import AffineImage
 from app.operators.geometric.crop_image import CropImage
+from app.operators.geometric.perspective_transform import PerspectiveTransform
 from app.operators.geometric.reflect_image import ReflectImage
 from app.operators.geometric.resize_image import ResizeImage
 from app.operators.geometric.rotate_image import RotateImage
 from app.operators.geometric.scale_image import ScaleImage
+from app.operators.segmentation.connected_components import ConnectedComponents
 from app.operators.segmentation.kmeans_segmentation import KMeansSegmentation
 from app.operators.segmentation.mean_shift_segmentation import MeanShiftSegmentation
 from app.operators.segmentation.watershed import Watershed
@@ -79,6 +82,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "geometric_rotateimage": RotateImage,
     "geometric_scaleimage": ScaleImage,
     "geometric_affineimage": AffineImage,
+    "geometric_perspectivetransform": PerspectiveTransform,
     "geometric_cropimage": CropImage,
     # Conversions
     "imageconversions_clahe": ClaheImage,
@@ -120,6 +124,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "filtering_erosion": Erosion,
     "filtering_dilation": Dilation,
     "filtering_morphological": Morphological,
+    "filtering_nlmdenoising": NlmDenoising,
     # Augmentation
     "augmentation_gaussiannoise": GaussianNoise,
     "augmentation_saltpeppernoise": SaltPepperNoise,
@@ -146,6 +151,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "transformation_distance": DistanceTransform,
     "transformation_laplacian": TransformationLaplacian,
     # Segmentation
+    "segmentation_connectedcomponents": ConnectedComponents,
     "segmentation_watershed": Watershed,
     "segmentation_kmeans": KMeansSegmentation,
     "segmentation_meanshift": MeanShiftSegmentation,

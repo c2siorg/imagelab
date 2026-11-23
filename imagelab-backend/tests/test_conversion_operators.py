@@ -458,6 +458,19 @@ class TestHistogramEqualization:
         np.testing.assert_array_equal(result[:, :, 3], alpha)
         assert not np.array_equal(result[:, :, :3], bgr)
 
+    def test_single_channel_3d_equalizes(self):
+        rng = np.random.default_rng(42)
+        gray_2d = rng.integers(100, 141, (64, 64), dtype=np.uint8)
+        gray_3d = gray_2d[:, :, np.newaxis]
+
+        res_2d = HistogramEqualization({}).compute(gray_2d)
+        res_3d = HistogramEqualization({}).compute(gray_3d)
+
+        assert res_3d.shape == (64, 64)
+        assert res_3d.dtype == np.uint8
+        np.testing.assert_array_equal(res_2d, res_3d)
+        assert not np.array_equal(res_3d, gray_2d)
+
 
 class TestBrightnessAndContrast:
     def test_bgra_adjusts_color_and_keeps_alpha(self):
