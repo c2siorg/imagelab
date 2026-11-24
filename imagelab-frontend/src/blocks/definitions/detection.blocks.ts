@@ -171,4 +171,23 @@ export const detectionBlocks = [
     tooltip:
       "Detects scale- and rotation-invariant feature keypoints using ORB (Oriented FAST and Rotated BRIEF). Extracts feature interest points across multiple pyramid levels, calculates dominant orientation angles, and renders keypoint markers. Enable 'Draw rich keypoints' to display circular markers indicating keypoint scale and orientation lines.",
   },
+  {
+    type: "detection_qrcodedetection",
+    message0: "Detect QR Codes %1 Box color %2 %3 Thickness %4 %5 Draw label %6 %7 Text color %8",
+    args0: [
+      { type: "input_dummy" },
+      { type: "field_colour", name: "boxColor", colour: "#00e676" },
+      { type: "input_dummy" },
+      { type: "field_number", name: "thickness", value: 3, min: 1, max: 10 },
+      { type: "input_dummy" },
+      { type: "field_checkbox", name: "drawLabel", checked: true },
+      { type: "input_dummy" },
+      { type: "field_colour", name: "textColor", colour: "#ffffff" },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "detection_style",
+    tooltip:
+      "Detects and decodes QR codes in the image using OpenCV's QRCodeDetector. Outlines each detected QR code with a bounding polygon and corner markers, and optionally draws a label pill with the decoded URL or text payload above the code.",
+  },
 ];
