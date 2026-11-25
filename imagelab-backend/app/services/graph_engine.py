@@ -39,6 +39,7 @@ OPERATOR_OUTPUT_CHANNELS = {
     "imageconversions_colortobinary": 1,
     "imageconversions_graytobinary": 1,
     "imageconversions_channelsplit": 1,
+    "imageconversions_bitplaneslicing": 1,
     "thresholding_adaptivethreshold": 1,
     "thresholding_inrange": 1,
     "thresholding_otsuthreshold": 1,

@@ -660,4 +660,61 @@ describe("validatePipelineGraph", () => {
       expect(warning).toBeDefined();
     });
   });
+
+  describe("Bit-Plane Slicing channel propagation", () => {
+    it("allows bit plane output to connect to 1-channel operators", () => {
+      const graph: PipelineGraph = {
+        nodes: [
+          { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
+          {
+            id: "2",
+            type: "imageconversions_bitplaneslicing",
+            op: "imageconversions_bitplaneslicing",
+            params: { bit: 7 },
+          },
+          {
+            id: "3",
+            type: "thresholding_adaptivethreshold",
+            op: "thresholding_adaptivethreshold",
+            params: {},
+          },
+        ],
+        edges: [
+          { from: "1", to: "2" },
+          { from: "2", to: "3" },
+        ],
+      };
+      const result = validatePipelineGraph(graph, 3);
+      expect(result.valid).toBe(true);
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    it("warns when bit plane output feeds into a color-only operator", () => {
+      const graph: PipelineGraph = {
+        nodes: [
+          { id: "1", type: "basic_readimage", op: "basic_readimage", params: {} },
+          {
+            id: "2",
+            type: "imageconversions_bitplaneslicing",
+            op: "imageconversions_bitplaneslicing",
+            params: { bit: 7 },
+          },
+          {
+            id: "3",
+            type: "imageconversions_bgrtohsv",
+            op: "imageconversions_bgrtohsv",
+            params: {},
+          },
+        ],
+        edges: [
+          { from: "1", to: "2" },
+          { from: "2", to: "3" },
+        ],
+      };
+      const result = validatePipelineGraph(graph, 3);
+      expect(result.valid).toBe(false);
+      const warning = result.warnings.find((w) => w.nodeId === "3");
+      expect(warning).toBeDefined();
+    });
+  });
 });
