@@ -16,6 +16,7 @@ import {
   loadPersistedWorkspaceState,
   saveWorkspaceState,
 } from "./workspacePersistence";
+import { BLOCKLY_MEDIA_URL } from "../blocklyMedia";
 
 const SAVE_DEBOUNCE_MS = 500;
 
@@ -85,6 +86,7 @@ export function useBlocklyWorkspace({
 
     const ws = Blockly.inject(containerRef.current, {
       readOnly,
+      media: BLOCKLY_MEDIA_URL,
       move: {
         scrollbars: true,
         drag: true,
