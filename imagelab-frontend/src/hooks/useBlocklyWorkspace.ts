@@ -7,6 +7,7 @@ import { WorkspaceSearch } from "@blockly/plugin-workspace-search";
 import { usePipelineStore } from "../store/pipelineStore";
 import { useMacroStore, registerMacroBlocksFromDefinitions } from "../store/useMacroStore";
 import { imagelabTheme, imagelabThemeDark } from "../blocks/theme";
+import { BLOCKLY_MEDIA_PATH } from "../blockly-setup";
 import { SINGLETON_BLOCK_TYPES } from "../utils/blockLimits";
 import { markWorkspaceTearingDown } from "../blocks/extensions/readImageExtension";
 import { migrateWorkspaceJson } from "../utils/workspaceMigrations";
@@ -85,6 +86,7 @@ export function useBlocklyWorkspace({
 
     const ws = Blockly.inject(containerRef.current, {
       readOnly,
+      media: BLOCKLY_MEDIA_PATH,
       move: {
         scrollbars: true,
         drag: true,

@@ -176,6 +176,15 @@ describe("useBlocklyWorkspace theme and read-only changes", () => {
     expect(ws.setTheme).toHaveBeenLastCalledWith(imagelabTheme);
   });
 
+  it("loads Blockly media from the app instead of the default remote URL", () => {
+    renderWorkspaceHook();
+
+    expect(Blockly.inject).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ media: "/blockly-media/" }),
+    );
+  });
+
   it("clears the image when read-only mode changes", () => {
     const { hook } = renderWorkspaceHook();
     usePipelineStore.getState().setOriginalImage("data:image/png;base64,AAAA", "png", "photo.png");
