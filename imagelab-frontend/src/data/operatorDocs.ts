@@ -322,6 +322,35 @@ export const operatorDocs: Record<string, OperatorDoc> = {
     ],
     useCases: ["Smoothing textures while keeping edges crisp (e.g., cartoonizing)."],
   },
+  filtering_edgepreserving: {
+    name: "Edge-Preserving Filter",
+    description:
+      "Smooths flat and textured image regions while maintaining sharp edge boundaries using OpenCV domain transform filtering (cv2.edgePreservingFilter). Ideal for tone mapping, photographic stylization, and noise attenuation without edge blurring.",
+    parameters: [
+      {
+        name: "Mode",
+        description:
+          "Filter algorithm: 'Recursive Filter' executes in O(1) linear time independent of neighborhood radius; 'Normalized Convolution' avoids gradient reversal halos.",
+      },
+      {
+        name: "Spatial Sigma (s)",
+        description:
+          "Spatial neighborhood smoothing scale in pixels. Higher values smooth over larger spatial structures. Range: 1 to 200. Default: 60.",
+      },
+      {
+        name: "Range Sigma (r)",
+        description:
+          "Color range sensitivity ratio. Smaller values preserve subtle edge contrasts; larger values merge regions with greater color differences. Range: 0.05 to 1.0. Default: 0.4.",
+      },
+    ],
+    formula:
+      "Domain transform edge-preserving filtering with recursive or normalized convolution discretization",
+    useCases: [
+      "Photographic skin smoothing and portrait enhancement while preserving eyes, hair, and lip edges.",
+      "Preprocessing for edge detection and segmentation by eliminating high-frequency surface texture.",
+      "Computational photography tone mapping, HDR compression, and painterly non-photorealistic rendering.",
+    ],
+  },
   filtering_sharpen: {
     name: "Sharpen",
     description:

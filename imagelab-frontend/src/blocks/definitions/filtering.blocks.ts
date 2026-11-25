@@ -339,4 +339,28 @@ export const filteringBlocks = [
     tooltip:
       "Applies edge-preserving non-photorealistic stylization filtering via recursive domain-transform algorithms. Modes include Watercolor / Painting (smooth painterly gradients with preserved edges), Pencil Sketch Grayscale/Color (graphite or colored pencil drawing), and Detail Enhance (boosting fine structural textures without amplifying flat noise).",
   },
+  {
+    type: "filtering_edgepreserving",
+    message0: "Edge-preserving filter %1 Mode %2 %3 Spatial sigma (s) %4 %5 Range sigma (r) %6",
+    args0: [
+      { type: "input_dummy" },
+      {
+        type: "field_dropdown",
+        name: "mode",
+        options: [
+          ["Recursive Filter", "RECURS_FILTER"],
+          ["Normalized Convolution", "NORMCONV_FILTER"],
+        ],
+      },
+      { type: "input_dummy" },
+      { type: "field_number", name: "sigma_s", value: 60, min: 1, max: 200 },
+      { type: "input_dummy" },
+      { type: "field_number", name: "sigma_r", value: 0.4, min: 0.05, max: 1.0, precision: 0.05 },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "filtering_style",
+    tooltip:
+      "Smooths uniform regions while preserving sharp edges using domain transform filtering. Recursive Filter runs in fast O(1) time; Normalized Convolution prevents gradient reversal artifacts.",
+  },
 ];

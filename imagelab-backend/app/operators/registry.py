@@ -42,6 +42,7 @@ from app.operators.filtering.box_filter import BoxFilter
 from app.operators.filtering.canny_edge import CannyEdge
 from app.operators.filtering.contour_detection import ContourDetection
 from app.operators.filtering.dilation import Dilation
+from app.operators.filtering.edge_preserving import EdgePreservingFilter
 from app.operators.filtering.erosion import Erosion
 from app.operators.filtering.gabor_filter import GaborFilter
 from app.operators.filtering.hough_circles import HoughCircles
@@ -134,6 +135,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "filtering_dilation": Dilation,
     "filtering_morphological": Morphological,
     "filtering_nlmdenoising": NlmDenoising,
+    "filtering_edgepreserving": EdgePreservingFilter,
     # Augmentation
     "augmentation_gaussiannoise": GaussianNoise,
     "augmentation_motionblur": MotionBlur,
