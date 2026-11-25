@@ -77,6 +77,7 @@ from app.operators.transformation.convex_hull import ConvexHull
 from app.operators.transformation.distance_transform import DistanceTransform
 from app.operators.transformation.laplacian import Laplacian as TransformationLaplacian
 from app.operators.transformation.min_enclosing import MinEnclosing
+from app.operators.transformation.skeletonization import Skeletonization
 
 OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     # Basic
@@ -162,6 +163,7 @@ OPERATOR_REGISTRY: dict[str, type[BaseOperator]] = {
     "transformation_distance": DistanceTransform,
     "transformation_laplacian": TransformationLaplacian,
     "transformation_minenclosing": MinEnclosing,
+    "transformation_skeletonization": Skeletonization,
     # Segmentation
     "segmentation_connectedcomponents": ConnectedComponents,
     "segmentation_watershed": Watershed,

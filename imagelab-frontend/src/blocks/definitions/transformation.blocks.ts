@@ -116,4 +116,60 @@ export const transformationBlocks = [
     tooltip:
       "Apply Laplacian edge detection (second order derivative) - Detects regions of rapid intensity change. Kernel size controls the aperture (1, 3, 5, or 7) — larger values detect broader edges. Output depth: use -1 to match the source image depth (note: for 8-bit images, negative Laplacian responses are clipped to zero — use depth 6 / CV_64F to retain full signed output). Values 0–6 correspond to OpenCV depth constants. Useful for blob detection and sharpening edge transitions.",
   },
+  {
+    type: "transformation_skeletonization",
+    message0:
+      "Skeletonization %1 Structuring element %2 %3 Kernel size %4 %5 Threshold %6 %7 Invert %8 %9 Max iterations %10 %11 Output mode %12 %13 Skeleton color %14",
+    args0: [
+      { type: "input_dummy" },
+      {
+        type: "field_dropdown",
+        name: "element",
+        options: [
+          ["Cross", "CROSS"],
+          ["Rectangle", "RECTANGLE"],
+          ["Ellipse", "ELLIPSE"],
+        ],
+      },
+      { type: "input_dummy" },
+      {
+        type: "field_dropdown",
+        name: "kernel_size",
+        options: [
+          ["3x3", "3"],
+          ["5x5", "5"],
+          ["7x7", "7"],
+        ],
+      },
+      { type: "input_dummy" },
+      { type: "field_number", name: "threshold", value: 127, min: 0, max: 255 },
+      { type: "input_dummy" },
+      { type: "field_checkbox", name: "invert", checked: false },
+      { type: "input_dummy" },
+      {
+        type: "field_number",
+        name: "max_iterations",
+        value: 0,
+        min: 0,
+        max: 500,
+        precision: 1,
+      },
+      { type: "input_dummy" },
+      {
+        type: "field_dropdown",
+        name: "output_mode",
+        options: [
+          ["Binary Mask", "BINARY_MASK"],
+          ["Overlay on Source", "OVERLAY"],
+        ],
+      },
+      { type: "input_dummy" },
+      { type: "field_colour", name: "skeleton_color", colour: "#00ffff" },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "transformation_style",
+    tooltip:
+      "Computes the morphological skeleton (topological medial axis) of shapes by iteratively eroding and subtracting morphological openings until convergence. Preserves shape topology, connectivity, and endpoints. Features selectable structuring elements (Cross, Rectangle, Ellipse), iteration bounding, and binary mask or color overlay visualization. Ideal for OCR character thinning, stroke analysis, vascular network tracing, and fingerprint ridge extraction.",
+  },
 ];

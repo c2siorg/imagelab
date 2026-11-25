@@ -95,6 +95,7 @@ OPERATOR_NAMES: dict[str, str] = {
     "transformation_distance": "Distance Transform",
     "transformation_laplacian": "Laplacian Filter",
     "transformation_minenclosing": "Minimum Enclosing Geometries",
+    "transformation_skeletonization": "Morphological Skeletonization",
     "laplacian": "Laplacian Filter",
     "segmentation_kmeans": "K-Means Color Segmentation",
     "segmentation_meanshift": "Mean Shift Segmentation",

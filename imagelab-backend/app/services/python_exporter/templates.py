@@ -1485,6 +1485,98 @@ def _convexhull(params: dict, var: str) -> tuple[list[str], bool]:
     return code, True
 
 
+@register("transformation_skeletonization")
+def _skeletonization(params: dict, var: str) -> tuple[list[str], bool]:
+    elem_str = str(params.get("element", "CROSS")).upper()
+    elem_code = "cv2.MORPH_CROSS"
+    if elem_str == "RECTANGLE":
+        elem_code = "cv2.MORPH_RECT"
+    elif elem_str == "ELLIPSE":
+        elem_code = "cv2.MORPH_ELLIPSE"
+
+    ksize = safe_int(params.get("kernel_size", 3), 3)
+    ksize = max(3, min(15, ksize))
+    if ksize % 2 == 0:
+        ksize += 1
+
+    max_iters = max(0, min(500, safe_int(params.get("max_iterations", 0), 0)))
+    thresh = max(0, min(255, safe_int(params.get("threshold", 127), 127)))
+    raw_inv = params.get("invert", False)
+    invert = raw_inv is True or str(raw_inv).strip().lower() in ("true", "1", "yes", "on")
+    mode = str(params.get("output_mode", "BINARY_MASK")).upper()
+    if mode not in ("BINARY_MASK", "OVERLAY"):
+        mode = "BINARY_MASK"
+
+    color = _get_bgr_color(params, key="skeleton_color", default="#00ffff")
+    gray_col = int(round(0.114 * color[0] + 0.587 * color[1] + 0.299 * color[2]))
+    max_loop_limit = max_iters if max_iters > 0 else 1000
+
+    code = [
+        f"if {var}.ndim == 2:",
+        f"    _sk_gray = {var}",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    _sk_gray = {var}[:, :, 0]",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    _sk_gray = cv2.cvtColor({var}, cv2.COLOR_BGRA2GRAY)",
+        "else:",
+        f"    _sk_gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY)",
+        f"_, _sk_bin = cv2.threshold(_sk_gray, {thresh}, 255, cv2.THRESH_BINARY)",
+    ]
+    if invert:
+        code.append("_sk_bin = cv2.bitwise_not(_sk_bin)")
+
+    code.extend(
+        [
+            f"_sk_elem = cv2.getStructuringElement({elem_code}, ({ksize}, {ksize}))",
+            "_sk_out = np.zeros_like(_sk_bin)",
+            "if cv2.countNonZero(_sk_bin) > 0:",
+            "    _sk_curr = _sk_bin.copy()",
+            "    _sk_i = 0",
+            "    while True:",
+            "        _sk_eroded = cv2.erode(_sk_curr, _sk_elem)",
+            "        _sk_opened = cv2.dilate(_sk_eroded, _sk_elem)",
+            "        _sk_diff = cv2.subtract(_sk_curr, _sk_opened)",
+            "        _sk_out = cv2.bitwise_or(_sk_out, _sk_diff)",
+            "        _sk_curr = _sk_eroded",
+            "        _sk_i += 1",
+            f"        if cv2.countNonZero(_sk_curr) == 0 or _sk_i >= {max_loop_limit}:",
+            "            break",
+        ]
+    )
+
+    if mode == "OVERLAY":
+        code.extend(
+            [
+                f"{var} = {var}.copy()",
+                f"if {var}.ndim == 2:",
+                f"    {var}[_sk_out > 0] = {gray_col}",
+                f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+                f"    {var}[_sk_out > 0, 0] = {gray_col}",
+                f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+                f"    {var}[_sk_out > 0, :3] = {color}",
+                f"    {var}[_sk_out > 0, 3] = 255",
+                "else:",
+                f"    {var}[_sk_out > 0] = {color}",
+            ]
+        )
+    else:
+        code.extend(
+            [
+                f"if {var}.ndim == 2:",
+                f"    {var} = _sk_out",
+                f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+                f"    {var} = _sk_out[:, :, np.newaxis]",
+                f"elif {var}.ndim == 3 and {var}.shape[2] == 4:",
+                f"    _sk_alpha = {var}[:, :, 3].copy()",
+                "    _sk_alpha[_sk_out > 0] = 255",
+                f"    {var} = np.dstack((cv2.cvtColor(_sk_out, cv2.COLOR_GRAY2BGR), _sk_alpha))",
+                "else:",
+                f"    {var} = cv2.cvtColor(_sk_out, cv2.COLOR_GRAY2BGR)",
+            ]
+        )
+    return code, True
+
+
 @register("transformation_distance")
 def _distance_transform(params: dict, var: str) -> tuple[list[str], bool]:
     dist_type_name = str(params.get("type", "DIST_L2")).upper()
