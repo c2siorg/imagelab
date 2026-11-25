@@ -648,6 +648,7 @@ def test_exported_operators_match_app_on_alpha_images():
         ("imageconversions_histogramequalization", {}),
         ("imageconversions_colormaps", {}),
         ("imageconversions_invertimage", {}),
+        ("imageconversions_brightnessandcontrast", {"brightnessValue": 25, "contrastValue": 1.4}),
         ("filtering_morphological", {"type": "TOPHAT"}),
         ("filtering_morphological", {"type": "OPEN"}),
         ("filtering_sharpen", {"strength": 1.5}),

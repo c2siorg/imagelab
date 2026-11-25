@@ -264,13 +264,20 @@ def _invertimage(params: dict, var: str) -> tuple[list[str], bool]:
 @register("imageconversions_brightnessandcontrast")
 def _brightness_contrast(params: dict, var: str) -> tuple[list[str], bool]:
     # Same clamping and formula as the BrightnessAndContrast operator: contrast is applied
-    # around mid-grey (128), which cv2.convertScaleAbs does not do
+    # around mid-grey (128), which cv2.convertScaleAbs does not do.
+    # For BGRA images, only the BGR channels are adjusted; alpha is preserved.
     brightness = max(-100, min(100, safe_int(params.get("brightnessValue"), 0)))
     contrast = max(0.0, min(3.0, safe_float(params.get("contrastValue"), 1.0)))
-    return [
-        f"{var} = np.clip({contrast} * ({var}.astype(np.float32) - 128.0) + 128.0 + {brightness}, 0, 255)"
-        ".astype(np.uint8)"
-    ], True
+    code = [
+        f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    _bgr = np.clip({contrast} * ({var}[:, :, :3].astype(np.float32) - 128.0) + 128.0 + {brightness}, 0, 255)"
+        ".astype(np.uint8)",
+        f"    {var} = np.dstack([_bgr, {var}[:, :, 3]])",
+        "else:",
+        f"    {var} = np.clip({contrast} * ({var}.astype(np.float32) - 128.0) + 128.0 + {brightness}, 0, 255)"
+        ".astype(np.uint8)",
+    ]
+    return code, True
 
 
 @register("imageconversions_gammacorrection")
