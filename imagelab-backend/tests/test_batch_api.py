@@ -1075,3 +1075,36 @@ async def test_video_job_truncated_stream_fails_with_error(temp_jobs_dir, monkey
     result = summary["results"][0]
     assert result["success"] is False
     assert "truncated or corrupted" in result["error"]
+
+
+def test_writer_frame_accepts_single_channel_3d_array():
+    frame = np.full((16, 20, 1), 128, dtype=np.uint8)
+    bgr = batch_executor._writer_frame(frame)
+    assert bgr.shape == (16, 20, 3)
+    assert bgr.dtype == np.uint8
+    assert bgr.flags["C_CONTIGUOUS"]
+    assert np.all(bgr == 128)
+
+
+def test_writer_frame_handles_gray_bgr_bgra_and_rejects_invalid_channels():
+    gray = np.full((12, 16), 90, dtype=np.uint8)
+    out_gray = batch_executor._writer_frame(gray)
+    assert out_gray.shape == (12, 16, 3)
+    assert out_gray.flags["C_CONTIGUOUS"]
+    assert np.all(out_gray == 90)
+
+    bgr = np.full((12, 16, 3), 42, dtype=np.uint8)
+    out_bgr = batch_executor._writer_frame(bgr)
+    assert out_bgr.shape == (12, 16, 3)
+    assert out_bgr.flags["C_CONTIGUOUS"]
+    assert np.array_equal(out_bgr, bgr)
+
+    bgra = np.full((12, 16, 4), 200, dtype=np.uint8)
+    out_bgra = batch_executor._writer_frame(bgra)
+    assert out_bgra.shape == (12, 16, 3)
+    assert out_bgra.flags["C_CONTIGUOUS"]
+    assert np.all(out_bgra == 200)
+
+    two_ch = np.zeros((12, 16, 2), dtype=np.uint8)
+    with pytest.raises(ValueError, match="grayscale, BGR, or BGRA"):
+        batch_executor._writer_frame(two_ch)
