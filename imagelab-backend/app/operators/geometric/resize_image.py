@@ -39,4 +39,7 @@ class ResizeImage(BaseOperator):
         if width == original_cols and height == original_rows:
             return image.copy()
 
-        return cv2.resize(image, (width, height), interpolation=interpolation_flag)
+        resized = cv2.resize(image, (width, height), interpolation=interpolation_flag)
+        if image.ndim == 3 and image.shape[2] == 1 and resized.ndim == 2:
+            resized = resized[:, :, np.newaxis]
+        return resized

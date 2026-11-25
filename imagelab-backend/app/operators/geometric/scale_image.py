@@ -39,4 +39,7 @@ class ScaleImage(BaseOperator):
 
         rows, cols = image.shape[:2]
         new_size = (max(1, int(cols * fx)), max(1, int(rows * fy)))
-        return cv2.resize(image, new_size, interpolation=interpolation_flag)
+        resized = cv2.resize(image, new_size, interpolation=interpolation_flag)
+        if image.ndim == 3 and image.shape[2] == 1 and resized.ndim == 2:
+            resized = resized[:, :, np.newaxis]
+        return resized
