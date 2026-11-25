@@ -339,4 +339,32 @@ export const filteringBlocks = [
     tooltip:
       "Applies edge-preserving non-photorealistic stylization filtering via recursive domain-transform algorithms. Modes include Watercolor / Painting (smooth painterly gradients with preserved edges), Pencil Sketch Grayscale/Color (graphite or colored pencil drawing), and Detail Enhance (boosting fine structural textures without amplifying flat noise).",
   },
+  {
+    type: "filtering_lsd",
+    message0:
+      "Line segment detector (LSD) %1 Refinement %2 %3 Scale %4 %5 Line color %6 %7 Thickness %8",
+    args0: [
+      { type: "input_dummy" },
+      {
+        type: "field_dropdown",
+        name: "refine",
+        options: [
+          ["Standard", "STD"],
+          ["None", "NONE"],
+          ["Advanced", "ADV"],
+        ],
+      },
+      { type: "input_dummy" },
+      { type: "field_number", name: "scale", value: 0.8, min: 0.1, max: 2.0, precision: 0.1 },
+      { type: "input_dummy" },
+      { type: "field_colour", name: "lineColor", colour: "#00FF00" },
+      { type: "input_dummy" },
+      { type: "field_number", name: "thickness", value: 2, min: 1, max: 20 },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "filtering_style",
+    tooltip:
+      "Detects straight line segments with sub-pixel precision using the Line Segment Detector (LSD) without requiring Canny edge tuning.",
+  },
 ];

@@ -588,6 +588,37 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       "Cell and bubble counting in microscopy and biomedical research.",
     ],
   },
+  filtering_lsd: {
+    name: "Line Segment Detector (LSD)",
+    description:
+      "Detects straight line segments with sub-pixel precision using the Line Segment Detector (cv2.createLineSegmentDetector). Operates in linear O(N) time and controls false detections without requiring manual edge threshold tuning.",
+    parameters: [
+      {
+        name: "Refinement",
+        description:
+          "Refinement algorithm: 'Standard' refines bounds and false detections; 'None' skips refinement; 'Advanced' performs additional alignment verification.",
+      },
+      {
+        name: "Scale",
+        description:
+          "Gaussian downsampling scale factor for line detection. Range: 0.1 to 2.0. Default: 0.8.",
+      },
+      {
+        name: "Line Color",
+        description: "Color of the detected line segment overlays. Default: green (#00ff00).",
+      },
+      {
+        name: "Thickness",
+        description: "Line rendering thickness in pixels. Range: 1 to 20. Default: 2.",
+      },
+    ],
+    formula: "A-contrario false detection control (NFA) + Sub-pixel gradient angle alignment",
+    useCases: [
+      "Building facade, architectural blueprint, and urban wireframe extraction.",
+      "Road lane marking, runway line, and linear boundary detection.",
+      "Document skew angle and printed table border segment extraction.",
+    ],
+  },
 
   // --- Thresholding ---
   thresholding_adaptivethreshold: {
