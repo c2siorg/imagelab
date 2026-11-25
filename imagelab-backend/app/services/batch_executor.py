@@ -53,6 +53,8 @@ def _writer_frame(image: np.ndarray) -> np.ndarray:
         raise ValueError(f"MP4 output requires 8-bit frames; pipeline returned {image.dtype}.")
     if image.ndim == 2:
         image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+    elif image.ndim == 3 and image.shape[2] == 1:
+        image = cv2.cvtColor(image[:, :, 0], cv2.COLOR_GRAY2BGR)
     elif image.ndim == 3 and image.shape[2] == 4:
         image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
     elif image.ndim != 3 or image.shape[2] != 3:
