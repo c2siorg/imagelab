@@ -1,6 +1,8 @@
 export interface OperatorParameter {
   name: string;
   description: string;
+  type?: string;
+  default?: string;
 }
 
 export interface OperatorDoc {
