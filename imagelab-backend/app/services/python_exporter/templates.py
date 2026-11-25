@@ -537,15 +537,25 @@ def _sharpen(params: dict, var: str) -> tuple[list[str], bool]:
     strength = safe_float(params.get("strength", 1.0), 1.0)
     # Clamp to the same bounds as Sharpen
     strength = max(0.0, min(2.0, strength))
-    # Mirrors Sharpen: fixed kernel, BGRA to BGR, and strength blends the
-    # sharpened image with the original
+    kernel_decl = "_kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], dtype=np.float32)"
+    blend = f"cv2.addWeighted({{0}}, {1.0 - strength}, _sharp, {strength}, 0)"
     code = [
         f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
-        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
-        "_kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], dtype=np.float32)",
-        f"_sharpened = cv2.filter2D({var}, -1, _kernel)",
-        f"{var} = cv2.addWeighted({var}, {1.0 - strength}, _sharpened, {strength}, 0)",
-        f"{var} = np.clip({var}, 0, 255).astype(np.uint8)",
+        f"    {kernel_decl}",
+        f"    _bgr = {var}[:, :, :3]",
+        "    _sharp = cv2.filter2D(_bgr, -1, _kernel)",
+        f"    _res = np.clip({blend.format('_bgr')}, 0, 255).astype(np.uint8)",
+        f"    {var} = np.dstack([_res, {var}[:, :, 3]])",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    {kernel_decl}",
+        f"    _gray = {var}[:, :, 0]",
+        "    _sharp = cv2.filter2D(_gray, -1, _kernel)",
+        f"    _res = np.clip({blend.format('_gray')}, 0, 255).astype(np.uint8)",
+        f"    {var} = _res[:, :, np.newaxis]",
+        "else:",
+        f"    {kernel_decl}",
+        f"    _sharp = cv2.filter2D({var}, -1, _kernel)",
+        f"    {var} = np.clip({blend.format(var)}, 0, 255).astype(np.uint8)",
     ]
     return code, True
 
