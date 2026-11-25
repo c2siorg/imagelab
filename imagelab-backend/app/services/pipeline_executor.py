@@ -102,6 +102,7 @@ def _run_sub_pipeline(steps: list[PipelineStep | dict], current_image: np.ndarra
                     raise ValueError(f"Unknown operator '{step_type}'")
                 op = op_cls(step_params)
                 img = op.compute(img)
+            check_memory_limit(img)
         except ValueError as e:
             raise PipelineExecutionError(
                 step_id=step_id or step_type,

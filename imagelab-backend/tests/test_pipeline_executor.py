@@ -340,3 +340,79 @@ def test_arithmetic_add_weighted_operator():
     res_gray = op_gray.compute(gray)
     assert isinstance(res_gray, np.ndarray)
     assert res_gray.shape == (40, 40)
+
+
+def test_run_sub_pipeline_enforces_memory_limit(monkeypatch):
+    """_run_sub_pipeline wraps MemoryLimitExceededException into PipelineExecutionError with step info."""
+    orig_check = pipeline_executor.check_memory_limit
+    monkeypatch.setattr(pipeline_executor, "check_memory_limit", lambda image: orig_check(image, max_bytes=100))
+    img = np.zeros((10, 10, 3), dtype=np.uint8)
+    steps = [PipelineStep(block_id="step1", type="filtering_pyramidup", params={})]
+
+    with pytest.raises(PipelineExecutionError) as exc_info:
+        pipeline_executor._run_sub_pipeline(steps, img)
+    assert exc_info.value.step_id == "step1"
+    assert exc_info.value.step_type == "filtering_pyramidup"
+    assert "exceeds memory limit" in exc_info.value.user_friendly_message
+
+
+def test_nested_expand_then_shrink_catches_intermediate_memory_limit(monkeypatch):
+    """An intermediate >limit image followed by a shrink step is still caught inside _run_sub_pipeline."""
+    from app.utils.image import encode_image_base64
+
+    orig_check = pipeline_executor.check_memory_limit
+    monkeypatch.setattr(pipeline_executor, "check_memory_limit", lambda image: orig_check(image, max_bytes=500))
+
+    # 10x10x3 = 300 bytes -> pyramidup -> 20x20x3 = 1200 bytes (> 500) -> pyramiddown -> 10x10x3 = 300 bytes
+    img = np.zeros((10, 10, 3), dtype=np.uint8)
+    b64 = encode_image_base64(img, "png")
+    step = PipelineStep(
+        block_id="ifelse1",
+        type="macro_if_else",
+        params={"metric": "width", "comparator": ">", "threshold": 0},
+        branches={
+            "then": [
+                PipelineStep(block_id="up_big", type="filtering_pyramidup", params={}),
+                PipelineStep(block_id="down_small", type="filtering_pyramiddown", params={}),
+            ],
+            "else": [],
+        },
+    )
+
+    resp = execute_pipeline(PipelineRequest(image=b64, image_format="png", pipeline=[step]))
+    assert resp.success is False
+    assert resp.step == 1
+    assert resp.error_block_id == "ifelse1"
+    assert "exceeds memory limit" in (resp.error or "")
+    assert len(resp.step_results) == 1
+    assert resp.step_results[0].block_id == "ifelse1"
+    assert resp.step_results[0].success is False
+
+
+def test_macro_blend_oversized_right_branch_caught_before_resize(monkeypatch):
+    """An oversized right branch in macro_blend is caught before _execute_macro_blend resizes it to left."""
+    from app.utils.image import encode_image_base64
+
+    orig_check = pipeline_executor.check_memory_limit
+    monkeypatch.setattr(pipeline_executor, "check_memory_limit", lambda image: orig_check(image, max_bytes=500))
+
+    img = np.zeros((10, 10, 3), dtype=np.uint8)  # 300 bytes
+    b64 = encode_image_base64(img, "png")
+    step = PipelineStep(
+        block_id="blend1",
+        type="macro_blend",
+        params={"alpha": 0.5, "beta": 0.5},
+        branches={
+            "left": [],
+            "right": [PipelineStep(block_id="right_up", type="filtering_pyramidup", params={})],
+        },
+    )
+
+    resp = execute_pipeline(PipelineRequest(image=b64, image_format="png", pipeline=[step]))
+    assert resp.success is False
+    assert resp.step == 1
+    assert resp.error_block_id == "blend1"
+    assert "exceeds memory limit" in (resp.error or "")
+    assert len(resp.step_results) == 1
+    assert resp.step_results[0].block_id == "blend1"
+    assert resp.step_results[0].success is False
