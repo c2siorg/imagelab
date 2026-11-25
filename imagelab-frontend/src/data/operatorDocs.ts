@@ -1,6 +1,8 @@
 export interface OperatorParameter {
   name: string;
   description: string;
+  type?: string;
+  default?: string;
 }
 
 export interface OperatorDoc {
@@ -1061,6 +1063,39 @@ export const operatorDocs: Record<string, OperatorDoc> = {
       "Object recognition, visual odometry, and real-time visual SLAM (Simultaneous Localization and Mapping).",
       "Feature-based image matching and 2D/3D tracking without proprietary/patented algorithms (open-source alternative to SIFT/SURF).",
       "Educational demonstrations of modern local invariant feature extraction and descriptor theory.",
+    ],
+  },
+  detection_qrcodedetection: {
+    name: "QR Code Detection",
+    description:
+      "Detects and decodes 2D QR codes in an image using OpenCV's built-in QRCodeDetector. Automatically localizes multiple QR codes, outlines them with a closed bounding polygon and corner markers, and optionally renders an overlaid label displaying the decoded URL or text payload.",
+    parameters: [
+      {
+        name: "Box Color",
+        description:
+          "Hex color of the bounding polygon and corner markers. Default: green (#00e676).",
+      },
+      {
+        name: "Thickness",
+        description:
+          "Border line thickness of the bounding polygon in pixels. Range: 1 to 10. Default: 3.",
+      },
+      {
+        name: "Draw Label",
+        description:
+          "When enabled, draws a label box above each detected QR code showing the decoded text or URL.",
+      },
+      {
+        name: "Text Color",
+        description: "Color of the decoded label text. Default: white (#ffffff).",
+      },
+    ],
+    formula: "cv2.QRCodeDetector.detectAndDecodeMulti(image) -> (points, decoded_text)",
+    useCases: [
+      "Scanning QR codes in documents, receipts, inventory labels, and packaging.",
+      "Extracting URLs, contact vCards, Wi-Fi credentials, or payment payloads from photos.",
+      "Localizing fiducial markers for camera calibration, AR tag tracking, and robotics navigation.",
+      "Teaching 2D barcode localization and optical recognition in computer vision curricula.",
     ],
   },
   segmentation_connectedcomponents: {

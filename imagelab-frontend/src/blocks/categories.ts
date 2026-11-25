@@ -150,6 +150,7 @@ export const categories: CategoryInfo[] = [
       { type: "detection_smiledetection", label: "Smile Detection" },
       { type: "detection_cornerdetection", label: "Corner Detection" },
       { type: "detection_orb", label: "ORB Feature Detection" },
+      { type: "detection_qrcodedetection", label: "QR Code Detection" },
     ],
   },
   {

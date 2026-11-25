@@ -2207,6 +2207,121 @@ def _smiledetection(params: dict, var: str) -> tuple[list[str], bool]:
     return code, False
 
 
+@register("detection_qrcodedetection")
+def _qrcodedetection(params: dict, var: str) -> tuple[list[str], bool]:
+    box_color = _get_bgr_color(params, default="#00e676")
+    thickness = safe_int(params.get("thickness", 3), 3)
+    thickness = max(1, min(10, thickness))
+    draw_label_raw = params.get("drawLabel", True)
+    draw_label = (
+        draw_label_raw.strip().upper() in ("TRUE", "1", "YES")
+        if isinstance(draw_label_raw, str)
+        else bool(draw_label_raw)
+    )
+    text_color = hex_to_bgr(str(params.get("textColor", "#ffffff")))
+
+    code = [
+        "_qr_detector = cv2.QRCodeDetector()",
+        (
+            f"_gray = {var}[:, :, 0] if ({var}.ndim == 3 and {var}.shape[2] == 1) else "
+            f"(cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY if {var}.shape[2] == 3 else cv2.COLOR_BGRA2GRAY) "
+            f"if {var}.ndim == 3 else {var})"
+        ),
+        "_h, _w = _gray.shape[:2]",
+        "_qr_list = []",
+        "# Pass 1: Raw grayscale detection",
+        "_ret, _decoded_info, _points, _ = _qr_detector.detectAndDecodeMulti(_gray)",
+        "if _ret and _points is not None and len(_points) > 0:",
+        "    for _text, _p in zip(_decoded_info, _points):",
+        "        _p_arr = np.asarray(_p, dtype=np.float32).reshape(-1, 2)",
+        "        if len(_p_arr) == 4 and _text:",
+        "            _qr_list.append((str(_text), _p_arr))",
+        "if not _qr_list:",
+        "    _text, _single_pts, _ = _qr_detector.detectAndDecode(_gray)",
+        "    if _single_pts is not None and len(_single_pts) > 0 and _text:",
+        "        _p_arr = np.asarray(_single_pts, dtype=np.float32).reshape(-1, 2)",
+        "        if len(_p_arr) == 4:",
+        "            _qr_list.append((str(_text), _p_arr))",
+        "# Pass 2: Quiet-zone padding fallback for tightly-cropped codes",
+        "if not _qr_list:",
+        "    _pad = max(24, int(min(_h, _w) * 0.1))",
+        "    _padded = cv2.copyMakeBorder(_gray, _pad, _pad, _pad, _pad, cv2.BORDER_CONSTANT, value=255)",
+        "    _ret, _decoded_info, _points, _ = _qr_detector.detectAndDecodeMulti(_padded)",
+        "    if _ret and _points is not None and len(_points) > 0:",
+        "        for _text, _p in zip(_decoded_info, _points):",
+        "            _p_arr = np.asarray(_p, dtype=np.float32).reshape(-1, 2)",
+        "            if len(_p_arr) == 4 and _text:",
+        "                _p_unpad = np.clip(_p_arr - _pad, [0, 0], [_w - 1, _h - 1])",
+        "                _qr_list.append((str(_text), _p_unpad))",
+        "    if not _qr_list:",
+        "        _text, _single_pts, _ = _qr_detector.detectAndDecode(_padded)",
+        "        if _single_pts is not None and len(_single_pts) > 0 and _text:",
+        "            _p_arr = np.asarray(_single_pts, dtype=np.float32).reshape(-1, 2)",
+        "            if len(_p_arr) == 4:",
+        "                _p_unpad = np.clip(_p_arr - _pad, [0, 0], [_w - 1, _h - 1])",
+        "                _qr_list.append((str(_text), _p_unpad))",
+        "# Pass 3: Otsu binarization fallback for anti-aliased/low-contrast codes",
+        "if not _qr_list:",
+        "    _pad = max(24, int(min(_h, _w) * 0.1))",
+        "    _, _thresh = cv2.threshold(_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)",
+        "    _padded_t = cv2.copyMakeBorder(_thresh, _pad, _pad, _pad, _pad, cv2.BORDER_CONSTANT, value=255)",
+        "    _ret, _decoded_info, _points, _ = _qr_detector.detectAndDecodeMulti(_padded_t)",
+        "    if _ret and _points is not None and len(_points) > 0:",
+        "        for _text, _p in zip(_decoded_info, _points):",
+        "            _p_arr = np.asarray(_p, dtype=np.float32).reshape(-1, 2)",
+        "            if len(_p_arr) == 4 and _text:",
+        "                _p_unpad = np.clip(_p_arr - _pad, [0, 0], [_w - 1, _h - 1])",
+        "                _qr_list.append((str(_text), _p_unpad))",
+        "    if not _qr_list:",
+        "        _text, _single_pts, _ = _qr_detector.detectAndDecode(_padded_t)",
+        "        if _single_pts is not None and len(_single_pts) > 0 and _text:",
+        "            _p_arr = np.asarray(_single_pts, dtype=np.float32).reshape(-1, 2)",
+        "            if len(_p_arr) == 4:",
+        "                _p_unpad = np.clip(_p_arr - _pad, [0, 0], [_w - 1, _h - 1])",
+        "                _qr_list.append((str(_text), _p_unpad))",
+        "if len(_qr_list) > 0:",
+        f"    if {var}.ndim == 2 or ({var}.ndim == 3 and {var}.shape[2] == 1):",
+        f"        {var} = cv2.cvtColor({var} if {var}.ndim == 2 else {var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
+        "    " + _draw_color_line(box_color, var),
+        f"    _text_color = {text_color}",
+        f"    if {var}.ndim == 3 and {var}.shape[2] == 4:",
+        "        _text_color = (*_text_color, 255)",
+        "    for _text, _pts in _qr_list:",
+        "        _pts_int = _pts.astype(np.int32)",
+        f"        cv2.polylines({var}, [_pts_int], True, _color, {thickness}, cv2.LINE_AA)",
+        f"        _radius = max(3, {thickness} + 1)",
+        "        for _pt in _pts_int:",
+        f"            cv2.circle({var}, (int(_pt[0]), int(_pt[1])), _radius, _color, -1, cv2.LINE_AA)",
+    ]
+    if draw_label:
+        code.extend(
+            [
+                "        _lbl = f'QR: {_text}' if _text else 'QR Code'",
+                "        if len(_lbl) > 35:",
+                "            _lbl = _lbl[:32] + '...'",
+                "        (_lw, _lh), _base = cv2.getTextSize(_lbl, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)",
+                "        _top_idx = int(np.argmin(_pts[:, 1]))",
+                "        _top_x, _top_y = int(_pts[_top_idx, 0]), int(_pts[_top_idx, 1])",
+                "        _lbl_h = _lh + _base + 8",
+                "        if _top_y >= _lbl_h + 2:",
+                "            _by1 = _top_y - _lbl_h",
+                "            _by2 = _top_y - 2",
+                "        else:",
+                f"            _by1 = min({var}.shape[0] - _lbl_h, _top_y + 4)",
+                "            _by2 = _by1 + _lbl_h",
+                f"        _bx1 = max(0, min({var}.shape[1] - _lw - 8, _top_x))",
+                f"        _bx2 = min({var}.shape[1], _bx1 + _lw + 8)",
+                (f"        _bg_c = (30, 30, 30, 255) if ({var}.ndim == 3 and {var}.shape[2] == 4) else (30, 30, 30)"),
+                f"        cv2.rectangle({var}, (_bx1, _by1), (_bx2, _by2), _bg_c, -1)",
+                (
+                    f"        cv2.putText({var}, _lbl, (_bx1 + 4, _by2 - _base - 2), "
+                    "cv2.FONT_HERSHEY_SIMPLEX, 0.45, _text_color, 1, cv2.LINE_AA)"
+                ),
+            ]
+        )
+    return code, False
+
+
 # ── Arithmetic ────────────────────────────────────────────────────────────────
 @register("arithmetic_addweighted")
 def _add_weighted(params: dict, var: str) -> tuple[list[str], bool]:
