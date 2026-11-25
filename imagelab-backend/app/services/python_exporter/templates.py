@@ -441,6 +441,31 @@ def _bilateral(params: dict, var: str) -> tuple[list[str], bool]:
     return code, False
 
 
+@register("filtering_edgepreserving")
+def _edge_preserving(params: dict, var: str) -> tuple[list[str], bool]:
+    mode_str = str(params.get("mode", "RECURS_FILTER")).upper()
+    flag_str = "cv2.NORMCONV_FILTER" if mode_str == "NORMCONV_FILTER" else "cv2.RECURS_FILTER"
+    sigma_s = max(1.0, min(200.0, safe_float(params.get("sigma_s", 60.0), 60.0)))
+    sigma_r = max(0.01, min(1.0, safe_float(params.get("sigma_r", 0.4), 0.4)))
+    filt_call = f"cv2.edgePreservingFilter({{0}}, flags={flag_str}, sigma_s={sigma_s}, sigma_r={sigma_r})"
+    code = [
+        f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    _filt = {filt_call.format(var + '[:, :, :3]')}",
+        f"    {var} = np.dstack([_filt, {var}[:, :, 3]])",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    _bgr = cv2.cvtColor({var}[:, :, 0], cv2.COLOR_GRAY2BGR)",
+        f"    _filt = {filt_call.format('_bgr')}",
+        f"    {var} = cv2.cvtColor(_filt, cv2.COLOR_BGR2GRAY)[:, :, np.newaxis]",
+        f"elif {var}.ndim == 2:",
+        f"    _bgr = cv2.cvtColor({var}, cv2.COLOR_GRAY2BGR)",
+        f"    _filt = {filt_call.format('_bgr')}",
+        f"    {var} = cv2.cvtColor(_filt, cv2.COLOR_BGR2GRAY)",
+        "else:",
+        f"    {var} = {filt_call.format(var)}",
+    ]
+    return code, True
+
+
 @register("filtering_boxfilter")
 def _boxfilter(params: dict, var: str) -> tuple[list[str], bool]:
     w = safe_int(params.get("width", 3), 3)
