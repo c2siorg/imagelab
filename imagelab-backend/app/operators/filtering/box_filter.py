@@ -11,6 +11,9 @@ from app.operators.filtering.validation import (
 
 class BoxFilter(BaseOperator):
     def compute(self, image: np.ndarray) -> np.ndarray:
+        if image is None or not isinstance(image, np.ndarray) or image.size == 0:
+            raise ValueError("BoxFilter.compute: received an invalid or empty image")
+
         width = int(self.params.get("width", 3))
         height = int(self.params.get("height", 3))
         depth = int(self.params.get("depth", -1))  # -1 = preserve source image depth (OpenCV convention)
@@ -23,7 +26,7 @@ class BoxFilter(BaseOperator):
         validate_anchor_point(point_y, height, "point_y")
         validate_output_depth(depth, "depth")
 
-        return cv2.boxFilter(
+        result = cv2.boxFilter(
             image,
             depth,
             (width, height),  # OpenCV ksize convention: (width, height)
@@ -31,3 +34,6 @@ class BoxFilter(BaseOperator):
             normalize=True,
             borderType=cv2.BORDER_DEFAULT,
         )
+        if image.ndim == 3 and image.shape[2] == 1 and result.ndim == 2:
+            result = result[:, :, np.newaxis]
+        return result

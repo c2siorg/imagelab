@@ -127,6 +127,11 @@ class TestBoxFilter:
         with pytest.raises(ValueError, match="'depth' must be -1"):
             BoxFilter({"width": 5, "height": 5, "depth": depth}).compute(color_image)
 
+    def test_single_channel_3d_preserves_shape(self):
+        hw1 = np.ones((25, 35, 1), dtype=np.uint8) * 128
+        result = BoxFilter({"width": 3, "height": 3, "depth": -1}).compute(hw1)
+        assert result.shape == (25, 35, 1)
+
 
 # Sharpen
 
