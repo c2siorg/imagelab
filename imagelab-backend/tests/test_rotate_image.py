@@ -62,3 +62,9 @@ class TestRotateImage:
         result = RotateImage({"angle": 90, "scale": 1}).compute(gray)
         assert result.shape == gray.shape
         assert result.dtype == np.uint8
+
+    def test_single_channel_3d_input_preserves_shape(self):
+        hw1 = np.full((100, 200, 1), 128, dtype=np.uint8)
+        result = RotateImage({"angle": 90, "scale": 1}).compute(hw1)
+        assert result.shape == (200, 100, 1)
+        assert result.dtype == np.uint8
