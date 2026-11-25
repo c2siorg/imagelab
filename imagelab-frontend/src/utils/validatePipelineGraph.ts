@@ -292,7 +292,11 @@ export function validatePipelineGraph(
         nodeType === "segmentation_connectedcomponents"
       ) {
         outputs[nodeId] = primary === 4 ? 4 : 3;
-      } else if (nodeType === "filtering_houghlines" || nodeType === "filtering_houghcircles") {
+      } else if (
+        nodeType === "filtering_houghlines" ||
+        nodeType === "filtering_houghcircles" ||
+        nodeType === "filtering_lsd"
+      ) {
         outputs[nodeId] = primary === 1 ? 3 : primary;
       } else {
         outputs[nodeId] = OPERATOR_OUTPUT_CHANNELS[nodeType] ?? primary;

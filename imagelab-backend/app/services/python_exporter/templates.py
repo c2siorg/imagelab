@@ -768,6 +768,49 @@ def _houghcircles(params: dict, var: str) -> tuple[list[str], bool]:
     return code, True
 
 
+@register("filtering_lsd")
+def _lsd(params: dict, var: str) -> tuple[list[str], bool]:
+    refine_str = str(params.get("refine", "STD")).upper()
+    refine_enum = {
+        "NONE": "cv2.LSD_REFINE_NONE",
+        "STD": "cv2.LSD_REFINE_STD",
+        "ADV": "cv2.LSD_REFINE_ADV",
+    }.get(refine_str, "cv2.LSD_REFINE_STD")
+    scale = max(0.1, min(2.0, safe_float(params.get("scale", 0.8), 0.8)))
+    thickness = max(1, min(20, safe_int(params.get("thickness", 2), 2)))
+    color_bgr = list(hex_to_bgr(str(params.get("lineColor", "#00FF00"))))
+    code = [
+        f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
+        f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGRA2GRAY)",
+        f"    _draw = {var}[:, :, :3].copy()",
+        "    _has_alpha = True",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 3:",
+        f"    _gray = cv2.cvtColor({var}, cv2.COLOR_BGR2GRAY)",
+        f"    _draw = {var}.copy()",
+        "    _has_alpha = False",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    _gray = {var}[:, :, 0]",
+        "    _draw = cv2.cvtColor(_gray, cv2.COLOR_GRAY2BGR)",
+        "    _has_alpha = False",
+        "else:",
+        f"    _gray = {var}",
+        "    _draw = cv2.cvtColor(_gray, cv2.COLOR_GRAY2BGR)",
+        "    _has_alpha = False",
+        f"_detector = cv2.createLineSegmentDetector(refine={refine_enum}, scale={scale})",
+        "_lines, _, _, _ = _detector.detect(_gray)",
+        "if _lines is not None:",
+        "    for _x1, _y1, _x2, _y2 in _lines[:, 0]:",
+        "        _p1 = (int(round(float(_x1))), int(round(float(_y1))))",
+        "        _p2 = (int(round(float(_x2))), int(round(float(_y2))))",
+        f"        cv2.line(_draw, _p1, _p2, {color_bgr}, {thickness})",
+        "if _has_alpha:",
+        f"    {var} = np.dstack([_draw, {var}[:, :, 3]])",
+        "else:",
+        f"    {var} = _draw",
+    ]
+    return code, True
+
+
 @register("filtering_nlmdenoising")
 def _nlm_denoising(params: dict, var: str) -> tuple[list[str], bool]:
     from app.operators.filtering.nlm_denoising import NlmDenoising
