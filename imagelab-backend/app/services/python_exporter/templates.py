@@ -1009,7 +1009,13 @@ def _resize(params: dict, var: str) -> tuple[list[str], bool]:
     h = safe_int(params.get("height", 300), 300)
     interp_name = str(params.get("interpolation", "LINEAR")).upper()
     interp = INTERPOLATION_MAP.get(interp_name, "cv2.INTER_LINEAR")
-    return [f"{var} = cv2.resize({var}, ({w}, {h}), interpolation={interp})"], False
+    code = [
+        f"_was_single_channel_3d = {var}.ndim == 3 and {var}.shape[2] == 1",
+        f"{var} = cv2.resize({var}, ({w}, {h}), interpolation={interp})",
+        f"if _was_single_channel_3d and {var}.ndim == 2:",
+        f"    {var} = {var}[:, :, np.newaxis]",
+    ]
+    return code, False
 
 
 @register("geometric_rotateimage")
@@ -1037,7 +1043,13 @@ def _scale(params: dict, var: str) -> tuple[list[str], bool]:
     fy = safe_float(params.get("fy", 1.0), 1.0)
     interp_name = str(params.get("interpolation", "LINEAR")).upper()
     interp = INTERPOLATION_MAP.get(interp_name, "cv2.INTER_LINEAR")
-    return [f"{var} = cv2.resize({var}, (0, 0), fx={fx}, fy={fy}, interpolation={interp})"], False
+    code = [
+        f"_was_single_channel_3d = {var}.ndim == 3 and {var}.shape[2] == 1",
+        f"{var} = cv2.resize({var}, (0, 0), fx={fx}, fy={fy}, interpolation={interp})",
+        f"if _was_single_channel_3d and {var}.ndim == 2:",
+        f"    {var} = {var}[:, :, np.newaxis]",
+    ]
+    return code, False
 
 
 @register("geometric_affineimage")

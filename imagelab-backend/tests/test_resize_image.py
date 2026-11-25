@@ -49,6 +49,13 @@ def test_resize_zero_dimension_fallback():
     assert result.shape == (15, 25, 3), "Zero dimensions should fall back to original"
 
 
+def test_resize_image_single_channel_3d_preserves_shape():
+    img = np.ones((40, 60, 1), dtype=np.uint8) * 75
+    op = ResizeImage(params={"width": 30, "height": 20})
+    result = op.compute(img)
+    assert result.shape == (20, 30, 1)
+
+
 def test_resize_partial_zero_dimension():
     image = np.zeros((15, 25, 3), dtype=np.uint8)
 

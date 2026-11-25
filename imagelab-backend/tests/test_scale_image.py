@@ -31,3 +31,10 @@ def test_scale_image_invalid_interpolation_raises():
     op = ScaleImage(params={"fx": 1, "fy": 1, "interpolation": "BICUBIC"})
     with pytest.raises(ValueError, match="Unknown interpolation"):
         op.compute(img)
+
+
+def test_scale_image_single_channel_3d_preserves_shape():
+    img = np.ones((50, 40, 1), dtype=np.uint8) * 100
+    op = ScaleImage(params={"fx": 2.0, "fy": 0.5})
+    result = op.compute(img)
+    assert result.shape == (25, 80, 1)
