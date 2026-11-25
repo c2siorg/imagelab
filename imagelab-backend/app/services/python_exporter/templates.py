@@ -448,7 +448,13 @@ def _boxfilter(params: dict, var: str) -> tuple[list[str], bool]:
     depth = safe_int(params.get("depth", -1), -1)
     px = safe_int(params.get("point_x", -1), -1)
     py = safe_int(params.get("point_y", -1), -1)
-    return [f"{var} = cv2.boxFilter({var}, {depth}, ({w}, {h}), anchor=({px}, {py}))"], False
+    code = [
+        f"_was_single_channel_3d = {var}.ndim == 3 and {var}.shape[2] == 1",
+        f"{var} = cv2.boxFilter({var}, {depth}, ({w}, {h}), anchor=({px}, {py}))",
+        f"if _was_single_channel_3d and {var}.ndim == 2:",
+        f"    {var} = {var}[:, :, np.newaxis]",
+    ]
+    return code, False
 
 
 @register("filtering_cannyedge")
