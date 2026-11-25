@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import * as Blockly from "blockly";
 import { categories } from "../blocks/categories";
 import { imagelabTheme } from "../blocks/theme";
+import { BLOCKLY_MEDIA_PATH } from "../blockly-setup";
 
 export interface BlockPreview {
   svgDataUrl: string;
@@ -54,6 +55,7 @@ function generatePreviews(): Map<string, BlockPreview> {
 
   const ws = Blockly.inject(container, {
     readOnly: true,
+    media: BLOCKLY_MEDIA_PATH,
     renderer: "zelos",
     theme: imagelabTheme,
     scrollbars: false,
