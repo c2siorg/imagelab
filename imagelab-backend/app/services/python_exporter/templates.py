@@ -1032,7 +1032,10 @@ def _rotate(params: dict, var: str) -> tuple[list[str], bool]:
         "_new_h = max(1, int(round((_h * _cos) + (_w * _sin))))",
         "_m[0, 2] += ((_new_w - 1) / 2.0) - _center[0]",
         "_m[1, 2] += ((_new_h - 1) / 2.0) - _center[1]",
+        f"_was_single_channel_3d = {var}.ndim == 3 and {var}.shape[2] == 1",
         f"{var} = cv2.warpAffine({var}, _m, (_new_w, _new_h))",
+        f"if _was_single_channel_3d and {var}.ndim == 2:",
+        f"    {var} = {var}[:, :, np.newaxis]",
     ]
     return code, False
 

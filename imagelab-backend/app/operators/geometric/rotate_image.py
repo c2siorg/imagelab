@@ -6,6 +6,9 @@ from app.operators.base import BaseOperator
 
 class RotateImage(BaseOperator):
     def compute(self, image: np.ndarray) -> np.ndarray:
+        if image is None or not isinstance(image, np.ndarray) or image.size == 0:
+            raise ValueError("RotateImage: received an invalid or empty image")
+
         angle = float(self.params.get("angle", 90))
         scale = float(self.params.get("scale", 1))
 
@@ -24,4 +27,7 @@ class RotateImage(BaseOperator):
         new_h = max(1, int(round((rows * cos) + (cols * sin))))
         M[0, 2] += ((new_w - 1) / 2.0) - center[0]
         M[1, 2] += ((new_h - 1) / 2.0) - center[1]
-        return cv2.warpAffine(image, M, (new_w, new_h))
+        rotated = cv2.warpAffine(image, M, (new_w, new_h))
+        if image.ndim == 3 and image.shape[2] == 1 and rotated.ndim == 2:
+            rotated = rotated[:, :, np.newaxis]
+        return rotated
