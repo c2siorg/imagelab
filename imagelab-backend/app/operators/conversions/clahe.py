@@ -3,6 +3,9 @@ import numpy as np
 
 from app.operators.base import BaseOperator
 
+MIN_TILE_GRID_SIZE = 1
+MAX_TILE_GRID_SIZE = 64
+
 
 class ClaheImage(BaseOperator):
     """
@@ -24,7 +27,8 @@ class ClaheImage(BaseOperator):
             A contrast-enhanced uint8 image of the same shape and dtype.
 
         Raises:
-            ValueError: If the image is None or not uint8.
+            ValueError: If the image is None or not uint8, or if a tile grid
+                size is outside 1 to 64.
         """
         if image is None:
             raise ValueError("Input image cannot be None")
@@ -38,6 +42,11 @@ class ClaheImage(BaseOperator):
             int(self.params.get("tileGridSizeX", 8)),
             int(self.params.get("tileGridSizeY", 8)),
         )
+        for name, value in zip(("tileGridSizeX", "tileGridSizeY"), grid_size, strict=True):
+            if not MIN_TILE_GRID_SIZE <= value <= MAX_TILE_GRID_SIZE:
+                raise ValueError(
+                    f"'{name}' must be between {MIN_TILE_GRID_SIZE} and {MAX_TILE_GRID_SIZE}, got {value}."
+                )
         cache_key = (clip_limit, grid_size)
         if not hasattr(self, "_clahe_cache") or self._clahe_cache[0] != cache_key:
             self._clahe_cache = (
