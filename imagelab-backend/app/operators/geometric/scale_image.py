@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 
 from app.operators.base import BaseOperator
+from app.utils.image import check_output_memory
 
 _INTERPOLATION_MAP: dict[str, int] = {
     "LINEAR": cv2.INTER_LINEAR,
@@ -39,6 +40,7 @@ class ScaleImage(BaseOperator):
 
         rows, cols = image.shape[:2]
         new_size = (max(1, int(cols * fx)), max(1, int(rows * fy)))
+        check_output_memory(image, new_size[0], new_size[1])
         resized = cv2.resize(image, new_size, interpolation=interpolation_flag)
         if image.ndim == 3 and image.shape[2] == 1 and resized.ndim == 2:
             resized = resized[:, :, np.newaxis]
