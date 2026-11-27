@@ -3,6 +3,10 @@ import base64
 import cv2
 import numpy as np
 
+from app.exceptions import MemoryLimitExceededException
+
+MAX_IMAGE_MEMORY_BYTES = 50 * 1024 * 1024  # 50 MB default threshold
+
 
 def decode_base64_image(b64: str) -> np.ndarray:
     data = base64.b64decode(b64)
@@ -33,3 +37,13 @@ def encode_image_base64(image: np.ndarray, fmt: str = "png") -> str:
     if not success:
         raise ValueError(f"Could not encode image as {ext}")
     return base64.b64encode(buf).decode("utf-8")
+
+
+def check_output_memory(image: np.ndarray, width: int, height: int, max_bytes: int = MAX_IMAGE_MEMORY_BYTES) -> None:
+    """Reject an output of ``width`` x ``height`` (same channels and dtype as ``image``) before it is allocated."""
+    channels = image.shape[2] if image.ndim == 3 else 1
+    nbytes = int(width) * int(height) * channels * image.itemsize
+    if nbytes > max_bytes:
+        raise MemoryLimitExceededException(
+            f"Image memory footprint ({nbytes} bytes) exceeds memory limit threshold of {max_bytes} bytes."
+        )

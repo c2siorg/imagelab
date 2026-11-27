@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 
 from app.operators.base import BaseOperator
+from app.utils.image import check_output_memory
 
 
 class RotateImage(BaseOperator):
@@ -22,6 +23,7 @@ class RotateImage(BaseOperator):
         sin = abs(M[0, 1])
         new_w = max(1, int(round((rows * sin) + (cols * cos))))
         new_h = max(1, int(round((rows * cos) + (cols * sin))))
+        check_output_memory(image, new_w, new_h)
         M[0, 2] += ((new_w - 1) / 2.0) - center[0]
         M[1, 2] += ((new_h - 1) / 2.0) - center[1]
         return cv2.warpAffine(image, M, (new_w, new_h))

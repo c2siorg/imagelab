@@ -19,13 +19,12 @@ from app.models.pipeline import (
     StepTiming,
 )
 from app.operators.registry import get_operator
-from app.utils.image import decode_base64_image, encode_image_base64
+from app.utils.image import MAX_IMAGE_MEMORY_BYTES, decode_base64_image, encode_image_base64
 
 NOOP_TYPES = {"basic_readimage", "basic_writeimage", "border_for_all", "border_each_side"}
 THUMBNAIL_MAX_SIZE = 128
 EXECUTION_CACHE_TTL_SECONDS = 30 * 60
 MAX_EXECUTION_CACHE_ENTRIES = 25
-MAX_IMAGE_MEMORY_BYTES = 50 * 1024 * 1024  # 50 MB default threshold
 
 
 def check_memory_limit(image: np.ndarray, max_bytes: int = MAX_IMAGE_MEMORY_BYTES) -> None:
