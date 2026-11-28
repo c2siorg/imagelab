@@ -45,13 +45,21 @@ def test_morphological_kernel_size_changes_result() -> None:
     assert int(out_small.sum()) > int(out_large.sum())
 
 
-def test_morphological_top_hat_converts_rgba_to_rgb() -> None:
+def test_morphological_top_hat_preserves_rgba_alpha() -> None:
     image = np.zeros((20, 20, 4), dtype=np.uint8)
-    image[6:14, 6:14] = [255, 255, 255, 255]
+    image[:, :, 3] = 128
+    image[6:14, 6:14] = [255, 255, 255, 200]
 
     out = Morphological({"type": "TOPHAT", "kernelSize": 5}).compute(image)
 
-    assert out.shape == (20, 20, 3)
+    assert out.shape == (20, 20, 4)
+    assert np.array_equal(out[:, :, 3], image[:, :, 3])
+
+
+def test_morphological_single_channel_3d_preserves_shape() -> None:
+    image = np.full((20, 20, 1), 128, dtype=np.uint8)
+    out = Morphological({"type": "TOPHAT", "kernelSize": 5}).compute(image)
+    assert out.shape == (20, 20, 1)
 
 
 def test_morphological_accepts_kernel_size_1() -> None:

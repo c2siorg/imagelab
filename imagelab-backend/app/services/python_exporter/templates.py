@@ -432,13 +432,19 @@ def _bilateral(params: dict, var: str) -> tuple[list[str], bool]:
     d = safe_int(params.get("filterSize", 5), 5)
     sigma_c = safe_float(params.get("sigmaColor", 75), 75.0)
     sigma_s = safe_float(params.get("sigmaSpace", 75), 75.0)
-    # Mirrors BilateralFilter: BGRA input is converted to BGR first
     code = [
         f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
-        f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)",
-        f"{var} = cv2.bilateralFilter({var}, {d}, {sigma_c}, {sigma_s})",
+        f"    _bgr = {var}[:, :, :3]",
+        f"    _res = cv2.bilateralFilter(_bgr, {d}, {sigma_c}, {sigma_s})",
+        f"    {var} = np.dstack([_res, {var}[:, :, 3]])",
+        f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+        f"    _gray = {var}[:, :, 0]",
+        f"    _res = cv2.bilateralFilter(_gray, {d}, {sigma_c}, {sigma_s})",
+        f"    {var} = _res[:, :, np.newaxis]",
+        "else:",
+        f"    {var} = cv2.bilateralFilter({var}, {d}, {sigma_c}, {sigma_s})",
     ]
-    return code, False
+    return code, True
 
 
 @register("filtering_boxfilter")
@@ -508,18 +514,35 @@ def _morph(params: dict, var: str) -> tuple[list[str], bool]:
     op = MORPH_OP_MAP.get(morph_name, "cv2.MORPH_TOPHAT")
     ksize = safe_int(params.get("kernelSize", 5), 5)
     iters = safe_int(params.get("iteration", 1), 1)
-    code = []
-    # Mirrors Morphological: Tophat / Gradient / Blackhat drop alpha first
+    kernel_decl = f"_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, ({ksize}, {ksize}))"
+    code = [kernel_decl]
     if morph_name in ("GRADIENT", "TOPHAT", "BLACKHAT"):
-        code.append(f"if {var}.ndim == 3 and {var}.shape[2] == 4:")
-        code.append(f"    {var} = cv2.cvtColor({var}, cv2.COLOR_BGRA2BGR)")
-    code.extend(
-        [
-            f"_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, ({ksize}, {ksize}))",
-            f"{var} = cv2.morphologyEx({var}, {op}, _kernel, iterations={iters})",
-        ]
-    )
-    return code, False
+        code.extend(
+            [
+                f"if {var}.ndim == 3 and {var}.shape[2] == 4:",
+                f"    _bgr = {var}[:, :, :3]",
+                f"    _res = cv2.morphologyEx(_bgr, {op}, _kernel, iterations={iters})",
+                f"    {var} = np.dstack([_res, {var}[:, :, 3]])",
+                f"elif {var}.ndim == 3 and {var}.shape[2] == 1:",
+                f"    _gray = {var}[:, :, 0]",
+                f"    _res = cv2.morphologyEx(_gray, {op}, _kernel, iterations={iters})",
+                f"    {var} = _res[:, :, np.newaxis]",
+                "else:",
+                f"    {var} = cv2.morphologyEx({var}, {op}, _kernel, iterations={iters})",
+            ]
+        )
+    else:
+        code.extend(
+            [
+                f"if {var}.ndim == 3 and {var}.shape[2] == 1:",
+                f"    _gray = {var}[:, :, 0]",
+                f"    _res = cv2.morphologyEx(_gray, {op}, _kernel, iterations={iters})",
+                f"    {var} = _res[:, :, np.newaxis]",
+                "else:",
+                f"    {var} = cv2.morphologyEx({var}, {op}, _kernel, iterations={iters})",
+            ]
+        )
+    return code, True
 
 
 @register("filtering_pyramiddown")

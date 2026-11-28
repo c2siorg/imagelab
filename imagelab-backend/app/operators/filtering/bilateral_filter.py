@@ -19,7 +19,14 @@ class BilateralFilter(BaseOperator):
         validate_positive_number(sigma_color, "sigmaColor")
         validate_positive_number(sigma_space, "sigmaSpace")
 
-        # Convert RGBA to BGR if needed
-        if len(image.shape) == 3 and image.shape[2] == 4:
-            image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
+        if image.ndim == 3 and image.shape[2] == 4:
+            bgr = image[:, :, :3]
+            res_bgr = cv2.bilateralFilter(bgr, filter_size, sigma_color, sigma_space)
+            return np.dstack([res_bgr, image[:, :, 3]])
+
+        if image.ndim == 3 and image.shape[2] == 1:
+            gray = image[:, :, 0]
+            res_gray = cv2.bilateralFilter(gray, filter_size, sigma_color, sigma_space)
+            return res_gray[:, :, np.newaxis]
+
         return cv2.bilateralFilter(image, filter_size, sigma_color, sigma_space)

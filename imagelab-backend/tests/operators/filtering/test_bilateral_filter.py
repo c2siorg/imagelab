@@ -61,12 +61,18 @@ class TestBilateralFilterValidInput:
         result = BilateralFilter({"sigmaColor": 500, "sigmaSpace": 500}).compute(image)
         assert result.shape == image.shape
 
-    def test_rgba_image_converted_to_bgr(self, rgba_image):
-        """RGBA images should be converted to BGR before filtering."""
+    def test_rgba_image_preserves_alpha(self, rgba_image):
+        """RGBA images should preserve shape and alpha channel."""
         result = BilateralFilter({}).compute(rgba_image)
-        # Result should be BGR (3 channels)
-        assert result.shape == (10, 10, 3)
+        assert result.shape == rgba_image.shape
         assert result.dtype == rgba_image.dtype
+        np.testing.assert_array_equal(result[:, :, 3], rgba_image[:, :, 3])
+
+    def test_single_channel_3d_input_preserves_shape(self):
+        """(H, W, 1) images should retain their 3D shape."""
+        img_hw1 = np.ones((10, 10, 1), dtype=np.uint8) * 128
+        result = BilateralFilter({}).compute(img_hw1)
+        assert result.shape == (10, 10, 1)
 
     def test_grayscale_image_works(self, gray_image):
         """Grayscale images should be processed directly."""

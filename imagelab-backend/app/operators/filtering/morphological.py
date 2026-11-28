@@ -50,8 +50,18 @@ class Morphological(BaseOperator):
     def compute(self, image: np.ndarray) -> np.ndarray:
         morph_name = self.params.get("type", "TOPHAT")
         morph_type = MORPH_TYPES.get(morph_name, cv2.MORPH_TOPHAT)
-        # Convert RGBA to RGB for certain morph types
-        if morph_name in NEEDS_RGB_CONVERSION and len(image.shape) == 3 and image.shape[2] == 4:
-            image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
         kernel = np.ones((self._kernel_size, self._kernel_size), np.uint8)
+
+        if image.ndim == 3 and image.shape[2] == 4:
+            if morph_name in NEEDS_RGB_CONVERSION:
+                bgr = image[:, :, :3]
+                res_bgr = cv2.morphologyEx(bgr, morph_type, kernel)
+                return np.dstack([res_bgr, image[:, :, 3]])
+            return cv2.morphologyEx(image, morph_type, kernel)
+
+        if image.ndim == 3 and image.shape[2] == 1:
+            gray = image[:, :, 0]
+            res_gray = cv2.morphologyEx(gray, morph_type, kernel)
+            return res_gray[:, :, np.newaxis]
+
         return cv2.morphologyEx(image, morph_type, kernel)
