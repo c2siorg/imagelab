@@ -651,6 +651,8 @@ def test_exported_operators_match_app_on_alpha_images():
         ("imageconversions_brightnessandcontrast", {"brightnessValue": 25, "contrastValue": 1.4}),
         ("filtering_morphological", {"type": "TOPHAT"}),
         ("filtering_morphological", {"type": "OPEN"}),
+        ("filtering_morphological", {"type": "GRADIENT"}),
+        ("filtering_morphological", {"type": "BLACKHAT"}),
         ("filtering_sharpen", {"strength": 1.5}),
         ("filtering_bilateral", {}),
         ("segmentation_meanshift", {}),
@@ -665,6 +667,29 @@ def test_exported_operators_match_app_on_alpha_images():
         assert result.shape == expected.shape, f"{op_type}: shape mismatch"
         np.testing.assert_array_equal(
             result, expected, err_msg=f"{op_type}: exported script output differs from the app"
+        )
+
+
+def test_exported_filtering_operators_match_app_on_single_channel_3d_images():
+    """Exported scripts must preserve (H, W, 1) dims matching the app."""
+    image = np.ones((40, 40, 1), dtype=np.uint8) * 128
+    cases = [
+        ("filtering_bilateral", {}),
+        ("filtering_morphological", {"type": "TOPHAT"}),
+        ("filtering_morphological", {"type": "OPEN"}),
+        ("filtering_morphological", {"type": "GRADIENT"}),
+        ("filtering_morphological", {"type": "BLACKHAT"}),
+    ]
+    for op_type, params in cases:
+        operator = get_operator(op_type)(params)
+        expected = operator.compute(image.copy())
+        assert expected.shape == (40, 40, 1), f"{op_type}: operator did not preserve (H, W, 1)"
+        code, unsupported = export_pipeline_to_python([PipelineStep(type=op_type, params=params)])
+        assert unsupported == [], f"{op_type} unexpectedly unsupported"
+        result = _run_exported_pipeline(code, image.copy())
+        assert result.shape == expected.shape, f"{op_type}: exporter shape mismatch"
+        np.testing.assert_array_equal(
+            result, expected, err_msg=f"{op_type}: exported script output differs from operator"
         )
 
 

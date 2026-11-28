@@ -44,9 +44,15 @@ class TestBilateralFilter:
         result = BilateralFilter({}).compute(grayscale_image)
         assert result.shape == grayscale_image.shape
 
-    def test_rgba_input_converted_to_bgr(self, rgba_image):
+    def test_rgba_input_preserves_alpha(self, rgba_image):
         result = BilateralFilter({}).compute(rgba_image)
-        assert result.shape[2] == 3
+        assert result.shape == rgba_image.shape
+        np.testing.assert_array_equal(result[:, :, 3], rgba_image[:, :, 3])
+
+    def test_single_channel_3d_input_preserves_shape(self):
+        img_hw1 = np.ones((20, 20, 1), dtype=np.uint8) * 128
+        result = BilateralFilter({}).compute(img_hw1)
+        assert result.shape == (20, 20, 1)
 
     def test_output_is_uint8(self, color_image):
         result = BilateralFilter({}).compute(color_image)
@@ -258,9 +264,18 @@ class TestMorphological:
         result = Morphological({"type": "OPEN"}).compute(grayscale_image)
         assert result.shape == grayscale_image.shape
 
-    def test_rgba_input_converted_for_gradient(self, rgba_image):
-        result = Morphological({"type": "GRADIENT"}).compute(rgba_image)
-        assert result.shape[2] == 3
+    @pytest.mark.parametrize("morph_type", ["OPEN", "CLOSE", "GRADIENT", "TOPHAT", "BLACKHAT"])
+    def test_rgba_input_preserves_alpha(self, rgba_image, morph_type):
+        result = Morphological({"type": morph_type}).compute(rgba_image)
+        assert result.shape == rgba_image.shape
+        if morph_type in ("GRADIENT", "TOPHAT", "BLACKHAT"):
+            np.testing.assert_array_equal(result[:, :, 3], rgba_image[:, :, 3])
+
+    @pytest.mark.parametrize("morph_type", ["OPEN", "CLOSE", "GRADIENT", "TOPHAT", "BLACKHAT"])
+    def test_single_channel_3d_input_preserves_shape(self, morph_type):
+        img_hw1 = np.ones((20, 20, 1), dtype=np.uint8) * 128
+        result = Morphological({"type": morph_type}).compute(img_hw1)
+        assert result.shape == (20, 20, 1)
 
     def test_output_is_uint8(self, color_image):
         result = Morphological({"type": "OPEN"}).compute(color_image)
